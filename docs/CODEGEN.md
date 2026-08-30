@@ -9,8 +9,8 @@ python -m kernelforge.cli codegen --targets layernorm,gelu --iterations 10
 ```
 
 Generated modules are saved to `results/generated/` before they run; per-attempt
-verdicts are in `results/codegen.json`. All runs below are on the A100-80 node
-`xgph1`.
+verdicts are in `results/codegen.json`. Runs below are on the A100-80 node
+`xgph1` with `qwen3.8:27b`, the model we ship.
 
 ## Targets
 
@@ -19,48 +19,7 @@ verdicts are in `results/codegen.json`. All runs below are on the A100-80 node
 | `gelu` | fused bias-add + exact erf GELU | `F.gelu(x.float() + bias.float(), approximate="none")` |
 | `layernorm` | fused residual-add + row mask + LayerNorm | our block-boundary kernel |
 
-## Which model writes kernels
-
-`scripts/pick_model.py` scores models on whether they emit a valid *plan* as
-JSON. Six of ten tied at 100%, so it ranked them on latency and recommended
-`ornith1.5:35b`. Measuring the actual task instead — every model, 20 kernels per
-sample, same targets, same gate:
-
-| model (as served) | valid plan JSON | correct kernels | samples |
-|---|---|---|---|
-| **`qwen3.8:27b`** | 75% | **48/60 (80%)** | 16/20, 15/20, 17/20 |
-| `qwen3-coder-next` | 100% | 17/40 (43%) | 8/20, 9/20 |
-| `qwen3.6:35b` | 88% | 9/40 (22%) | 6/20, 3/20 |
-| `gemma4:26b` | 100% | 7/40 (18%) | 5/20, 2/20 |
-| `ornith1.5:35b` | 100% | 3/40 (8%) | 0/20, 3/20 |
-| `qwen3.5:9b` | 100% | 0/40 (0%) | 0/20, 0/20 — syntax errors dominate |
-| `llama3.1:8b` | 75% | 0/20 (0%) | 0/20 |
-
-**The JSON benchmark is anti-predictive.** It ranked `ornith1.5:35b` first; that
-model wrote 3 of 40. `qwen3.8:27b`, ranked last on format at 75%, wrote 48 of 60.
-We ship **`qwen3.8:27b`**.
-
-Two properties of the gateway that the measurement has to account for:
-
-- **It aliases model ids.** Ten advertised ids resolve to seven distinct models —
-  `qwen3.6:27b` is served by `qwen3.8:27b`, `ornith1.0:35b` by `ornith1.5:35b`,
-  `default` by `qwen3.6:35b`. Mapping in `results/model_aliases.json`; every
-  artifact records the id that actually served the request, so a score is never
-  attributed to the wrong model.
-- **It rate-limits per key.** The client backs off to a two-minute ceiling and
-  honours `Retry-After`; a request that never returns is logged as `api_error`
-  in the taxonomy, so a throttled arm is distinguishable from a model that
-  generated nothing.
-
-Every model except `llama3.1:8b` has at least two independent samples, and the
-winner has three. The spread within a model is wide — 5/20 and 2/20 for
-`gemma4:26b`, 6/20 and 3/20 for `qwen3.6:35b` — so the ordering of the middle of
-the table is not defended; the top two and the bottom one are separated by far
-more than that spread.
-
-## Results — the shipped model's run
-
-`qwen3.8:27b`, 10 attempts per target:
+## Results
 
 | target | ok | how the rest failed | best generated kernel |
 |---|---|---|---|
@@ -68,6 +27,12 @@ more than that spread.
 | `gelu` | **7/10** | 3 `numeric_fail` | **3.91x** vs torch, envelope 0.031, 67 lines |
 
 Successful `gelu` attempts cluster at 3.59–3.91x.
+
+**Model choice is measured.** Every model the gateway serves was run through this
+loop; correct-kernel counts ranged from 48/60 down to 0/40, and `qwen3.8:27b`
+won. `scripts/pick_model.py` scores plan-JSON quality instead, and on this
+gateway that was *anti-predictive* of kernel-writing ability, so it is not what
+selects the model. Arms are committed as `results/codegen_<model>_<arch>.json`.
 
 ## Failure modes
 
@@ -86,25 +51,21 @@ The model did not forget `tl.erf`; it substituted an approximation and quantifie
 the error correctly. Tolerance is measured against the *reference*, which calls
 exact `erf`, so the envelope is **22.8** against a limit of 1.0 — 5,724,633 of
 8,388,608 elements outside tolerance. The same model produces the same
-substitution with the same comment on both GPUs.
+substitution on both GPUs. Only the gate catches it.
 
-**2. Under-specification, not incapability.** The contract is worth more than
-the feedback mechanism. This clause:
+**2. The contract does the work.** This clause is worth **0/5 → 5/12** on
+`layernorm`:
 
 > CRITICAL — do not split the d axis. mean and variance are per-row statistics
 > over ALL d elements, so a single program must reduce a whole row.
 
-is worth **0/5 → 5/12** on the `layernorm` target; without it the model splits
-the reduction and the kernel is silently wrong.
-
-**3. `shared_memory_overflow`.** A tiling fine on an A100 does not launch on a
-99 KB shared-memory budget. The spec sheet states the limit explicitly, and
+**3. Hardware limits must be in the prompt.** A tiling fine on an A100 does not
+launch on a 99 KB shared-memory budget. The spec sheet states the limit, and
 `ops/flash.py:legal_blocks` filters tilings against the *measured* budget.
 
-**4. `triton_global_not_constexpr`.** A Triton kernel cannot read a plain
-module-level global; it must be `tl.constexpr`. The system prompt warns about it
-explicitly and the model still produces it — some failure modes are properties of
-the framework, not the author.
+**4. Some failures are framework properties.** A Triton kernel cannot read a
+plain module-level global; it must be `tl.constexpr`. The system prompt warns
+about this and the model still produces it.
 
 **5. Difficulty tracks structure, not size.** Elementwise-with-broadcast (`gelu`)
 succeeds readily; fused reduction with masking (`layernorm`) needs a much tighter
@@ -116,10 +77,8 @@ of the data layout.
 An illegal memory access in a generated kernel corrupts the CUDA context: the
 launch returns cleanly, the error surfaces asynchronously at a later unrelated
 call, and every subsequent CUDA operation in the process fails. `try/except`
-cannot recover it.
-
-Each candidate is therefore validated in a throwaway subprocess
-(`agent/codegen_worker.py`). A crash costs one kernel, not the run.
+cannot recover it. Each candidate is validated in a throwaway subprocess
+(`agent/codegen_worker.py`), so a crash costs one kernel, not the run.
 
 ## Trust model
 
@@ -131,37 +90,7 @@ properties make it defensible:
 3. **Nothing generated is in the shipped dispatch table.** Promoting one is a
    deliberate human step.
 
-## Repair loop
-
-`--repair N` re-prompts with the failed kernel, its compiler diagnostic, and a
-structural diagnosis of numeric failures — not just "envelope 256050" but:
-
-> the error is nearly CONSTANT within each row, which means the per-row
-> statistics (mean/variance) are wrong — most likely reduced over a tile of the
-> feature axis instead of the whole row
-
-**It does not beat resampling.** On the shipped model at equal attempt budget:
-
-| | correct | fresh samples | repairs |
-|---|---|---|---|
-| `--repair 0` | 13/20 | 13/20 | — |
-| `--repair 3` | 13/20 | 12/16 | **1/4** |
-
-The totals tie, and the breakdown says why: a repaired kernel succeeded once in
-four attempts, against 12 of 16 for a fresh sample of the same budget. Repair
-spends attempts at a worse rate than sampling does, so the default is
+`--repair N` re-prompts with the failure diagnostic instead of sampling a fresh
+kernel. At equal budget it does not help — both arms reach 13/20, and repaired
+kernels succeed 1/4 against 12/16 for fresh samples — so the default is
 `--repair 0`.
-
-The mechanism is plausible — a repair prompt carries the broken source in
-context and edits around it, while a fresh sample is free to pick a different
-decomposition, and these bugs are usually structural (wrong reduction axis,
-wrong tiling). Measured across models the effect is small and its sign is not
-stable, so the claim here is only the narrow one: it does not help, and the
-per-attempt rate is worse.
-
-Repair lineages also stall — the model can return the same `TypeError`
-repeatedly, burning the budget on one lineage. `error_signature()` fingerprints a
-failure with line numbers stripped; a repair reproducing its parent's signature
-abandons the lineage and samples fresh.
-
-Arms are committed as `results/codegen_shipped_repair{0,3}_sm_80.json`.

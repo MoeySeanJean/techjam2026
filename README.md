@@ -217,41 +217,29 @@ each.
 
 ## Limitations, and what we would improve given more time
 
-- **Shape 14's accuracy cannot be proven at full size.** Nothing can compute a
-  reference output at `S=100000`, so there is no envelope to measure. We verify
-  the same code path against an exact reference at every length that *does* fit,
-  and separately verify that slicing the batch does not change the answer. That
-  is the strongest available statement and it is weaker than a measured envelope.
-  This one is a property of the shape, not of the implementation.
+- **Shape 14's correctness cannot be proven at full size.** Nothing can compute a
+  reference output at `S=100000`, so there is no envelope to measure on the one
+  official shape that matters most. We verify the same code path against an exact
+  reference at every length that *does* fit, and separately verify that slicing
+  the batch does not change the answer. That is weaker than a measured envelope.
 - **Shape 14 spends 97.7% of its GPU time in the fp32 attention fallback.**
   Triton's `tl.dot` needs a narrow float type, so an fp32 attention stage falls
-  through to `F.scaled_dot_product_attention`; at `S=100000` that single
-  `fmha_cutlassF_f32` kernel is essentially the whole runtime, and everything
-  else in the stack is the remaining 2.3%. An fp32 flash kernel, or a bf16 path
-  with an error budget verified at that length, is the only optimization that
-  would matter here.
-- **Small-batch long-causal attention is where our own kernel loses to the
-  library.** On the official causal shapes we win with our kernel — shape 13
-  (`B64-S1024`) is 12.14x over the reference and 4.26x over `torch.compile`. On
-  `B2-S2048` causal the search selects `torch.compile` instead, and the roofline
-  says why: 17% of tensor-core ceiling on the A100 and 11% on the H100, against
-  45–50% for the *same shape without* causal masking. Skipping the tiles above
-  the diagonal halves the work but not the launch grid, so occupancy falls with
-  it. A persistent-tile causal kernel that packs the triangular work is the fix.
-  (Accuracy is not the cause: an `exp2`-free variant of the kernel measures the
-  same envelope to four decimal places at every length from `S=128` to `S=4096`.)
-- **Envelope utilization is noisier than the thresholds assume.** Re-evaluating
-  the same (case, plan) pair in six fresh processes moves it by up to **0.141**,
-  as cuBLAS selects different kernels for the same call. Admission is gated at
-  0.80 and re-verification permits 0.90 — a gap of 0.10, narrower than the
-  observed spread. That errs toward demoting a good plan to the bit-exact one
-  rather than keeping a bad one, and in practice `verify --demote` has demoted
-  nothing on any GPU, but the correct fix is to widen the gap on the measurement
-  rather than leave it on judgement.
-- **The model bake-off does not order its middle.** Every model has at least two
-  independent samples and the winner has three, but within-model spread is wide
-  (`gemma4:26b` scored 5/20 then 2/20). The top two and the bottom one are
-  separated by far more than that; the models between them are not.
+  through to `F.scaled_dot_product_attention`. An fp32 flash kernel, or a bf16
+  path with an error budget verified at that length, is the only optimization
+  that would matter for this shape.
+- **Our flash kernel does not win every causal shape.** It wins the official ones
+  — shape 13 (`B64-S1024`) is 12.14x over the reference and 4.26x over
+  `torch.compile` — but at small batch and long sequence the search selects
+  `torch.compile` instead, because skipping the tiles above the diagonal halves
+  the work without shrinking the launch grid: 17% of tensor-core ceiling on the
+  A100 against 45–50% for the same shape uncausal. A persistent-tile kernel that
+  packs the triangular work is the fix.
+- **The accuracy margin rests on a threshold narrower than the noise.** The same
+  (case, plan) pair re-measures up to 0.141 apart across fresh processes, as
+  cuBLAS picks different kernels for the same call; admission is gated at 0.80
+  and re-verification permits 0.90, a gap of 0.10. The asymmetry errs toward the
+  bit-exact plan and nothing has been demoted on any GPU, but the gap should be
+  set from that measurement rather than by judgement.
 
 ---
 

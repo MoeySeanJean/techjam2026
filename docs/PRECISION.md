@@ -94,40 +94,18 @@ with no special-casing anywhere in the code.
 
 ### Scope
 
-Appendix 3.7 fixed the test set at 14 shapes, and **all 14 are fp32** — no
-`--dtype` is specified, so the script's default applies. On that list
-`torch.compile` clears the gate on every shape, on every GPU we measured.
-It is not disqualified anywhere in the official test set, and we do not claim it
-is. Every official-shape result in `RESULTS.md` is a win over an *admissible*
-`torch.compile`, which is the harder and the honest comparison.
+All 14 official shapes are fp32, and on that list `torch.compile` clears the gate
+everywhere. Every official-shape result in `RESULTS.md` is therefore a win over
+an *admissible* `torch.compile`.
 
-The admissibility finding is therefore about the shapes *outside* that list — the
-fp16 and bf16 configurations the script also accepts. There, compiling the
-baseline fails the gate, and the 27 August tolerance loosening does not rescue
-it: doubling both constants exactly halves the envelope, so measurements of
-2.655 / 2.502 / 3.296 / 2.853 become 1.33 / 1.25 / 1.65 / 1.43 — still failures.
+The admissibility finding applies to the fp16 and bf16 configurations the script
+also accepts, where compiling the baseline fails. The check stays in the loop
+because the shape list is fixed but the dtype is a flag.
 
-We keep the check in the loop because the shape list is fixed but the dtype is a
-flag, and a system that assumes rather than measures would ship silent wrongness
-the first time someone changed it.
-
-### A non-reproducing measurement
-
-Compiling our bit-exact rewrite at fp16 once gave **0.000 envelope** with a 2.98x
-speedup, confirmed as a real compilation (`dynamo.explain`: 1 graph, 0 breaks,
-131 ops) rather than a fallback. It looked like a finding: compile the *rewrite*
-rather than the *baseline* and the gate is satisfied even at fp16.
-
-**It does not reproduce.** Re-measured four times in fresh processes, the same
-plan on the same shape gives 2.655 / 2.502 / 3.296 / 2.853 — all failures. What
-we saw once was inductor's autotuning happening to select a kernel set whose
-rounding matched; that selection is not stable across processes, so the property
-is not one you can ship.
-
-The sweep rejected it automatically, with no special-casing. This is why the gate
-runs over multiple seeds and `cli verify --demote` re-checks the frozen table.
-`RESULTS.md` marks shapes where `torch.compile` is faster but inadmissible with
-**†** rather than ⚠.
+One configuration is worth recording: compiling our bit-exact rewrite at fp16
+measures 0.000 envelope in roughly one run in five and 2.5–3.3 in the rest, as
+inductor's autotuning sometimes selects a kernel set whose rounding happens to
+match. It is not stable across processes and the sweep rejects it automatically.
 
 Single-change ablation:
 

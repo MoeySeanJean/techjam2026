@@ -347,54 +347,31 @@ harness, driving the cluster, and diagnosing failures.
 proposer at build time. The client is plain `urllib` — no SDK dependency, so the
 loop reproduces from a clean checkout.
 
-**Model selection was measured, not assumed.** `scripts/pick_model.py` scores
-every reachable model on whether it can emit a valid plan as JSON. That turned
-out to be the wrong question: six of ten tied at 100%, so it ranked them on
-latency. So we measured the task we actually care about instead — every model
-through the kernel-generation loop on the A100, 20 kernels each, same targets,
-same gate:
+**Model selection is measured.** Every model the gateway serves was run through
+the kernel-generation loop — 20 kernels per sample, same targets, same gate:
 
-| model (as served) | valid plan JSON | correct kernels (pooled) |
-|---|---|---|
-| **`qwen3.8:27b`** | 75% | **48/60 (80%)** |
-| `qwen3-coder-next` | 100% | 17/40 (43%) |
-| `qwen3.6:35b` | 88% | 9/40 (22%) |
-| `gemma4:26b` | 100% | 7/40 (18%) |
-| `ornith1.5:35b` | 100% | 3/40 (8%) |
-| `qwen3.5:9b` | 100% | 0/40 — syntax errors dominate |
-| `llama3.1:8b` | 75% | 0/20 |
+| model (as served) | correct kernels (pooled) |
+|---|---|
+| **`qwen3.8:27b`** | **48/60 (80%)** |
+| `qwen3-coder-next` | 17/40 (43%) |
+| `qwen3.6:35b` | 9/40 (22%) |
+| `gemma4:26b` | 7/40 (18%) |
+| `ornith1.5:35b` | 3/40 (8%) |
+| `qwen3.5:9b` | 0/40 |
+| `llama3.1:8b` | 0/20 |
 
-The JSON benchmark is **anti-predictive**: it ranked `ornith1.5:35b` first
-(100%, fastest) and that model wrote zero working kernels, while `qwen3.8:27b` —
-ranked *last* on format — wrote the most. We ship **`qwen3.8:27b`**.
-
-Two properties of the gateway the measurement accounts for, detailed in
-[CODEGEN.md](CODEGEN.md):
-
-- **It aliases model ids** — ten advertised ids resolve to seven distinct models,
-  so every artifact records the id that actually served the request rather than
-  the one requested (`results/model_aliases.json`).
-- **It rate-limits per key** — the client backs off to a two-minute ceiling and
-  honours `Retry-After`, and an unanswered request is logged as `api_error`, so a
-  throttled arm is distinguishable from a model that generated nothing.
-
-Every model but one has at least two independent samples and the winner has
-three. Within-model spread is wide (5/20 and 2/20 for `gemma4:26b`), so the
-middle of the table is not ordered with confidence; the top two and the bottom
-one are separated by far more than that spread.
+We ship **`qwen3.8:27b`**. `scripts/pick_model.py`, which scores plan-JSON
+quality, was *anti-predictive* of this ranking and is not what selects the model.
+Details in [CODEGEN.md](CODEGEN.md).
 
 ### Per-architecture optimization
 
-This is the claim the track is really asking about — "generate more efficient
-implementations for **specific GPU hardware**" — so it needs evidence, not an
-assertion that we put a spec sheet in the prompt.
-
-We ran the same four official shapes through the same loop on an A100 and an
-H100, changing nothing but the machine. The proposer sees that machine's spec
-sheet (SM count, shared memory per block, bandwidth, tensor-core support) and its
-measured bottleneck profile. Comparing the *configuration* that won on each card
-— not the plan name, which the model writes itself and which would overstate the
-difference:
+The track asks for implementations tuned to *specific GPU hardware*, so this is
+measured. The same four official shapes, the same loop, an A100 and an H100,
+changing nothing but the machine; the proposer sees that machine's spec sheet
+(SM count, shared memory per block, bandwidth, tensor-core support) and its
+measured profile. Comparing the winning *configuration* on each card — not the
+plan name, which the model writes itself:
 
 | proposer | shapes with a different winning configuration |
 |---|---|

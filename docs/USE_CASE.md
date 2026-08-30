@@ -15,32 +15,23 @@ python scripts/usecase.py --tune        # measures this, on your GPU, now
 
 ## Why this track is a recommendation problem
 
-TikTok's own framing of TechJam puts recommendation at the centre, and Track 3's
-appendix is not a random benchmark — it is a ranking workload with the labels
-removed. Look at what the organizers chose to test:
+The official shape list is a ranking workload:
 
-- **`num_layers=4` or `2`, `d_model` 32 to 1024.** Small and shallow. This is
-  not an LLM; it is the size a model has to be when it runs inside a request
-  budget, thousands of times a second.
-- **`batch_size` from 1 to 10,000**, on the same model. Nothing else produces
-  that spread. It is one request, a coalesced peak batch, and an offline scoring
-  pass — the three regimes a ranking service runs simultaneously.
-- **`seq_len=100000` at `batch=32`** (shape 14). A sequence that long is not
-  language. It is a *behaviour log*: everything a user has watched, scrolled
-  past, or lingered on.
-- **Causal masking throughout**, with a `valid_token_mask` in the generator.
-  Histories are variable length and ordered in time, so they are padded and
-  causally masked. That is exactly what the script models.
+- **`num_layers` 2–4, `d_model` 32–1024** — the size a model has to be to run
+  inside a request budget, thousands of times a second.
+- **`batch_size` 1 to 10,000 on the same model** — one request, a coalesced peak
+  batch, and an offline scoring pass: the three regimes a ranking service runs
+  simultaneously.
+- **`seq_len=100000` at `batch=32`** (shape 14) — not language, a behaviour log.
+- **Causal masking throughout**, with a `valid_token_mask` in the generator:
+  variable-length histories, ordered in time, padded.
 
-So the shape list *is* the use case. A
-6-layer stack with `d_model 512`, 8 heads, `ffn 2048` over a padded sequence is a
-**user-behaviour sequence model**: the ranker that reads a user's recent
-interaction history and scores candidate videos against it. In a short-video feed
-that is the highest-volume transformer inference in the product — one per
-request, per user, continuously, and the thing standing between a user opening
-the app and the first video playing.
+A 6-layer stack with `d_model 512`, 8 heads, `ffn 2048` over a padded sequence is
+a **user-behaviour sequence model** — the ranker that reads a user's recent
+history and scores candidate videos against it. In a short-video feed that is the
+highest-volume transformer inference in the product.
 
-Its properties are the ones this project was built around, one for one:
+Its properties map onto this project's choices:
 
 | property of ranking traffic | what it forces | what we did |
 |---|---|---|
@@ -105,15 +96,12 @@ python scripts/usecase.py --tune     # ~3 min per shape
 
 **2.47x** on the same machine, same workload, same command shape.
 
-`--cold` exists so that gap stays reproducible: once you tune, the entries are
-frozen and a plain run shows only the tuned number. It removes exactly those four
-entries and re-runs the same lookup, so the fallback being measured is the real
-one, not a simulation.
+`--cold` removes exactly those four entries and re-runs the same lookup, so the
+gap stays reproducible after tuning and the fallback being measured is the real
+one.
 
-That gap *is* the product. The system claims to be **correct everywhere and fast
-where it has been pointed**, and pointing it at a new workload is one command and
-no code change — which is the situation a serving team is in whenever a model or
-a traffic pattern changes.
+That gap is the point: **correct everywhere, fast where it has been pointed**,
+and pointing it at a new workload is one command and no code change.
 
 ## What it means for a service
 
@@ -132,11 +120,9 @@ The absolute numbers depend entirely on the QPS assumption, which is why the
 script takes `--qps` and `--fleet`: substitute your own and the arithmetic
 follows.
 
-The capacity saving is the boring half. The interesting half is **latency
-headroom**: the realtime segments got 2.3x and 2.1x faster inside a fixed SLO.
-Spent on capacity that is a cheaper feed; spent on a longer user history or a
-larger candidate set, it is a *better* one. That is a product decision the
-speedup makes available, not an infrastructure footnote.
+The realtime segments also got 2.3x and 2.1x faster inside a fixed SLO — headroom
+that can be spent on capacity, or on a longer user history and a larger candidate
+set.
 
 ## Assumptions
 
@@ -155,7 +141,6 @@ speedup makes available, not an infrastructure footnote.
 ## Beyond ranking
 
 The same stack sits under the other transformer inference in a short-video
-product: content-understanding encoders for video, audio and caption embeddings;
-moderation classifiers; query understanding in search; creative ranking in ads.
-They differ in shape, not in kind. Adding one is a line in `official_shapes.txt`
-and a `tune` invocation.
+product: content-understanding encoders, moderation classifiers, query
+understanding in search, creative ranking in ads. They differ in shape, not in
+kind; adding one is a line in `official_shapes.txt` and a `tune` invocation.
