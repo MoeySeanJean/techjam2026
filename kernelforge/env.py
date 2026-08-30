@@ -9,7 +9,7 @@ compile to a cache whose location changed our cluster job from "fails on an NFS
 quota" to "works on node-local NVMe".
 
 Everything here is best-effort and degrades to "unknown" rather than raising:
-this runs on Windows laptops and Linux compute nodes alike.
+this runs on Windows workstations and Linux compute nodes alike.
 """
 from __future__ import annotations
 

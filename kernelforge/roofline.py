@@ -25,18 +25,19 @@ import dataclasses
 from typing import Optional
 
 # Dense tensor-core throughput, TFLOP/s, fp16 inputs with fp32 accumulate.
-# Consumer Ampere (GA10x) runs fp16-with-fp32-accumulate at half the rate of
-# fp16-with-fp16-accumulate, which is why the 3070 Ti figure looks low relative
-# to its marketing number.
+#
+# Only the architectures we report are listed. A ceiling is a property of the
+# specific card, not of the architecture -- consumer Ampere parts alone span
+# more than 3x -- so quoting one figure for a whole family would produce a
+# confidently wrong "percent of peak". `analyse` returns None for an
+# architecture that is not here, and the roofline is simply not reported.
 PEAK_TFLOPS = {
-    "sm_86": 87.0,      # RTX 3070 Ti Laptop, fp16/fp32-acc
     "sm_80": 312.0,     # A100, fp16/fp32-acc dense
     "sm_90": 835.0,     # H100 NVL, fp16/fp32-acc dense
 }
 
 # TF32 path, used when the reference runs in float32 with allow_tf32 on.
 PEAK_TFLOPS_TF32 = {
-    "sm_86": 21.7,
     "sm_80": 156.0,
     "sm_90": 415.0,
 }

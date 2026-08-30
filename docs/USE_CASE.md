@@ -79,16 +79,15 @@ gate before it was timed:
 `realtime_heavy` share one plan; `batched_peak` takes the same precision split
 *without* CUDA graphs, because at batch 128 the launch overhead graphs remove is
 no longer what limits it; `rerank` gets the bit-exact wide plan. The shape alone
-changes what wins — and the split differs again on other hardware. That is the entire argument for searching rather than hand-tuning,
-visible in a single table.
+changes what wins, and the split differs again on other hardware. That is the
+entire argument for searching rather than hand-tuning, visible in one table.
 
-The same script on the development laptop gives **2.47x** traffic-weighted —
-*higher* than the A100, and that is exactly why the laptop is excluded from this
-project's reported results. It is not better hardware. A weaker card spends
-proportionally more of its time on the kernel-launch overhead we remove, so the
-ratio rises while every absolute latency is roughly four times worse. **1.99x on
-the A100 is the number to quote**: that machine does not thermally throttle, and
-it is the more conservative claim.
+**1.99x is the conservative number, and that is deliberate.** On weaker or
+thermally limited hardware this script reports a *higher* traffic-weighted gain —
+we have measured 2.47x — because a slower card spends proportionally more of its
+time on the kernel-launch overhead we remove, so the ratio rises while every
+absolute latency gets worse. We report the A100, which holds a stable clock and
+gives the smaller figure.
 
 ## The part worth watching
 
@@ -153,9 +152,8 @@ speedup makes available, not an infrastructure footnote.
   organizer's own model definition and generator; we make no claim to know any
   company's production configuration.
 - The headline table is from an **A100-80**, tuned and measured by the same
-  script in one job. The laptop figure (2.47x weighted) appears once, as
-  contrast, and is not part of the reported results: that machine throttles to
-  510 MHz of 1635 under load and its ratios flatter us.
+  script in one job. The 2.47x figure quoted once above, from a throttling GPU,
+  is contrast only and is not part of the reported results.
 - The **53% capacity reduction is throughput arithmetic**, not a deployment study.
   It assumes the ranker is the bottleneck and that freed capacity is actually
   reclaimed — neither is automatic in a real service.

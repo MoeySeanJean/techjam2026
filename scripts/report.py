@@ -15,11 +15,10 @@ from typing import Dict, List
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 RESULTS = os.path.join(ROOT, "results")
 
-# Everything in results/ is reported. The development laptop's sweeps used to
-# live here too and were filtered out; they have been removed from the repository
-# instead, because a hardcoded architecture filter would also have silently
-# excluded a *reader's* own GPU from their own report -- which is the opposite of
-# what this script is for.
+# Everything in results/ is reported. We deliberately do NOT filter by
+# architecture here: a hardcoded allow-list would silently exclude a reader's own
+# GPU from their own report, which is the opposite of what this script is for.
+# Machines whose timings we do not trust are kept out of results/ instead.
 
 
 def load(pattern: str) -> Dict[str, dict]:
@@ -27,8 +26,8 @@ def load(pattern: str) -> Dict[str, dict]:
 
     Keying by device would collapse two runs on the same GPU into one -- which
     is exactly what the proposer head-to-head needs to keep apart (a heuristic
-    run and an LLM run on the same laptop share a device string). Callers that
-    want the device read `blob["device"]`.
+    run and an LLM run on the same GPU share a device string). Callers that want
+    the device read `blob["device"]`.
     """
     out = {}
     for path in sorted(glob.glob(os.path.join(RESULTS, pattern))):

@@ -233,8 +233,8 @@ def _merge_records(slug: str, fresh: list) -> list:
     """Fold new records into whatever this device already measured.
 
     A sweep is incremental: `tune` runs one or two shapes and must not erase the
-    other twelve. Replacing the file wholesale silently destroyed a full laptop
-    sweep once, so records are keyed by case and merged, newest winning.
+    other twelve. Replacing the file wholesale silently destroyed a full sweep
+    once, so records are keyed by case and merged, newest winning.
     """
     path = os.path.join(RESULTS, f"sweep_{slug}.json")
     by_case = {}

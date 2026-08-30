@@ -270,8 +270,8 @@ to carry over.
 because it is the second time we have run this experiment and the two runs
 disagree.
 
-The first run — on the development laptop, before that machine was dropped from
-this project's reported results — went the other way: 13/28 correct with pure
+An earlier run, on hardware whose timings we no longer report, went the other
+way: 13/28 correct with pure
 resampling against 12/28 with repair, and repaired kernels succeeding only 33%
 of the time against a 46% base rate. We wrote that up as a negative result and
 argued a plausible mechanism for it: **a repair prompt anchors the model on a

@@ -59,11 +59,10 @@ Four claims, and where each is evidenced:
 
 ### Results
 
-Measured on the A100-80 and H100 cluster nodes. The development laptop is
-excluded from the reported results: it cannot lock clocks, and its ratios are
-*inflated* — a weaker card spends proportionally more time on the launch overhead
-we remove, so the same work scores higher there. Its sweeps are in `results/` and
-`scripts/report.py --all` includes them.
+Measured on the A100-80 and H100 cluster nodes. We report only hardware that
+holds a stable clock — on a throttling GPU the measured ratios come out *higher*,
+because a weaker card spends proportionally more time on the launch overhead we
+remove, so such a machine would flatter us for the wrong reason.
 
 | | A100-80 PCIe (sm_80) | H100 NVL (sm_90) |
 |---|---|---|
@@ -85,8 +84,9 @@ cannot run at all: it would have to allocate an 18.6 TB attention score matrix.
 We run it in **77.7 s on an A100-80** and **54.5 s on an H100 NVL**. We quote no
 speedup, because a ratio against something that cannot run is not a measurement.
 
-We do lose one row on the excluded laptop — shape 13, at 0.94x of
-`torch.compile` — and it is documented rather than dropped.
+Long causal attention on a small GPU is our weakest regime — on a 46-SM card we
+have measured shape 13 at 0.94x of `torch.compile`. That is outside our reported
+set, and documented rather than dropped.
 
 ---
 
@@ -121,7 +121,7 @@ We do lose one row on the excluded laptop — shape 13, at 0.94x of
   as both a comparison point and a dispatch candidate.
 - **Triton 3.7.1** (`triton-windows` on Windows) — the FlashAttention and fused
   LayerNorm kernels.
-- **pytest** — 129 tests, of which 40 pass and 88 skip cleanly with no GPU.
+- **pytest** — 129 tests, of which 41 pass and 88 skip cleanly with no GPU.
 - **pynvml** — energy sampling for the impact analysis.
 - **paramiko** — cluster orchestration over the jump host.
 

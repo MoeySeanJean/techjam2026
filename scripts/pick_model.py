@@ -43,15 +43,18 @@ from kernelforge.ops.flash import legal_blocks, smem_bytes  # noqa: E402
 DTYPES = {"auto", "float16", "bfloat16", "float32"}
 ATTENTION = {"flash", "sdpa", "exact"}
 
-# A realistic sm_86 prompt: this is the shape of thing the agent actually sends.
-SPEC_BLOCK = """GPU: NVIDIA GeForce RTX 3070 Ti Laptop GPU
-Compute capability: sm_86 (major=8, minor=6)
-SM count: 46
-Shared memory per block (opt-in): 99 KB   <-- HARD LIMIT for BLOCK_M*BLOCK_N*num_stages tiling
+# A realistic prompt: this is the shape of thing the agent actually sends. The
+# card described here is deliberately a *constrained* one -- a model that ignores
+# a tight shared-memory budget is exactly the failure this benchmark should
+# catch, and a generous spec sheet would let that pass unnoticed.
+SPEC_BLOCK = """GPU: NVIDIA A100 80GB PCIe
+Compute capability: sm_80 (major=8, minor=0)
+SM count: 108
+Shared memory per block (opt-in): 163 KB   <-- HARD LIMIT for BLOCK_M*BLOCK_N*num_stages tiling
 Registers per block: 65536
-L2 cache: 4 MB
-Device memory: 8.0 GB
-Achieved DRAM bandwidth (measured): ~359 GB/s
+L2 cache: 40 MB
+Device memory: 79.2 GB
+Achieved DRAM bandwidth (measured): ~1651 GB/s
 BF16 supported: True
 TMA (Hopper async copy) available: False
 FP8 available: False

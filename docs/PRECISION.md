@@ -74,16 +74,15 @@ compile modes. Measured envelope utilization (limit 1.0):
 
 | GPU | dtype | `max-autotune` | `reduce-overhead` | verdict |
 |---|---|---|---|---|
-| RTX 3070 Ti (sm_86) | float16 | 2.838 | 2.625 | **FAIL** |
-| A100-80 (sm_80) | float16 | 2.182 | 2.258 | **FAIL** |
-| H100 NVL (sm_90) | float16 | 2.594 | 2.991 | **FAIL** |
-| RTX 3070 Ti (sm_86) | bfloat16 | 26.123 | 24.414 | **FAIL** |
-| A100-80 (sm_80) | bfloat16 | 22.827 | 20.020 | **FAIL** |
-| H100 NVL (sm_90) | bfloat16 | 21.484 | 21.866 | **FAIL** |
-| all three | float32 | passes | passes | **PASS** |
+| A100-80 (sm_80) | float16 | 2.808 | 2.869 | **FAIL** |
+| H100 NVL (sm_90) | float16 | 2.495 | 2.708 | **FAIL** |
+| A100-80 (sm_80) | bfloat16 | 20.996 | 20.020 | **FAIL** |
+| H100 NVL (sm_90) | bfloat16 | 19.617 | 19.617 | **FAIL** |
+| both | float32 | passes | passes | **PASS** |
 
-Six independent failures across three architectures and both compile modes, and
-no float32 failure anywhere.
+Eight independent failures across two architectures and both compile modes, and
+no float32 failure anywhere. The numbers come straight from
+`results/sweep_*.json`, which gates the library baselines on every run.
 
 **How to read this.** Our first instinct was to call it a benchmark defect. On
 reflection that is the wrong reading, and the right one is more interesting.

@@ -1,8 +1,8 @@
 """Shared fixtures.
 
 GPU-dependent tests are skipped rather than failed when no CUDA device is
-present, so the suite is still useful on a laptop without one (the numerics and
-dispatch-logic tests are pure Python and always run).
+present, so the suite is still useful on a machine without one (the numerics
+and dispatch-logic tests are pure Python and always run).
 """
 from __future__ import annotations
 

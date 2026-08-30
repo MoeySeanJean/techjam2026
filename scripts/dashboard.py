@@ -33,11 +33,10 @@ TDP = {"sm_86": 83, "sm_80": 300, "sm_90": 400}
 MEASURED_BW = {"sm_86": 359.0, "sm_80": 1651.0, "sm_90": 3511.0}
 
 NICE = {
-    "3070-ti-laptop-8gb_sm_86": "RTX 3070 Ti Laptop",
     "a100-80gb-79gb_sm_80": "A100-80 PCIe",
     "h100-nvl-93gb_sm_90": "H100 NVL",
 }
-ORDER = ["3070-ti-laptop-8gb_sm_86", "a100-80gb-79gb_sm_80",
+ORDER = ["a100-80gb-79gb_sm_80",
          "h100-nvl-93gb_sm_90"]
 
 

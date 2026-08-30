@@ -20,8 +20,7 @@ RESULTS = os.path.join(ROOT, "results")
 
 # Board power (W). Datasheet TDP, used only to convert latency into energy;
 # every derived number scales linearly with these, so they are stated openly.
-TDP = {"3070-ti-laptop-8gb_sm_86": 83,     # measured cap on this laptop
-       "a100-80gb-79gb_sm_80": 300,        # A100 80GB PCIe
+TDP = {"a100-80gb-79gb_sm_80": 300,        # A100 80GB PCIe
        "h100-nvl-93gb_sm_90": 400}         # H100 NVL, per card
 
 # Assumptions for the fleet illustration. Deliberately conservative.

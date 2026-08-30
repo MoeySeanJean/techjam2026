@@ -6,10 +6,10 @@ Three rules, all of which exist because of measurements taken on this project:
    *and* `torch.compile(max-autotune)`. Beating the naive baseline while losing
    to torch.compile is not a result, and a judge will run `--compile-baseline`.
 
-2. **Interleaved A/B.** The laptop target showed a 64% spread between p90 and
-   min at a fixed shape, purely from thermal drift. Measuring A fully and then B
-   fully attributes that drift to whichever ran second. We round-robin instead,
-   so drift hits every candidate equally.
+2. **Interleaved A/B.** On a thermally constrained GPU we have measured a 64%
+   spread between p90 and min at a fixed shape, purely from clock drift.
+   Measuring A fully and then B fully attributes that drift to whichever ran
+   second. We round-robin instead, so drift hits every candidate equally.
 
 3. **Median, not mean.** With a power-limited part the distribution has a long
    right tail; the mean tracks the tail, the median tracks the machine.
