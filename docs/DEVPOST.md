@@ -158,11 +158,9 @@ The three that matter most:
    causal masking — skipping tiles above the diagonal halves the work but not the
    launch grid.
 
-We also closed three limitations while preparing the submission, including one
-where our stated hypothesis turned out to be **wrong**: we suspected the `exp2`
-softmax substitution degraded accuracy as rows grew, built the `tl.exp` variant,
-and measured identical envelopes to four decimal places from `S=128` to
-`S=4096`. Details in [README.md](../README.md#settled-while-preparing-the-submission).
+Accuracy is not the cause of the third: an `exp2`-free variant of the same
+kernel measures identical envelopes to four decimal places from `S=128` to
+`S=4096`, so the causal path's problem is occupancy, not arithmetic.
 
 ## Where to find the evidence
 

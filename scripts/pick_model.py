@@ -1,4 +1,9 @@
-"""Choose the LLM that best drives the kernel-optimization proposer.
+"""Score the models an LLM key can reach on proposal quality.
+
+The score here measures whether a model can emit a valid *plan* as JSON. On our
+gateway that was ANTI-predictive of whether the same model could write a correct
+Triton kernel, so use it to eliminate models that ignore explicit constraints,
+not to pick a winner -- `docs/CODEGEN.md` has the comparison that should decide.
 
 Picking a model by reputation is guesswork. What this loop actually needs is
 narrow and testable, so we measure it directly on every model the key can reach:
@@ -250,8 +255,20 @@ def main() -> int:
               f"{r['median_s']:7.2f}s {r['tokens']:8d}")
     if rows:
         best = rows[0]
-        print(f"\nRecommended SOCLAAS_MODEL={best['model']} "
+        print(f"\nBest on this benchmark: {best['model']} "
               f"(usable {best['clean_rate']:.0%}, median {best['median_s']:.2f}s)")
+        # Printing the caveat next to the number is the point. On our gateway six
+        # of ten models tied at 100% usable, so the ranking fell to latency --
+        # and the model it put first went on to write 3 correct Triton kernels
+        # out of 40, while the model it ranked last on format wrote 48 of 60. A
+        # reader who took this as a recommendation would repeat that mistake.
+        print("\n  NOTE: this scores plan-JSON quality only, and on our gateway"
+              "\n  it was ANTI-predictive of kernel-writing ability. Use it to"
+              "\n  eliminate models that ignore explicit constraints, not to"
+              "\n  pick a winner. To choose a model, run the real task --"
+              "\n      python -m kernelforge.cli codegen --targets layernorm,gelu"
+              "\n  once per candidate, and compare correct-kernel counts."
+              "\n  docs/CODEGEN.md has the measured comparison.")
 
     out_path = os.path.join(os.path.dirname(os.path.dirname(
         os.path.abspath(__file__))), "results", "model_selection.json")

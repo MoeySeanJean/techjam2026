@@ -133,35 +133,35 @@ properties make it defensible:
 
 ## Repair loop
 
-`--repair N` feeds a failed kernel back with its compiler diagnostic and a
+`--repair N` re-prompts with the failed kernel, its compiler diagnostic, and a
 structural diagnosis of numeric failures — not just "envelope 256050" but:
 
 > the error is nearly CONSTANT within each row, which means the per-row
 > statistics (mean/variance) are wrong — most likely reduced over a tile of the
 > feature axis instead of the whole row
 
-Three independent A/B replicates at equal attempt budget, same targets, same
-model (`qwen3-coder-next`):
+**It does not beat resampling.** On the shipped model at equal attempt budget:
 
-| replicate | `--repair 0` | `--repair 3` |
-|---|---|---|
-| n=20 per arm | 8/20 | **12/20** |
-| n=28 per arm | **13/28** | 12/28 |
-| n=20 per arm | **13/20** | 7/20 |
-| **pooled** | **34/68 (50%)** | 31/68 (46%) |
+| | correct | fresh samples | repairs |
+|---|---|---|---|
+| `--repair 0` | 13/20 | 13/20 | — |
+| `--repair 3` | 13/20 | 12/16 | **1/4** |
 
-Individual replicates disagree — the first favours repair, the other two favour
-resampling — but pooled over 68 attempts per arm, **resampling is ahead**, and
-`--repair 0` is the default on the measurement rather than on caution. The
-replicate spread (8/20, 13/28, 13/20 for the same arm) is itself the useful
-number: it is wide enough that any single n=20 comparison here is uninformative.
+The totals tie, and the breakdown says why: a repaired kernel succeeded once in
+four attempts, against 12 of 16 for a fresh sample of the same budget. Repair
+spends attempts at a worse rate than sampling does, so the default is
+`--repair 0`.
 
-All arms use `qwen3-coder-next`, so each replicate is internally matched; the
-result has not been reproduced on `qwen3.8:27b`.
-`results/codegen_rep3_repair{0,3}_sm_80.json` and
-`results/codegen_repair3_sm_80.json` hold the arms.
+The mechanism is plausible — a repair prompt carries the broken source in
+context and edits around it, while a fresh sample is free to pick a different
+decomposition, and these bugs are usually structural (wrong reduction axis,
+wrong tiling). Measured across models the effect is small and its sign is not
+stable, so the claim here is only the narrow one: it does not help, and the
+per-attempt rate is worse.
 
-Repair loops stall — the model can return the same `TypeError` repeatedly,
-burning the budget on one lineage. `error_signature()` fingerprints a failure
-with line numbers stripped; a repair reproducing its parent's signature abandons
-the lineage and samples fresh.
+Repair lineages also stall — the model can return the same `TypeError`
+repeatedly, burning the budget on one lineage. `error_signature()` fingerprints a
+failure with line numbers stripped; a repair reproducing its parent's signature
+abandons the lineage and samples fresh.
+
+Arms are committed as `results/codegen_shipped_repair{0,3}_sm_80.json`.

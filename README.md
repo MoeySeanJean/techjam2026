@@ -217,65 +217,41 @@ each.
 
 ## Limitations, and what we would improve given more time
 
-- **We cannot prove shape 14's accuracy at full size.** Nothing can compute a
+- **Shape 14's accuracy cannot be proven at full size.** Nothing can compute a
   reference output at `S=100000`, so there is no envelope to measure. We verify
   the same code path against an exact reference at every length that *does* fit,
   and separately verify that slicing the batch does not change the answer. That
   is the strongest available statement and it is weaker than a measured envelope.
-  This one is not closable — it is a property of the shape.
+  This one is a property of the shape, not of the implementation.
 - **Shape 14 spends 97.7% of its GPU time in the fp32 attention fallback.**
-  Measured with the profiler, not assumed. Triton's `tl.dot` needs a narrow float
-  type, so an fp32 attention stage falls through to
-  `F.scaled_dot_product_attention` — at `S=100000` that single
-  `fmha_cutlassF_f32` kernel is essentially the whole runtime. An fp32 flash
-  kernel, or a bf16 path with an error budget verified at that length, would
-  attack 98% of the cost rather than the remaining 2%.
+  Triton's `tl.dot` needs a narrow float type, so an fp32 attention stage falls
+  through to `F.scaled_dot_product_attention`; at `S=100000` that single
+  `fmha_cutlassF_f32` kernel is essentially the whole runtime, and everything
+  else in the stack is the remaining 2.3%. An fp32 flash kernel, or a bf16 path
+  with an error budget verified at that length, is the only optimization that
+  would matter here.
 - **Small-batch long-causal attention is where our own kernel loses to the
   library.** On the official causal shapes we win with our kernel — shape 13
-  (`B64-S1024`) is 12.14x over the reference and 4.26x over `torch.compile`. But
-  on `B2-S2048` causal the search selects `torch.compile` instead of our
-  FlashAttention, and the roofline explains why: 17% of tensor-core ceiling on
-  the A100 and 11% on the H100, against 45–50% for the *same shape without*
-  causal masking. Skipping the tiles above the diagonal halves the work but not
-  the launch grid, and occupancy drops with it. A persistent-tile causal kernel
-  that packs the triangular work is the fix.
-- **Envelope utilization is not perfectly reproducible.** The same (case, plan)
-  pair moves by up to ~0.1 between runs as cuBLAS selects different kernels for
-  the same call, which is why admission is gated at 0.80 rather than 1.0 and
-  re-verification permits up to 0.90. Pinning cuBLAS algorithm selection would
-  let us admit more aggressive plans, at the cost of measuring something less
-  like what a judge will actually run.
-
-### Settled while preparing the submission
-
-Three limitations we had listed turned out to be closable, and the measurements
-that closed them are worth more than the original caveats:
-
-- **The `exp2` hypothesis was wrong.** We had suspected that folding `log2(e)`
-  into the softmax scale, so the inner loop can use `exp2`, accumulated
-  differently from the reference's full-row `torch.softmax` as rows grew. Built
-  the `tl.exp` variant and measured both against an exact reference: **identical
-  envelopes to four decimal places** at every length from `S=128` to `S=4096`,
-  and the envelope does not grow with row length. The accuracy of our causal
-  attention is not the problem; occupancy is.
-- **The conservative collision rule costs nothing on the official shapes.**
-  Several *data* variants share one *model* signature, and on collision we keep
-  the less aggressive plan, which we had assumed left speed on the table. All 14
-  official signatures are distinct, so the rule never fires on the judged set.
-  Across the whole exploratory matrix it fires on one signature, forgoing at most
-  1.23x on the A100 and 1.01x on the H100.
-- **The bake-off's unmeasured arms are measured**, and every model now has at
-  least two independent samples (the winner has three). Pooled:
-  `qwen3.8:27b` 48/60, `qwen3-coder-next` 17/40, then 9/40, 7/40, 3/40, 0/40,
-  0/20. The gateway rate-limited three arms originally; the client now backs off
-  to a two-minute ceiling and logs an unanswered request as `api_error`. See
-  [docs/CODEGEN.md](docs/CODEGEN.md).
-- **The repair loop is decided.** A third replicate broke the tie: `--repair 0`
-  scored 13/20 against `--repair 3` at 7/20. Pooled over three replicates and 68
-  attempts per arm, **resampling is ahead, 34/68 to 31/68**, so the default rests
-  on the measurement rather than on caution. The within-arm spread (8, 13, 13 of
-  20) is itself the finding: any single n=20 comparison of this kind is
-  uninformative.
+  (`B64-S1024`) is 12.14x over the reference and 4.26x over `torch.compile`. On
+  `B2-S2048` causal the search selects `torch.compile` instead, and the roofline
+  says why: 17% of tensor-core ceiling on the A100 and 11% on the H100, against
+  45–50% for the *same shape without* causal masking. Skipping the tiles above
+  the diagonal halves the work but not the launch grid, so occupancy falls with
+  it. A persistent-tile causal kernel that packs the triangular work is the fix.
+  (Accuracy is not the cause: an `exp2`-free variant of the kernel measures the
+  same envelope to four decimal places at every length from `S=128` to `S=4096`.)
+- **Envelope utilization is noisier than the thresholds assume.** Re-evaluating
+  the same (case, plan) pair in six fresh processes moves it by up to **0.141**,
+  as cuBLAS selects different kernels for the same call. Admission is gated at
+  0.80 and re-verification permits 0.90 — a gap of 0.10, narrower than the
+  observed spread. That errs toward demoting a good plan to the bit-exact one
+  rather than keeping a bad one, and in practice `verify --demote` has demoted
+  nothing on any GPU, but the correct fix is to widen the gap on the measurement
+  rather than leave it on judgement.
+- **The model bake-off does not order its middle.** Every model has at least two
+  independent samples and the winner has three, but within-model spread is wide
+  (`gemma4:26b` scored 5/20 then 2/20). The top two and the bottom one are
+  separated by far more than that; the models between them are not.
 
 ---
 

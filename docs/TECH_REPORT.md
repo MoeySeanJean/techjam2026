@@ -247,9 +247,12 @@ one.
 
 Envelope utilization is `max(abs_err / max(atol, rtol·|ref|))`; 1.0 fails. The
 two envelope rows are different measurements — at selection, and re-measured
-later in a fresh process. Re-measurement moves by up to ~0.1 as cuBLAS picks
-different kernels, which is why admission is gated at 0.80 and re-verification
-permits 0.90. Worst seen from a shipped entry: 0.847.
+later in a fresh process. Re-measurement of the same (case, plan) pair moves by
+up to **0.141** over six fresh processes, as cuBLAS selects different kernels for
+the same call — wider than the 0.10 gap between the 0.80 admission margin and the
+0.90 demotion threshold. That asymmetry errs toward demoting a good plan to the
+bit-exact one, and no entry has in fact been demoted on any GPU. Worst seen from
+a shipped entry: 0.847.
 
 Shape 14 is missing from both columns (below); all 13 others run on both nodes.
 
@@ -451,12 +454,12 @@ Findings, detailed in [CODEGEN.md](CODEGEN.md):
   the CUDA context — asynchronous, uncatchable, fatal to every later CUDA call.
   Each candidate is validated in a throwaway subprocess.
 
-We also built the obvious improvement — feeding compiler errors and a structural
-diagnosis back as a repair prompt — and measured it twice at equal budget,
-across three replicates: 12/20 vs 8/20, 12/28 vs 13/28, 7/20 vs 13/20. Pooled,
-**resampling is ahead — 34/68 against 31/68** — so `--repair 0` is the default on
-the measurement. The spread within a single arm (8, 13, 13 of 20) is wide enough
-that any one n=20 comparison here is uninformative.
+We also built the obvious improvement — re-prompting with the compiler
+diagnostic and a structural diagnosis of the numeric failure — and it does not
+beat resampling. On the shipped model at equal attempt budget both arms reach
+13/20, and the breakdown says why: a repaired kernel succeeded **1 of 4** times
+against **12 of 16** for a fresh sample. Repair spends attempts at a worse rate,
+so the default is `--repair 0`.
 
 **Nothing generated is in the shipped dispatch table.** They are proposals; a
 public submission should not contain code no person has read.
