@@ -33,9 +33,10 @@ LLM call, no autotuning stall, no nondeterminism.
 - **Triton FlashAttention** handling causal **and** key-padding masking
   in-register. PyTorch's SDPA takes `is_causal` *or* an `attn_mask`, not both
   cheaply, and the benchmark's generator produces exactly that combination.
-  Supports `head_dim` 8 through 256.
+  Supports `head_dim` ∈ {8, 16, 32, 64, 128, 256}; `head_dim` 8 is handled by
+  exact zero-padding, since Triton's `tl.dot` needs a contraction of ≥16.
 - **Fused add + mask + LayerNorm**, fused QKV projection, and CUDA-graph capture
-  that removes ~105 kernel launches per forward.
+  that removes ~105 kernel launches per forward on the 6-layer default stack.
 - **An accuracy gate** built from the organizer's own comparison code, collapsed
   to one number — *envelope utilization* — so "how close to failing" is
   measurable rather than a yes/no.
@@ -56,12 +57,11 @@ Measured on two nodes of the NUS SoC Slurm cluster. Full tables in
 | passed the accuracy gate | **all** | **all** |
 | demoted on re-verification | 0 | 0 |
 
-**Every officially specified shape that can be run at all beats both the naive
-baseline and `torch.compile(max-autotune)` — 26 of 26 measurements.** The
-narrowest margins are 2.32x over the reference and 1.02x over `torch.compile`;
-that last one is parity rather than a win, and the technical report says so.
-`torch.compile` clears the accuracy gate on all 14 official shapes, so every
-comparison above is against an admissible opponent.
+**Every official shape with a runnable reference beats both the naive baseline
+and `torch.compile(max-autotune)` — 26 of 26 measurements.** The narrowest
+margins are 2.32x over the reference and 1.02x over `torch.compile`; that last
+one is parity rather than a win. `torch.compile` clears the accuracy gate on all
+14 official shapes, so every comparison above is against an admissible opponent.
 
 **Shape 14 is the exception.** `B32-S100000-d1024-H16-F1024-L2` would require the
 reference to allocate an 18.6 TB attention score matrix, so the reference cannot
@@ -145,8 +145,8 @@ python scripts/showcase.py --no-gpu   # three narrated acts from committed data
 python scripts/report.py              # regenerate docs/RESULTS.md
 ```
 
-Every number in `docs/RESULTS.md` and `docs/dashboard.html` comes from committed JSON, so
-the results are inspectable without reproducing them.
+Every number in `docs/RESULTS.md` and `docs/dashboard.html` comes from committed
+JSON, so the results are inspectable without reproducing them.
 
 ---
 
@@ -156,13 +156,15 @@ the results are inspectable without reproducing them.
 `torch.compile`, on whatever GPU you have:
 
 ```bash
-python -m kernelforge.cli tune --shapes-file official_shapes.txt   # ~40 min
+python -m kernelforge.cli tune --shapes-file official_shapes.txt
 python -m kernelforge.cli verify --shapes-file official_shapes.txt --demote
 python scripts/report.py
 ```
 
 `official_shapes.txt` holds the 14 shapes from Appendix 3.7 of the problem
-statement. Any other shape can be tuned the same way by writing its signature:
+statement. The search spends up to `--case-budget` seconds per shape (default
+300), so wall-clock scales with how many shapes fit your GPU. Any other shape is
+tuned the same way by writing its signature:
 
 ```bash
 python -m kernelforge.cli tune --shapes B4-S777-d640-H10-F2560-L9
@@ -177,10 +179,13 @@ python scripts/run_official.py --batch-size 64 --seq-len 128 \
     --d-model 128 --heads 4 --ffn-dim 128 --layers 4 --causal
 ```
 
-**Shape 14**, if you have an 80 GB card:
+**Shape 14.** `--scan` sweeps sequence length and reports where your GPU stops,
+so it runs on any card; the full shape peaks at 45.9 GB and needs ~80 GB with the
+input and output resident:
 
 ```bash
-python scripts/shape14.py --scan     # sweeps sequence length to find your limit
+python scripts/shape14.py --scan     # how far this GPU gets
+python scripts/shape14.py            # the full shape
 ```
 
 **The AI-assisted half.** Needs an LLM endpoint; skip it and the heuristic arm
@@ -199,7 +204,7 @@ python -m kernelforge.cli codegen                               # the model writ
 python -m kernelforge.cli budget      # per-stage precision error budget
 python -m kernelforge.cli sweep       # the full matrix, not just official shapes
 python scripts/usecase.py --cold      # the use case untuned; drop --cold once tuned
-python scripts/dashboard.py           # regenerate dashboard.html
+python scripts/dashboard.py           # regenerate docs/dashboard.html
 ```
 
 `scripts/README.md` describes each script. The Slurm job files that produced our
@@ -238,11 +243,11 @@ each.
   aggressive plan. A better design would re-test the fastest candidate against
   every variant sharing the signature and keep the fastest that passes them all.
   That needs one extra validation pass per signature; we ran out of time.
-- **Three models in the bake-off are unmeasured.** The LLM gateway rate-limited
-  us partway through a nine-model comparison. We hardened the client and re-ran,
-  but the same quota was hit, so our model choice is the best of six measured
-  rather than a claim about all nine. `docs/CODEGEN.md` marks them *not
-  measured* rather than scoring them zero.
+- **The model bake-off is n=20 per model.** That separates the top two from the
+  rest, but the bottom three sit inside the spread we measured on repeated arms
+  (0 vs 3 of 20 for the same model), so their ordering is not meaningful. More
+  samples per model would fix it; each arm costs roughly an hour of GPU and
+  gateway quota.
 - **Envelope utilization is not perfectly reproducible.** The same (case, plan)
   pair moves by up to ~0.1 between runs as cuBLAS selects different kernels,
   which is why admission is gated at 0.80 rather than 1.0 and re-verification
