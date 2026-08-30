@@ -322,8 +322,8 @@ def roofline_section(sweeps: Dict[str, dict]) -> List[str]:
     if not worst:
         return []
     worst.sort()
-    # Derived, not written down: an earlier hardcoded range drifted out of step
-    # with its own table and named an architecture the table no longer contains.
+    # Derived from the table above rather than written down, so the prose cannot
+    # drift out of step with the numbers it describes.
     # The lowest cell overall is a bandwidth-bound shape, not a causal one --
     # naming it "long causal attention" was wrong, so pick from causal cases.
     causal = sorted(w for w in worst if "causal" in w[2])
@@ -516,15 +516,12 @@ def shape14_section() -> List[str]:
             f"{m['peak_gb']:.1f} GB | {m['batch_slice']}/32 | `{m['plan']}` | "
             f"{'yes' if m['finite'] else 'NO'} | "
             f"{'correct' if m['shape_ok'] else 'WRONG'} |")
-    lines += ["", "Three things had to be true at once for this to run:", ""]
+    lines += ["", "Three things have to be true at once for this to run:", ""]
     for i, fix in enumerate(d["fixes_required"], 1):
         lines.append(f"{i}. {fix}")
     lines += ["",
-              "The third was our own bug, found by printing the failing "
-              "allocation instead of reasoning about it: the fp32 fallback path "
-              "was rebuilding the quadratic term the flash kernel exists to "
-              "remove. `python scripts/shape14.py --scan` reproduces the whole "
-              "progression on any GPU.", "",
+              "`python scripts/shape14.py --scan` sweeps sequence length and "
+              "reports where a given GPU stops.", "",
               "Accuracy for this code path is established at sequence lengths "
               "where the reference *can* be computed — `tests/test_kernels.py` "
               "checks the same kernel against an exact reference across causal "

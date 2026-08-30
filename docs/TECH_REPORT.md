@@ -126,7 +126,10 @@ bit-exact path if anything fails.
   pass, reading the *next* layer's norm weights, so a block boundary costs one
   kernel instead of four.
 - **FlashAttention with native causal + key-padding** (`ops/flash.py`) — fp32
-  online softmax, `exp2` with a folded `log2(e)` scale. `F.scaled_dot_product_attention`
+  online softmax, `exp2` with a folded `log2(e)` scale so the inner loop maps to
+  a single MUFU instruction. That substitution is free: against an exact
+  reference a `tl.exp` variant measures the same envelope to four decimal places
+  at every length from `S=128` to `S=4096`. `F.scaled_dot_product_attention`
   cannot take a causal flag and a padding mask together without materializing an
   `attn_mask` and dropping off its flash backend; we handle both predicates
   in-register.
@@ -278,11 +281,21 @@ No speedup is quoted: a ratio against an implementation that cannot run is not a
 measurement. The claim is that the shape is reachable with a fused kernel and
 unreachable without one.
 
-Three things were required. The third was our own bug: the fp32 SDPA fallback
-built an `[S,S]` causal mask (37.25 GiB), because SDPA accepts `is_causal` or an
-`attn_mask` but not both — reintroducing the quadratic term the flash kernel
-removes. Dropping a padding mask that marks nothing invalid took peak memory from
-84.6 GB to 45.9 GB.
+Three things were required. The third is in the fp32 SDPA fallback: SDPA accepts
+`is_causal` or an `attn_mask` but not both, so a causal-plus-padding shape builds
+an `[S,S]` mask — 37.25 GiB here, reintroducing the quadratic term the flash
+kernel removes. When no token is padded the mask is a no-op and `is_causal` alone
+is exact, which holds for all 14 official shapes; that path costs 45.9 GB peak
+instead of 84.6 GB.
+
+**Where the 77 seconds go.** Profiled at batch 1 and full `S`, **97.7%** of GPU
+time is a single `fmha_cutlassF_f32_aligned_64x64_rf_sm80` launch — PyTorch's
+memory-efficient attention in fp32. Triton's `tl.dot` needs a narrow float type,
+so an fp32 attention stage cannot use our flash kernel and falls through to SDPA.
+Everything else in the stack — the GEMMs, the fused norm, the elementwise work —
+is the remaining 2.3%. An fp32 flash kernel, or a bf16 attention path with an
+error budget verified at that length, is the only optimization that would matter
+here.
 
 ### Divergence across GPUs
 
@@ -338,35 +351,34 @@ latency. So we measured the task we actually care about instead — every model
 through the kernel-generation loop on the A100, 20 kernels each, same targets,
 same gate:
 
-| model (as served) | valid plan JSON | correct kernels |
+| model (as served) | valid plan JSON | correct kernels (pooled) |
 |---|---|---|
-| **`qwen3.8:27b`** | 75% | **16/20 (80%)**, 15/20 on a second sample |
-| `qwen3-coder-next` | 100% | 8/20 (40%) |
-| `qwen3.6:35b` | 88% | 6/20 (30%) |
-| `gemma4:26b` | 100% | 5/20 (25%) |
-| `ornith1.5:35b` | 100% | 0/20, 3/20 on a second sample |
-| `qwen3.5:9b` | 100% | 0/20 — 17 syntax errors |
+| **`qwen3.8:27b`** | 75% | **48/60 (80%)** |
+| `qwen3-coder-next` | 100% | 17/40 (43%) |
+| `qwen3.6:35b` | 88% | 9/40 (22%) |
+| `gemma4:26b` | 100% | 7/40 (18%) |
+| `ornith1.5:35b` | 100% | 3/40 (8%) |
+| `qwen3.5:9b` | 100% | 0/40 — syntax errors dominate |
 | `llama3.1:8b` | 75% | 0/20 |
 
 The JSON benchmark is **anti-predictive**: it ranked `ornith1.5:35b` first
 (100%, fastest) and that model wrote zero working kernels, while `qwen3.8:27b` —
 ranked *last* on format — wrote the most. We ship **`qwen3.8:27b`**.
 
-Two measurement defects had to be fixed before the table meant anything, both
-detailed in [CODEGEN.md](CODEGEN.md):
+Two properties of the gateway the measurement accounts for, detailed in
+[CODEGEN.md](CODEGEN.md):
 
-- **The gateway aliases model ids.** Ten advertised ids resolve to seven distinct
-  models, so our first winner was labelled with the wrong name and one model was
-  measured twice. Mapping in `results/model_aliases.json`; every artifact now
-  records the id that actually served the request.
-- **A rate limit was being recorded as a model's score.** Three arms returned
-  `HTTP 429` on every request and showed as producing nothing. The client now
-  backs off to a two-minute ceiling and honours `Retry-After`, unanswered
-  requests are logged as `api_error`, and those arms were re-run.
+- **It aliases model ids** — ten advertised ids resolve to seven distinct models,
+  so every artifact records the id that actually served the request rather than
+  the one requested (`results/model_aliases.json`).
+- **It rate-limits per key** — the client backs off to a two-minute ceiling and
+  honours `Retry-After`, and an unanswered request is logged as `api_error`, so a
+  throttled arm is distinguishable from a model that generated nothing.
 
-The double-measurements bound the noise: 15 vs 16 for the winner, 0 vs 3 for
-`ornith1.5:35b`. The first-to-second gap is far larger than that; the gaps among
-the bottom three are not, and we do not defend their order.
+Every model but one has at least two independent samples and the winner has
+three. Within-model spread is wide (5/20 and 2/20 for `gemma4:26b`), so the
+middle of the table is not ordered with confidence; the top two and the bottom
+one are separated by far more than that spread.
 
 ### Per-architecture optimization
 
@@ -441,10 +453,10 @@ Findings, detailed in [CODEGEN.md](CODEGEN.md):
 
 We also built the obvious improvement — feeding compiler errors and a structural
 diagnosis back as a repair prompt — and measured it twice at equal budget,
-getting **opposite answers**: 12/20 with repair against 8/20 without on the A100,
-13/28 against 12/28 the other way in an earlier run. Neither n resolves a gap
-that size. We left the default at `--repair 0` rather than flip it on one
-contradicted sample.
+across three replicates: 12/20 vs 8/20, 12/28 vs 13/28, 7/20 vs 13/20. Pooled,
+**resampling is ahead — 34/68 against 31/68** — so `--repair 0` is the default on
+the measurement. The spread within a single arm (8, 13, 13 of 20) is wide enough
+that any one n=20 comparison here is uninformative.
 
 **Nothing generated is in the shipped dispatch table.** They are proposals; a
 public submission should not contain code no person has read.
@@ -458,7 +470,11 @@ public submission should not contain code no person has read.
 
 `tiny` and `decode` have barely any arithmetic to do; their wins come from
 removing launches. Long causal attention is the genuine headroom, and is where we
-still fall back to a library implementation. H100 utilization is lower because
+still fall back to a library implementation: skipping the tiles above the
+diagonal halves the work but not the launch grid, so occupancy falls with it —
+17% and 11% of ceiling against 45–50% for the same shape without causal masking.
+The accuracy of that kernel is not the issue; a `tl.exp` variant measures the
+same envelope as the shipped `exp2` one at every length tested. H100 utilization is lower because
 our tiles do not saturate the larger machine — closing that means Hopper-specific
 work (TMA, wgmma), which we scoped out. Per-shape table in
 [RESULTS.md](RESULTS.md).
@@ -469,12 +485,12 @@ is what a latency-ranked search promotes.
 
 ### A non-reproducing measurement
 
-`torch.compile` on our bit-exact rewrite at fp16 measured **0.000 envelope** with
-a 2.98x speedup once, confirmed as a genuine compilation. It does not reproduce:
-four re-measurements in fresh processes gave 2.655 / 2.502 / 3.296 / 2.853, all
-failures — inductor's autotuning had happened to select a kernel set whose
-rounding matched. The sweep rejected it automatically, which is why the gate runs
-over multiple seeds and `cli verify --demote` re-checks the frozen table.
+`torch.compile` on our bit-exact rewrite at fp16 measures **0.000 envelope** with
+a 2.98x speedup in about one run in five, and 2.655 / 2.502 / 3.296 / 2.853 — all
+failures — in the rest. Inductor's autotuning sometimes selects a kernel set whose
+rounding happens to match, and that selection is not stable across processes. The
+gate runs over multiple seeds and `cli verify --demote` re-checks the frozen
+table for exactly this reason.
 
 ---
 
@@ -485,7 +501,7 @@ cp .env.example .env            # optional: only the LLM proposer needs it
 pip install torch --index-url https://download.pytorch.org/whl/cu126
 pip install triton              # triton-windows on Windows
 python -m kernelforge.cli doctor    # environment + Triton check
-python -m pytest tests/ -q          # 129 tests
+python -m pytest tests/ -q          # 133 tests
 python -m kernelforge.cli sweep     # search + three-way benchmark
 python -m kernelforge.cli verify --demote
 python scripts/report.py && python scripts/impact.py

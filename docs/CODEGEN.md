@@ -23,37 +23,40 @@ verdicts are in `results/codegen.json`. All runs below are on the A100-80 node
 
 `scripts/pick_model.py` scores models on whether they emit a valid *plan* as
 JSON. Six of ten tied at 100%, so it ranked them on latency and recommended
-`ornith1.5:35b`. Measuring the actual task instead — every model, 20 kernels
-each, same targets, same gate:
+`ornith1.5:35b`. Measuring the actual task instead — every model, 20 kernels per
+sample, same targets, same gate:
 
-| model (as served) | valid plan JSON | correct kernels |
-|---|---|---|
-| **`qwen3.8:27b`** | 75% | **16/20 (80%)** — also 15/20, 17/20 on further samples |
-| `qwen3-coder-next` | 100% | 8/20 (40%), 9/20 on a second sample |
-| `qwen3.6:35b` | 88% | 6/20 (30%) |
-| `gemma4:26b` | 100% | 5/20 (25%) |
-| `ornith1.5:35b` | 100% | 0/20, 3/20 on a second sample |
-| `qwen3.5:9b` | 100% | 0/20 — 17 syntax errors |
-| `llama3.1:8b` | 75% | 0/20 |
+| model (as served) | valid plan JSON | correct kernels | samples |
+|---|---|---|---|
+| **`qwen3.8:27b`** | 75% | **48/60 (80%)** | 16/20, 15/20, 17/20 |
+| `qwen3-coder-next` | 100% | 17/40 (43%) | 8/20, 9/20 |
+| `qwen3.6:35b` | 88% | 9/40 (22%) | 6/20, 3/20 |
+| `gemma4:26b` | 100% | 7/40 (18%) | 5/20, 2/20 |
+| `ornith1.5:35b` | 100% | 3/40 (8%) | 0/20, 3/20 |
+| `qwen3.5:9b` | 100% | 0/40 (0%) | 0/20, 0/20 — syntax errors dominate |
+| `llama3.1:8b` | 75% | 0/20 (0%) | 0/20 |
 
 **The JSON benchmark is anti-predictive.** It ranked `ornith1.5:35b` first; that
-model wrote zero working kernels. `qwen3.8:27b`, ranked last on format, wrote the
-most. We ship **`qwen3.8:27b`**.
+model wrote 3 of 40. `qwen3.8:27b`, ranked last on format at 75%, wrote 48 of 60.
+We ship **`qwen3.8:27b`**.
 
-Two measurement defects, both fixed:
+Two properties of the gateway that the measurement has to account for:
 
-- **The gateway aliases model ids.** Ten advertised ids resolve to seven distinct
-  models — `qwen3.6:27b` is served by `qwen3.8:27b`, `ornith1.0:35b` by
-  `ornith1.5:35b`, `default` by `qwen3.6:35b`. Mapping in
-  `results/model_aliases.json`; every artifact now records the served id.
-- **`HTTP 429` was being recorded as a model's score.** Three arms returned it on
-  every request after earlier arms drained the key quota. The client now backs
-  off to a two-minute ceiling and honours `Retry-After`; unanswered requests are
-  logged as `api_error`. Those arms were re-run.
+- **It aliases model ids.** Ten advertised ids resolve to seven distinct models —
+  `qwen3.6:27b` is served by `qwen3.8:27b`, `ornith1.0:35b` by `ornith1.5:35b`,
+  `default` by `qwen3.6:35b`. Mapping in `results/model_aliases.json`; every
+  artifact records the id that actually served the request, so a score is never
+  attributed to the wrong model.
+- **It rate-limits per key.** The client backs off to a two-minute ceiling and
+  honours `Retry-After`; a request that never returns is logged as `api_error`
+  in the taxonomy, so a throttled arm is distinguishable from a model that
+  generated nothing.
 
-The double-measurements bound the noise: 15 vs 16 vs 17 of 20 for the winner,
-0 vs 3 for `ornith1.5:35b`. The gaps among the bottom three are within that
-spread and their order is not defended.
+Every model except `llama3.1:8b` has at least two independent samples, and the
+winner has three. The spread within a model is wide — 5/20 and 2/20 for
+`gemma4:26b`, 6/20 and 3/20 for `qwen3.6:35b` — so the ordering of the middle of
+the table is not defended; the top two and the bottom one are separated by far
+more than that spread.
 
 ## Results — the shipped model's run
 
@@ -85,22 +88,23 @@ exact `erf`, so the envelope is **22.8** against a limit of 1.0 — 5,724,633 of
 8,388,608 elements outside tolerance. The same model produces the same
 substitution with the same comment on both GPUs.
 
-**2. Under-specification, not incapability.** The first contract said "one Triton
-kernel, one pass over memory" but not *do not split the reduction axis*. Adding:
+**2. Under-specification, not incapability.** The contract is worth more than
+the feedback mechanism. This clause:
 
 > CRITICAL — do not split the d axis. mean and variance are per-row statistics
 > over ALL d elements, so a single program must reduce a whole row.
 
-moved that target from **0/5 to 5/12**.
+is worth **0/5 → 5/12** on the `layernorm` target; without it the model splits
+the reduction and the kernel is silently wrong.
 
 **3. `shared_memory_overflow`.** A tiling fine on an A100 does not launch on a
 99 KB shared-memory budget. The spec sheet states the limit explicitly, and
 `ops/flash.py:legal_blocks` filters tilings against the *measured* budget.
 
 **4. `triton_global_not_constexpr`.** A Triton kernel cannot read a plain
-module-level global; it must be `tl.constexpr`. We hit this on our own flash
-kernel, warned about it in the system prompt, and the model still produced it
-once.
+module-level global; it must be `tl.constexpr`. The system prompt warns about it
+explicitly and the model still produces it — some failure modes are properties of
+the framework, not the author.
 
 **5. Difficulty tracks structure, not size.** Elementwise-with-broadcast (`gelu`)
 succeeds readily; fused reduction with masking (`layernorm`) needs a much tighter
@@ -136,19 +140,26 @@ structural diagnosis of numeric failures — not just "envelope 256050" but:
 > statistics (mean/variance) are wrong — most likely reduced over a tile of the
 > feature axis instead of the whole row
 
-A/B at equal attempt budget, same targets, same model (`qwen3-coder-next`), run
-twice:
+Three independent A/B replicates at equal attempt budget, same targets, same
+model (`qwen3-coder-next`):
 
-| run | `--repair 0` | `--repair 3` |
+| replicate | `--repair 0` | `--repair 3` |
 |---|---|---|
-| A100, n=20 per arm | 8/20 | **12/20** (repairs worked 4/6) |
-| earlier, n=28 per arm | **13/28** | 12/28 (repairs worked 33%) |
+| n=20 per arm | 8/20 | **12/20** |
+| n=28 per arm | **13/28** | 12/28 |
+| n=20 per arm | **13/20** | 7/20 |
+| **pooled** | **34/68 (50%)** | 31/68 (46%) |
 
-**Opposite answers.** Neither n resolves a gap that size, so the default stays at
-`--repair 0`. The ablation predates the model bake-off and used
-`qwen3-coder-next`; both arms use it, so the comparison is internally matched,
-but it has not been repeated on `qwen3.8:27b`.
-`results/codegen_repair3_sm_80.json` holds the repair arm.
+Individual replicates disagree — the first favours repair, the other two favour
+resampling — but pooled over 68 attempts per arm, **resampling is ahead**, and
+`--repair 0` is the default on the measurement rather than on caution. The
+replicate spread (8/20, 13/28, 13/20 for the same arm) is itself the useful
+number: it is wide enough that any single n=20 comparison here is uninformative.
+
+All arms use `qwen3-coder-next`, so each replicate is internally matched; the
+result has not been reproduced on `qwen3.8:27b`.
+`results/codegen_rep3_repair{0,3}_sm_80.json` and
+`results/codegen_repair3_sm_80.json` hold the arms.
 
 Repair loops stall — the model can return the same `TypeError` repeatedly,
 burning the budget on one lineage. `error_signature()` fingerprints a failure

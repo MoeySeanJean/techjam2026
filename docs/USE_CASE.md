@@ -32,7 +32,7 @@ removed. Look at what the organizers chose to test:
   Histories are variable length and ordered in time, so they are padded and
   causally masked. That is exactly what the script models.
 
-So the shape list *is* the use case, and we did not have to invent one. A
+So the shape list *is* the use case. A
 6-layer stack with `d_model 512`, 8 heads, `ffn 2048` over a padded sequence is a
 **user-behaviour sequence model**: the ranker that reads a user's recent
 interaction history and scores candidate videos against it. In a short-video feed

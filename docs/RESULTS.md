@@ -70,13 +70,13 @@ The 14 shapes in Appendix 3.7 of the problem statement. Shape numbers are the or
 | NVIDIA A100 80GB PCIe | `xgph1` | 77.7 s | 45.9 GB | 1/32 | `stream(flash)+wide` | yes | correct |
 | NVIDIA H100 NVL | `xgpi10` | 54.5 s | 45.9 GB | 2/32 | `stream(flash)+wide` | yes | correct |
 
-Three things had to be true at once for this to run:
+Three things have to be true at once for this to run:
 
-1. FlashAttention: attention memory O(S) instead of O(S^2), removing the 18.6 TB score matrix.
-2. Batch streaming: no operation in this model mixes batch elements, so the batch is sliced and written into one output buffer.
-3. SDPA fallback: it built an [S,S] causal mask (37.25 GiB at S=100000). Dropping a padding mask that marks nothing invalid took peak memory from 84.6 GB to 45.9 GB.
+1. FlashAttention: attention memory is O(S), not O(S^2), so the 18.6 TB score matrix is never formed.
+2. Batch streaming: no operation in this model mixes batch elements, so the batch is sliced and results written into one output buffer.
+3. SDPA fallback: it would build an [S,S] causal mask (37.25 GiB at S=100000), since SDPA accepts is_causal or an attn_mask but not both. With no padded token the mask is a no-op and is_causal alone is exact: 45.9 GB peak instead of 84.6 GB.
 
-The third was our own bug, found by printing the failing allocation instead of reasoning about it: the fp32 fallback path was rebuilding the quadratic term the flash kernel exists to remove. `python scripts/shape14.py --scan` reproduces the whole progression on any GPU.
+`python scripts/shape14.py --scan` sweeps sequence length and reports where a given GPU stops.
 
 Accuracy for this code path is established at sequence lengths where the reference *can* be computed — `tests/test_kernels.py` checks the same kernel against an exact reference across causal × padding × length, and `tests/test_streaming.py` checks that slicing the batch does not change the answer.
 

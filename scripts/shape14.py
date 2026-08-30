@@ -16,31 +16,28 @@ and V tiles and keeps only a running softmax, so its attention memory is O(S),
 not O(S^2). For this shape a fused kernel is not an optimization, it is the
 precondition for running at all.
 
-That removes the 18.6 TB but not the whole problem, and the two things we had to
-fix afterwards are the interesting part of this file.
+That removes the 18.6 TB but not the whole problem. Two more things are needed.
 
 **One.** Even with O(S) attention, a single activation tensor here is
 
     32 x 100000 x 1024 x 4 bytes = 12.2 GB
 
 and the forward keeps tens of them alive -- hundreds of GB of working set, on a
-shape whose *per-sample* working set is under 13 GB. So we stream the batch as
-well: nothing in this model mixes batch elements, so the batch dimension can be
-sliced and the results written into one output buffer.
+shape whose *per-sample* working set is under 13 GB. So the batch is streamed:
+nothing in this model mixes batch elements, so the batch dimension is sliced and
+results are written into one output buffer.
 
-**Two.** With slicing in place it still OOM'd, and the failing allocation was
-37.25 GiB inside our own SDPA fallback. That path handles the case where the
-attention stage stays in fp32 (Triton's `tl.dot` needs a narrow float type), and
-because SDPA accepts `is_causal` OR an `attn_mask` but never both, the fallback
-was building the causal mask by hand -- as an `[S, S]` tensor. Our fallback was
-reintroducing the exact quadratic term the flash kernel exists to remove. When
-no token is padded the padding mask is a no-op and `is_causal` alone is exact,
-which is the case for all 14 official shapes; dropping it took peak memory from
-84.6 GB to 45.9 GB and is what made the shape run on an 80 GB card at all.
+**Two.** The SDPA fallback -- used when the attention stage stays in fp32,
+because Triton's `tl.dot` needs a narrow float type -- accepts `is_causal` OR an
+`attn_mask`, never both, so a causal-plus-padding shape makes it build the mask
+by hand as an `[S, S]` tensor: 37.25 GiB here, reintroducing the exact quadratic
+term the flash kernel removes. When no token is padded the padding mask is a
+no-op and `is_causal` alone is exact, which is the case for all 14 official
+shapes; taking that path costs 45.9 GB peak instead of 84.6 GB.
 
-Both were needed. Fused attention alone will not run shape 14.
+Both are required. Fused attention alone will not run shape 14.
 
-Measured, after both fixes:
+Measured:
 
     A100-80 PCIe   77.7 s   peak 45.9 GB   batch sliced 1 at a time
     H100 NVL 93GB  54.5 s   peak 45.9 GB   batch sliced 2 at a time

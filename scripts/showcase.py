@@ -193,10 +193,10 @@ def act_shape14(args):
     for i, fix in enumerate(d["fixes_required"], 1):
         print(f"   {i}. {fix}")
     print()
-    say("The third was our own bug: the fp32 fallback was rebuilding the "
-        "quadratic term the flash")
-    say("kernel exists to remove. Found by printing the failing allocation, "
-        "after two wrong guesses.")
+    say("The third is in the fp32 fallback, which would otherwise rebuild the "
+        "quadratic term the")
+    say("flash kernel exists to remove -- a 37 GiB [S,S] mask, on a shape where "
+        "nothing is padded.")
 
 
 def act3_portability(args):

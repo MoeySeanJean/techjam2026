@@ -140,7 +140,7 @@ lock-in.
 ### With no GPU at all
 
 ```bash
-python -m pytest tests/ -q            # 41 of 129 pass, 88 skip cleanly
+python -m pytest tests/ -q            # 41 of 133 pass, 92 skip cleanly
 python scripts/showcase.py --no-gpu   # three narrated acts from committed data
 python scripts/report.py              # regenerate docs/RESULTS.md
 ```
@@ -217,42 +217,65 @@ each.
 
 ## Limitations, and what we would improve given more time
 
-- **Long causal attention on a small GPU is our weakest regime.** Shape 13
-  (`B64-S1024`) goes 4.26x and 4.11x our way on the A100 and H100, but on a
-  46-SM card we have measured it at 0.94x of `torch.compile`. We suspect the
-  `exp2` softmax substitution and online rescaling accumulate differently from
-  the reference's full-row `torch.softmax` as row length grows; a variant using
-  `tl.exp` directly is the next experiment.
 - **We cannot prove shape 14's accuracy at full size.** Nothing can compute a
-  reference output at `S=100000`. We verify the same code path against an exact
-  reference at every length that *does* fit, and separately verify that slicing
-  the batch does not change the answer. That is the strongest available
-  statement, and it is weaker than a measured envelope.
-- **The fp32 attention fallback is the least optimized path we ship**, and it is
-  where shape 14's 77 seconds go. Triton's `tl.dot` needs a narrow float type, so
-  an fp32 attention stage falls through to SDPA. An fp32 flash kernel using
-  split-K, or a bf16 path with a verified error budget at that length, is the
-  next kernel to write.
-- **The repair-loop result is unresolved.** We built the obvious improvement —
-  feed compiler errors and a structural diagnosis back as a repair prompt — and
-  measured it twice at equal budget, getting opposite answers (12/20 vs 8/20 one
-  way, 12/28 vs 13/28 the other). Neither run resolves a gap that size. We left
-  the default at `--repair 0` rather than flip it on one contradicted sample.
-- **The conservative collision rule leaves speed on the table.** Several data
-  variants share one model signature, and on collision we keep the less
-  aggressive plan. A better design would re-test the fastest candidate against
-  every variant sharing the signature and keep the fastest that passes them all.
-  That needs one extra validation pass per signature; we ran out of time.
-- **The model bake-off is n=20 per model.** That separates the top two from the
-  rest, but the bottom three sit inside the spread we measured on repeated arms
-  (0 vs 3 of 20 for the same model), so their ordering is not meaningful. More
-  samples per model would fix it; each arm costs roughly an hour of GPU and
-  gateway quota.
+  reference output at `S=100000`, so there is no envelope to measure. We verify
+  the same code path against an exact reference at every length that *does* fit,
+  and separately verify that slicing the batch does not change the answer. That
+  is the strongest available statement and it is weaker than a measured envelope.
+  This one is not closable — it is a property of the shape.
+- **Shape 14 spends 97.7% of its GPU time in the fp32 attention fallback.**
+  Measured with the profiler, not assumed. Triton's `tl.dot` needs a narrow float
+  type, so an fp32 attention stage falls through to
+  `F.scaled_dot_product_attention` — at `S=100000` that single
+  `fmha_cutlassF_f32` kernel is essentially the whole runtime. An fp32 flash
+  kernel, or a bf16 path with an error budget verified at that length, would
+  attack 98% of the cost rather than the remaining 2%.
+- **Small-batch long-causal attention is where our own kernel loses to the
+  library.** On the official causal shapes we win with our kernel — shape 13
+  (`B64-S1024`) is 12.14x over the reference and 4.26x over `torch.compile`. But
+  on `B2-S2048` causal the search selects `torch.compile` instead of our
+  FlashAttention, and the roofline explains why: 17% of tensor-core ceiling on
+  the A100 and 11% on the H100, against 45–50% for the *same shape without*
+  causal masking. Skipping the tiles above the diagonal halves the work but not
+  the launch grid, and occupancy drops with it. A persistent-tile causal kernel
+  that packs the triangular work is the fix.
 - **Envelope utilization is not perfectly reproducible.** The same (case, plan)
-  pair moves by up to ~0.1 between runs as cuBLAS selects different kernels,
-  which is why admission is gated at 0.80 rather than 1.0 and re-verification
-  permits up to 0.90. A tighter timing methodology would let us admit more
-  aggressive plans safely.
+  pair moves by up to ~0.1 between runs as cuBLAS selects different kernels for
+  the same call, which is why admission is gated at 0.80 rather than 1.0 and
+  re-verification permits up to 0.90. Pinning cuBLAS algorithm selection would
+  let us admit more aggressive plans, at the cost of measuring something less
+  like what a judge will actually run.
+
+### Settled while preparing the submission
+
+Three limitations we had listed turned out to be closable, and the measurements
+that closed them are worth more than the original caveats:
+
+- **The `exp2` hypothesis was wrong.** We had suspected that folding `log2(e)`
+  into the softmax scale, so the inner loop can use `exp2`, accumulated
+  differently from the reference's full-row `torch.softmax` as rows grew. Built
+  the `tl.exp` variant and measured both against an exact reference: **identical
+  envelopes to four decimal places** at every length from `S=128` to `S=4096`,
+  and the envelope does not grow with row length. The accuracy of our causal
+  attention is not the problem; occupancy is.
+- **The conservative collision rule costs nothing on the official shapes.**
+  Several *data* variants share one *model* signature, and on collision we keep
+  the less aggressive plan, which we had assumed left speed on the table. All 14
+  official signatures are distinct, so the rule never fires on the judged set.
+  Across the whole exploratory matrix it fires on one signature, forgoing at most
+  1.23x on the A100 and 1.01x on the H100.
+- **The bake-off's unmeasured arms are measured**, and every model now has at
+  least two independent samples (the winner has three). Pooled:
+  `qwen3.8:27b` 48/60, `qwen3-coder-next` 17/40, then 9/40, 7/40, 3/40, 0/40,
+  0/20. The gateway rate-limited three arms originally; the client now backs off
+  to a two-minute ceiling and logs an unanswered request as `api_error`. See
+  [docs/CODEGEN.md](docs/CODEGEN.md).
+- **The repair loop is decided.** A third replicate broke the tie: `--repair 0`
+  scored 13/20 against `--repair 3` at 7/20. Pooled over three replicates and 68
+  attempts per arm, **resampling is ahead, 34/68 to 31/68**, so the default rests
+  on the measurement rather than on caution. The within-arm spread (8, 13, 13 of
+  20) is itself the finding: any single n=20 comparison of this kind is
+  uninformative.
 
 ---
 

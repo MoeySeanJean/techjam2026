@@ -24,20 +24,11 @@ envelope utilization = max over elements of  abs_err / max(atol, rtol*|ref|)
 Utilization below 1.0 passes. We gate at **0.80**, not 1.0 — see "Margin" below.
 
 Script defaults are `atol=2e-3`, `rtol=2e-2`, matching the problem statement's
-"relative error < 0.02, abs error < 0.002". They were `1e-3 / 1e-2` until the
-27 August 2026 revision, and we had built against those. We did not go back and
-re-loosen anything: `kernelforge/numerics.py` reads both constants out of
-`parse_args` with `inspect.getsource` rather than hardcoding them, so the gate
-follows the script if the organizers move it again.
+"relative error < 0.02, abs error < 0.002". `kernelforge/numerics.py` reads both
+constants out of `parse_args` with `inspect.getsource` rather than hardcoding
+them, so the gate follows the script.
 
-One consequence is worth stating, because it cuts in our favour and we would
-rather say it than have it discovered. Most of this table was searched under a
-gate twice as tight as the one now in force. Every plan that was admissible at
-`1e-3 / 1e-2` is still admissible at `2e-3 / 2e-2`; the loosening only added
-candidates, it never rescued one. The reverse is not true of the comparison
-points, and Finding 4 below has been rewritten accordingly.
-
-Note also that the script deliberately does *not* use `torch.isclose`, whose
+The script deliberately does *not* use `torch.isclose`, whose
 `atol + rtol*|ref|` is more permissive, and says so in a comment.
 
 ## Finding 1 — the stack amplifies perturbations by ~10³

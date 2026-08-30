@@ -40,7 +40,7 @@ Four claims, and where each is evidenced:
 | **AI and heuristics together optimize the kernel code.** Two proposers see the same spec sheet, profile and error budget, and are held to the same gate; the model also writes complete Triton source, all of it gated. | `results/genealogy_*.json`, `results/codegen*.json`, `results/generated/*.py`, [docs/CODEGEN.md](CODEGEN.md) |
 | **It is worth something to a real workload.** A ranking traffic mix, measured end to end, untuned then tuned. | [docs/USE_CASE.md](USE_CASE.md), `scripts/usecase.py` |
 | **The code performs.** 26 of 26 official-shape measurements beat both the naive baseline and `torch.compile`; zero demoted on re-verification. | [RESULTS.md](RESULTS.md), `results/sweep_*.json` |
-| **It generalizes.** Any CUDA GPU, any OpenAI-compatible LLM endpoint, or neither. Every path degrades to a correct one. | [README.md](../README.md#running-this-on-your-hardware), `cli doctor` |
+| **It generalizes.** Any CUDA GPU, any OpenAI-compatible LLM endpoint, or neither. Every path degrades to a correct one. | [README.md](../README.md#setup-and-installation), `cli doctor` |
 
 ### What we actually wrote
 
@@ -121,7 +121,7 @@ set, and documented rather than dropped.
   as both a comparison point and a dispatch candidate.
 - **Triton 3.7.1** (`triton-windows` on Windows) — the FlashAttention and fused
   LayerNorm kernels.
-- **pytest** — 129 tests, of which 41 pass and 88 skip cleanly with no GPU.
+- **pytest** — 133 tests, of which 41 pass and 92 skip cleanly with no GPU.
 - **pynvml** — energy sampling for the impact analysis.
 - **paramiko** — cluster orchestration over the jump host.
 
@@ -137,21 +137,32 @@ third-party assets.
 
 ## Reflection: limitations, and what we would do next
 
-The honest list is in [README.md](../README.md#limitations-and-what-we-would-do-next).
+Full list in [README.md](../README.md#limitations-and-what-we-would-improve-given-more-time).
 The three that matter most:
 
 1. **We cannot prove shape 14's accuracy at full size.** Nothing can compute a
-   reference output at `S=100000`. We verify the same code path against an exact
-   reference at every length that *does* fit, and separately verify that slicing
-   the batch does not change the answer. That is the strongest available
-   statement, and it is weaker than a measured envelope.
-2. **The fp32 attention fallback is the least optimized path we ship**, and it is
-   where shape 14's 77 seconds go. An fp32 flash kernel, or a bf16 path with a
-   verified error budget at that length, is the next kernel to write.
-3. **Long causal attention on a small GPU is our weakest regime** — the one row
-   we lose. We have a hypothesis (the `exp2` substitution and online rescaling
-   accumulating differently from a full-row `torch.softmax`) and not yet an
-   experiment.
+   reference output at `S=100000`, so there is no envelope to measure. We verify
+   the same code path against an exact reference at every length that *does* fit,
+   and that slicing the batch does not change the answer. Not closable — it is a
+   property of the shape.
+2. **Shape 14 spends 97.7% of its GPU time in the fp32 attention fallback.**
+   Measured with the profiler. Triton's `tl.dot` needs a narrow float type, so an
+   fp32 attention stage falls through to SDPA. An fp32 flash kernel, or a bf16
+   path with an error budget verified at that length, would attack 98% of the
+   cost.
+3. **Small-batch long-causal attention is where our kernel loses to the
+   library.** On the official causal shapes we win with our own kernel (shape 13:
+   12.14x over the reference, 4.26x over `torch.compile`), but on `B2-S2048`
+   causal the search picks `torch.compile` instead. The roofline says why: 17%
+   and 11% of tensor-core ceiling against 45–50% for the same shape without
+   causal masking — skipping tiles above the diagonal halves the work but not the
+   launch grid.
+
+We also closed three limitations while preparing the submission, including one
+where our stated hypothesis turned out to be **wrong**: we suspected the `exp2`
+softmax substitution degraded accuracy as rows grew, built the `tl.exp` variant,
+and measured identical envelopes to four decimal places from `S=128` to
+`S=4096`. Details in [README.md](../README.md#settled-while-preparing-the-submission).
 
 ## Where to find the evidence
 
@@ -165,7 +176,7 @@ solution is. If you have limited time:
 | how it was built and why | [docs/TECH_REPORT.md](TECH_REPORT.md) — environment, optimizations, results |
 | the AI-assisted parts | [docs/CODEGEN.md](CODEGEN.md) + §7 of the tech report; raw transcripts in `results/` |
 | whether the correctness claims hold | [docs/PRECISION.md](PRECISION.md), [docs/EQUIVALENCE.md](EQUIVALENCE.md), `python -m pytest -q` |
-| that it runs on *your* hardware | [README.md](../README.md#running-this-on-your-hardware) — different GPU, no LLM key, or no GPU at all |
+| that it runs on *your* hardware | [README.md](../README.md#setup-and-installation) — different GPU, no LLM key, or no GPU at all |
 | what it would be worth | [docs/USE_CASE.md](USE_CASE.md) — measured, with its assumptions stated |
 | it working, in three minutes | `python scripts/showcase.py` (or `--no-gpu`, which needs no hardware) |
 
