@@ -1,0 +1,16 @@
+{
+ "note": "What the gateway actually serves for each requested model id, from the `model` field it echoes back. Verified stable over 4 consecutive probes per name. This matters because a per-model comparison that trusts the requested name is attributing results to the wrong model.",
+ "probed_utc": "2026-08-30T09:19:38Z",
+ "requested_to_served": {
+  "gemma4:26b": "gemma4:26b",
+  "llama3.1:8b": "llama3.1:8b",
+  "ornith1.0:35b": "ornith1.5:35b",
+  "ornith1.5:35b": "ornith1.5:35b",
+  "qwen3-coder-next": "qwen3-coder-next",
+  "qwen3.5:9b": "qwen3.5:9b",
+  "qwen3.6:27b": "qwen3.8:27b",
+  "qwen3.6:35b": "qwen3.6:35b",
+  "qwen3.8:27b": "qwen3.8:27b",
+  "default": "qwen3.6:35b"
+ }
+}

@@ -1,0 +1,41 @@
+case                 stage                dtype       envelope     max_abs  verdict
+----------------------------------------------------------------------------------
+default              (control: all wide)  auto           0.649   7.026e-04  tight
+default              attn                 float16        0.575   6.912e-04  tight
+default              attn                 bfloat16       2.019   2.198e-03  FAIL
+default              out_proj             float16        0.647   8.345e-04  tight
+default              out_proj             bfloat16       2.223   2.223e-03  FAIL
+default              ffn1                 float16        0.942   1.013e-03  tight
+default              ffn1                 bfloat16       8.210   8.210e-03  FAIL
+default              ffn2                 float16        0.821   1.010e-03  tight
+default              ffn2                 bfloat16       6.289   6.707e-03  FAIL
+default              (all stages)         float16        1.145   1.145e-03  FAIL
+default              (all stages)         bfloat16       8.879   1.052e-02  FAIL
+default              (all + residual)     float16        2.661   7.924e-03  FAIL
+default              (all + residual)     bfloat16      20.892   5.947e-02  FAIL
+long_seq             (control: all wide)  auto           0.629   7.085e-04  tight
+long_seq             attn                 float16        0.617   7.077e-04  tight
+long_seq             attn                 bfloat16       1.482   1.558e-03  FAIL
+long_seq             out_proj             float16        0.708   7.814e-04  tight
+long_seq             out_proj             bfloat16       1.833   1.996e-03  FAIL
+long_seq             ffn1                 float16        1.107   1.107e-03  FAIL
+long_seq             ffn1                 bfloat16       8.207   8.564e-03  FAIL
+long_seq             ffn2                 float16        0.982   1.049e-03  tight
+long_seq             ffn2                 bfloat16       7.192   7.192e-03  FAIL
+long_seq             (all stages)         float16        1.305   1.305e-03  FAIL
+long_seq             (all stages)         bfloat16       9.864   1.055e-02  FAIL
+long_seq             (all + residual)     float16        2.852   9.509e-03  FAIL
+long_seq             (all + residual)     bfloat16      23.390   7.979e-02  FAIL
+default_float16      (control: all wide)  auto           2.655   7.812e-03  FAIL
+default_float16      attn                 float16        2.380   7.812e-03  FAIL
+default_float16      attn                 bfloat16       3.113   7.812e-03  FAIL
+default_float16      out_proj             float16        2.441   7.812e-03  FAIL
+default_float16      out_proj             bfloat16       2.960   7.812e-03  FAIL
+default_float16      ffn1                 float16        2.482   7.812e-03  FAIL
+default_float16      ffn1                 bfloat16       7.745   1.172e-02  FAIL
+default_float16      ffn2                 float16        2.441   7.812e-03  FAIL
+default_float16      ffn2                 bfloat16       6.104   9.766e-03  FAIL
+default_float16      (all stages)         float16        2.563   7.812e-03  FAIL
+default_float16      (all stages)         bfloat16       9.644   1.172e-02  FAIL
+default_float16      (all + residual)     float16        2.747   5.859e-03  FAIL
+default_float16      (all + residual)     bfloat16      19.806   7.617e-02  FAIL

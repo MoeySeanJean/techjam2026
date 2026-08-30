@@ -1,0 +1,132 @@
+{
+  "rounds": 4,
+  "rows": [
+    {
+      "model": "ornith1.5:35b",
+      "calls": 8,
+      "parsed": 8,
+      "clean": 8,
+      "parse_rate": 1.0,
+      "clean_rate": 1.0,
+      "median_s": 1.412471890449524,
+      "tokens": 10729,
+      "problems": {},
+      "errors": {}
+    },
+    {
+      "model": "ornith1.0:35b",
+      "calls": 8,
+      "parsed": 8,
+      "clean": 8,
+      "parse_rate": 1.0,
+      "clean_rate": 1.0,
+      "median_s": 1.513053059577942,
+      "tokens": 10835,
+      "problems": {},
+      "errors": {}
+    },
+    {
+      "model": "qwen3-coder-next",
+      "calls": 8,
+      "parsed": 8,
+      "clean": 8,
+      "parse_rate": 1.0,
+      "clean_rate": 1.0,
+      "median_s": 2.0216742753982544,
+      "tokens": 10920,
+      "problems": {},
+      "errors": {}
+    },
+    {
+      "model": "default",
+      "calls": 8,
+      "parsed": 8,
+      "clean": 8,
+      "parse_rate": 1.0,
+      "clean_rate": 1.0,
+      "median_s": 2.3531692028045654,
+      "tokens": 11378,
+      "problems": {},
+      "errors": {}
+    },
+    {
+      "model": "qwen3.6:27b",
+      "calls": 8,
+      "parsed": 8,
+      "clean": 8,
+      "parse_rate": 1.0,
+      "clean_rate": 1.0,
+      "median_s": 3.2766581773757935,
+      "tokens": 10828,
+      "problems": {},
+      "errors": {}
+    },
+    {
+      "model": "qwen3.5:9b",
+      "calls": 8,
+      "parsed": 8,
+      "clean": 8,
+      "parse_rate": 1.0,
+      "clean_rate": 1.0,
+      "median_s": 4.0468878746032715,
+      "tokens": 10416,
+      "problems": {},
+      "errors": {}
+    },
+    {
+      "model": "gemma4:26b",
+      "calls": 8,
+      "parsed": 8,
+      "clean": 8,
+      "parse_rate": 1.0,
+      "clean_rate": 1.0,
+      "median_s": 4.074317812919617,
+      "tokens": 10646,
+      "problems": {},
+      "errors": {}
+    },
+    {
+      "model": "qwen3.6:35b",
+      "calls": 8,
+      "parsed": 7,
+      "clean": 7,
+      "parse_rate": 0.875,
+      "clean_rate": 0.875,
+      "median_s": 2.5760457515716553,
+      "tokens": 12241,
+      "problems": {
+        "unparseable": 1
+      },
+      "errors": {}
+    },
+    {
+      "model": "llama3.1:8b",
+      "calls": 8,
+      "parsed": 8,
+      "clean": 6,
+      "parse_rate": 1.0,
+      "clean_rate": 0.75,
+      "median_s": 2.7745208740234375,
+      "tokens": 9136,
+      "problems": {
+        "ignored-dtype-constraint": 2
+      },
+      "errors": {}
+    },
+    {
+      "model": "qwen3.8:27b",
+      "calls": 8,
+      "parsed": 8,
+      "clean": 6,
+      "parse_rate": 1.0,
+      "clean_rate": 0.75,
+      "median_s": 3.170414090156555,
+      "tokens": 10769,
+      "problems": {
+        "repeat": 1,
+        "ignored-dtype-constraint": 1
+      },
+      "errors": {}
+    }
+  ]
+}

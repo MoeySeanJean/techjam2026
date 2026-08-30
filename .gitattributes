@@ -1,0 +1,14 @@
+# Normalize line endings in the repository. This project was developed on
+# Windows and measured on Linux, and without this a Windows checkout commits
+# CRLF into files the cluster jobs then read.
+* text=auto eol=lf
+
+# Slurm refuses a batch script containing CRLF ("DOS line breaks"), which is a
+# confusing way to lose a job an hour into a queue. Pin them.
+*.sbatch text eol=lf
+*.sh     text eol=lf
+
+# Generated, checked-in artifacts: diffs of these are noise.
+results/*.json      -diff
+dashboard.html      -diff linguist-generated
+results/generated/* linguist-generated

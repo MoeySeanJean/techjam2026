@@ -1,0 +1,235 @@
+# Precision and the accuracy gate
+
+This is the document that shaped every engineering decision in the project. It
+records what we measured about the organizer's tolerance rule, not what we
+assumed about it.
+
+## The rule
+
+From `torch_transformer_benchmark.py`:
+
+```python
+abs_ok = abs_error <= atol
+rel_ok = abs_error <= rtol * ref.abs()
+passed_mask = finite_mask & (abs_ok | rel_ok)
+```
+
+It is an **OR**. The per-element allowance is therefore `max(atol, rtol*|ref|)`,
+and a single scalar captures how close a candidate is to failing:
+
+```
+envelope utilization = max over elements of  abs_err / max(atol, rtol*|ref|)
+```
+
+Utilization below 1.0 passes. We gate at **0.80**, not 1.0 — see "Margin" below.
+
+Script defaults are `atol=2e-3`, `rtol=2e-2`, matching the problem statement's
+"relative error < 0.02, abs error < 0.002". They were `1e-3 / 1e-2` until the
+27 August 2026 revision, and we had built against those. We did not go back and
+re-loosen anything: `kernelforge/numerics.py` reads both constants out of
+`parse_args` with `inspect.getsource` rather than hardcoding them, so the gate
+follows the script if the organizers move it again.
+
+One consequence is worth stating, because it cuts in our favour and we would
+rather say it than have it discovered. Most of this table was searched under a
+gate twice as tight as the one now in force. Every plan that was admissible at
+`1e-3 / 1e-2` is still admissible at `2e-3 / 2e-2`; the loosening only added
+candidates, it never rescued one. The reverse is not true of the comparison
+points, and Finding 4 below has been rewritten accordingly.
+
+Note also that the script deliberately does *not* use `torch.isclose`, whose
+`atol + rtol*|ref|` is more permissive, and says so in a comment.
+
+## Finding 1 — the stack amplifies any perturbation by ~10^3
+
+The benchmark evaluates a **6-layer stack** by default, not a single layer. A
+change to any operation is amplified as it propagates.
+
+Our fused LayerNorm differs from `torch.layer_norm` only by reduction order.
+For a 512-wide row in fp32 that is a perturbation of about `sqrt(512) * 1.2e-7
+≈ 2.7e-6`, which we measured directly in the kernel unit test. After the stack:
+
+| depth | envelope from fused norm alone (fp32) |
+|---|---|
+| 1 | 0.185 |
+| 2 | 0.283 |
+| 4 | 0.427 |
+| 6 | **0.552** |
+| 12 | **0.977** |
+
+A 2.7e-6 input perturbation becomes a ~6e-4 output difference. The amplification
+is large but sub-linear in depth (it saturates), which is why the L=12 case sits
+right at the edge of the gate rather than far past it.
+
+**Consequence:** at `--layers 12` there is almost no budget left for anything
+else, and precision choices that are comfortable at L=6 are not safe at L=12.
+The dispatch table is keyed on `L` for exactly this reason.
+
+## Finding 2 — in fp16 and bf16 mode the gate rejects `torch.compile` itself
+
+We ran PyTorch's own optimizer against the organizer's own baseline, same
+weights, same shape (B8 S128 d512 H8 F2048 L6). Because this is a strong claim,
+the sweep now gates the library baselines on every run, on every GPU, in both
+compile modes. Measured envelope utilization (limit 1.0):
+
+| GPU | dtype | `max-autotune` | `reduce-overhead` | verdict |
+|---|---|---|---|---|
+| RTX 3070 Ti (sm_86) | float16 | 2.838 | 2.625 | **FAIL** |
+| A100-80 (sm_80) | float16 | 2.182 | 2.258 | **FAIL** |
+| H100 NVL (sm_90) | float16 | 2.594 | 2.991 | **FAIL** |
+| RTX 3070 Ti (sm_86) | bfloat16 | 26.123 | 24.414 | **FAIL** |
+| A100-80 (sm_80) | bfloat16 | 22.827 | 20.020 | **FAIL** |
+| H100 NVL (sm_90) | bfloat16 | 21.484 | 21.866 | **FAIL** |
+| all three | float32 | passes | passes | **PASS** |
+
+Six independent failures across three architectures and both compile modes, and
+no float32 failure anywhere.
+
+**How to read this.** Our first instinct was to call it a benchmark defect. On
+reflection that is the wrong reading, and the right one is more interesting.
+
+The organizers chose the *naive* implementation as the reference and listed
+`torch.compile` as a suggested **tool**. Those two choices together define the
+actual problem: you may reach for aggressive optimizations, but correctness is
+measured against the unoptimized reference, and it is *your* job to establish
+where a given tool is admissible. At narrow I/O dtypes the reference's own
+rounding noise, amplified through six layers, exceeds the tolerance — so a
+blanket `torch.compile` submission fails, and a submission that never checks
+would fail silently.
+
+That reframes what the project contributes. It is not "we found a hole in your
+benchmark." It is **the discipline that lets aggressive tools be used exactly
+where they are provably correct, and nowhere else** — which is what the gate is
+for, and why `torch.compile` is a *candidate in our dispatch table* rather than
+merely a yardstick. It wins the shapes where it passes (long causal attention),
+and is rejected on the shapes where it does not (fp16/bf16 applied to the
+baseline), with no special-casing anywhere in the code.
+
+### Scope of this finding, now that the official shape list exists
+
+Appendix 3.7 fixed the test set at 14 shapes, and **all 14 are fp32** — no
+`--dtype` is specified, so the script's default applies. On that list
+`torch.compile` clears the gate on every shape, on every GPU we measured.
+It is not disqualified anywhere in the official test set, and we do not claim it
+is. Every official-shape result in `RESULTS.md` is a win over an *admissible*
+`torch.compile`, which is the harder and the honest comparison.
+
+The admissibility finding is therefore about the shapes *outside* that list —
+the fp16 and bf16 configurations the script also accepts, and which any real
+deployment would reach for first. There, compiling the baseline fails the gate,
+and the halving of the tolerance in the 27 August revision does not rescue it:
+the envelope is `abs_err / max(atol, rtol*|ref|)`, so doubling both constants
+exactly halves it, and the four fp16 measurements below (2.655 / 2.502 / 3.296 /
+2.853) become 1.33 / 1.25 / 1.65 / 1.43. Still failures, by a wide margin.
+
+We keep the check in the loop for the reason it was written: the shape list is
+fixed, but the dtype is a flag, and a system that assumes rather than measures
+would ship silent wrongness the first time someone changed it.
+
+### A near-miss worth recording
+
+While adding `torch.compile` to the search we measured compiling our bit-exact
+rewrite at fp16 and got **0.000 envelope** — bit-identical output — together with
+a 2.98x speedup over eager, and confirmed it was a real compilation
+(`dynamo.explain`: 1 graph, 0 breaks, 131 ops), not a silent fallback. It looked
+like a genuine finding: compile the *rewrite* rather than the *baseline* and the
+gate is satisfied even at fp16.
+
+**It does not reproduce.** Re-measured four times in fresh processes, the same
+plan on the same shape gives 2.655 / 2.502 / 3.296 / 2.853 — all failures. What
+we saw once was inductor's autotuning happening to select a kernel set whose
+rounding matched; that selection is not stable across processes, so the property
+is not one you can ship.
+
+We are recording it because it is the sharpest illustration of why this project
+is built the way it is. A single passing measurement is not evidence. The gate
+runs over multiple seeds, the sweep re-measures, and `cli verify --demote`
+re-checks the frozen table afterwards — and in the full sweep that machinery
+rejected this exact configuration automatically, with no special-casing. Had we
+trusted the first number, we would have shipped a plan that fails roughly three
+times in four.
+
+Consequently, `RESULTS.md` marks any shape where `torch.compile` is faster but
+inadmissible with **†** rather than ⚠. Being outrun by a configuration that
+cannot pass the accuracy gate is not losing.
+
+The single-change ablation confirms where the line falls:
+
+| change (one at a time, from the baseline) | fp32 | fp16 | bf16 |
+|---|---|---|---|
+| loop rewrite, exact attention | **0.000** | **0.000** | **0.000** |
+| + fused QKV GEMM | **0.000** | 2.655 FAIL | **0.000** |
+| + fused Triton norm | 0.675 | 2.991 FAIL | 18.981 FAIL |
+| + fp32 residual stream | 0.000 | 2.289 FAIL | 20.020 FAIL |
+| attention → SDPA | 0.694 | 2.197 FAIL | 19.775 FAIL |
+| attention → our flash kernel | 0.597 | 2.594 FAIL | 18.066 FAIL |
+
+Two things fall out of this table:
+
+1. **Our structural rewrite is bit-exact.** Rung 1 measures 0.000 max absolute
+   error on every dtype. Removing the baseline's redundant `.contiguous()`
+   copies, hoisting its per-layer causal-mask allocation, and moving the row
+   masking to the block boundary changes nothing numerically. That is what makes
+   a safe fast path possible at all.
+2. **Fusing QKV is bit-exact in fp32 and bf16 but not fp16** (2.655). Merging
+   three GEMMs into one changes the cuBLAS kernel selection, and at fp16 that
+   changes the accumulation order enough to matter.
+
+**Consequence:** the dispatch table sends fp16 and bf16 inputs down a bit-exact
+path, and takes its speedup from removing ~105 kernel launches per forward
+(CUDA graph capture) and from compiling the bit-exact rewrite. We take the
+structural and launch-overhead wins and decline the arithmetic one, because at
+these dtypes the arithmetic one cannot be had correctly.
+
+## Finding 3 — in fp32 mode, fp16 attention is *free*, the FFN is not
+
+The reference runs its matmuls at **TF32** in fp32 mode (`--allow-tf32` defaults
+true, `matmul_precision='high'`). TF32 carries 10 explicit mantissa bits; fp16
+carries 10 explicit plus an implicit one. Computing in fp16 is therefore not a
+precision regression against this reference — it is a comparable rounding.
+
+Measured marginal envelope cost of narrowing one stage to fp16, holding the rest
+wide (default shape):
+
+| stage | marginal envelope cost |
+|---|---|
+| attention (QKV GEMM + flash) | **-0.030** |
+| out_proj | +0.031 |
+| ffn2 | +0.221 |
+| ffn1 | +0.326 |
+
+The attention cost is **negative**: fp16 attention lands *closer* to the
+reference than our fp32 flash path does, because the reference's own QK^T runs
+at TF32 and fp16 is nearer to TF32 than fp32 is.
+
+The FFN GEMMs are expensive because they carry the longest reduction dimensions
+(`d→ffn` and `ffn→d`, 2048 wide here). This is not the ordering intuition
+suggests — attention is the scary-looking part — and it is why the search is
+driven by measurement rather than by a hand-written precision policy.
+
+**Consequence:** the shipped fp32 plan is `fp16[attn, out_proj]` with the FFN
+kept wide. On the default shape it clears the gate at 0.707 and still beats
+`torch.compile` by 1.48x.
+
+## Finding 4 — the residual stream must stay wide
+
+Narrowing the residual stream to fp16 pushes utilization from ~0.7 to 2.8. It is
+summed across `2 * num_layers` sublayers, so it is the one place where narrow
+storage compounds rather than merely rounding. `residual_dtype` is a separate
+knob from `compute_dtype` for this reason, and it is always fp32 in shipped
+plans.
+
+## Margin
+
+We gate at 0.80, not 1.0. Utilization is measured over three seeds; the
+organizer will run a seed we have not seen, and a hard accuracy failure skips
+benchmarking entirely (`return 2`). A configuration that passes at 0.99 on our
+seeds is not one we are willing to submit.
+
+## Reproducing
+
+```bash
+python -m kernelforge.cli budget --cases default,long_seq,default_float16
+```
+
+writes the per-stage table to `results/error_budget.txt`.

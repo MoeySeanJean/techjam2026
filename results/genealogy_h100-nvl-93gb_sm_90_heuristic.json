@@ -1,0 +1,310 @@
+{
+  "gpu": "NVIDIA H100 NVL [sm_90] 132 SMs | 93.1 GB | smem/block 227 KB | ~3512 GB/s | tensor-cores, bf16, tma, fp8",
+  "arch": "sm_90",
+  "device": "h100-nvl-93gb_sm_90",
+  "proposer": "heuristic",
+  "proposer_model": null,
+  "proposer_failures": 0,
+  "elapsed_s": 196.8172903060913,
+  "taxonomy": {
+    "ok": 12
+  },
+  "records": [
+    {
+      "case": "B64-S128-d128-H4-F128-L4-causal",
+      "label": "B64-S128-d128-H4-F128-L4-causal-float32",
+      "regime": "gemm",
+      "profile": {
+        "regime": "launch-bound",
+        "cuda_ms": 1.7112558999999905,
+        "cpu_ms": 2.582511950000013,
+        "launches": 107,
+        "launch_us": 3.9739392523364874,
+        "buckets": {
+          "norm": 0.2891278000000008,
+          "other": 0.32268875000000063,
+          "gemm": 0.24618389999999735,
+          "copy": 0.32093639999998935,
+          "elementwise": 0.4235185500000031,
+          "softmax": 0.10880049999999887
+        }
+      },
+      "stage_cost": {
+        "attn": 0.04235142469406128,
+        "out_proj": 0.023460030555725098,
+        "ffn1": 0.09693577885627747,
+        "ffn2": 0.09362587332725525
+      },
+      "baseline_ms": 2.253759980201721,
+      "compile_ms": 0.41916799545288086,
+      "attempts": [
+        {
+          "iteration": 1,
+          "plan": "wide",
+          "utilization": 0.3895908296108246,
+          "passed": true,
+          "median_ms": 1.6000319719314575,
+          "speedup": 1.4085718408996069,
+          "status": "ok",
+          "detail": "",
+          "proposer": "heuristic",
+          "plan_detail": "compute=auto residual=float32 attn=flash fused-qkv fused-norm"
+        },
+        {
+          "iteration": 2,
+          "plan": "wide(torch-norm)",
+          "utilization": 0.44464829564094543,
+          "passed": true,
+          "median_ms": 1.5677120089530945,
+          "speedup": 1.4376109689347625,
+          "status": "ok",
+          "detail": "",
+          "proposer": "heuristic",
+          "plan_detail": "compute=auto residual=float32 attn=flash fused-qkv"
+        },
+        {
+          "iteration": 3,
+          "plan": "fp16[out_proj]",
+          "utilization": 0.5749873518943787,
+          "passed": true,
+          "median_ms": 1.6552160382270813,
+          "speedup": 1.3616107675078755,
+          "status": "ok",
+          "detail": "",
+          "proposer": "heuristic",
+          "plan_detail": "compute=auto residual=float32 attn=flash fused-qkv fused-norm [out_proj=float16]"
+        }
+      ],
+      "best": {
+        "plan": "wide(torch-norm)",
+        "describe": "compute=auto residual=float32 attn=flash fused-qkv",
+        "median_ms": 1.5677120089530945,
+        "speedup": 1.4376109689347625,
+        "speedup_vs_compile": 0.2673756359963064,
+        "utilization": 0.44464829564094543
+      }
+    },
+    {
+      "case": "B1-S128-d128-H4-F128-L4-causal",
+      "label": "B1-S128-d128-H4-F128-L4-causal-float32",
+      "regime": "latency",
+      "profile": {
+        "regime": "launch-bound",
+        "cuda_ms": 0.5617726500000084,
+        "cpu_ms": 2.131052050000001,
+        "launches": 83,
+        "launch_us": 3.6134999999999926,
+        "buckets": {
+          "norm": 0.054557200000002394,
+          "other": 0.15122739999999937,
+          "gemm": 0.12130549999999954,
+          "copy": 0.09090920000001483,
+          "elementwise": 0.11931204999999144,
+          "softmax": 0.02446130000000097
+        }
+      },
+      "stage_cost": {
+        "attn": -0.032347172498703,
+        "out_proj": 0.03851902484893799,
+        "ffn1": 0.15332314372062683,
+        "ffn2": 0.06871062517166138
+      },
+      "baseline_ms": 1.9586880207061768,
+      "compile_ms": 0.19708800315856934,
+      "attempts": [
+        {
+          "iteration": 1,
+          "plan": "wide",
+          "utilization": 0.3427564799785614,
+          "passed": true,
+          "median_ms": 1.40310400724411,
+          "speedup": 1.3959678046628277,
+          "status": "ok",
+          "detail": "",
+          "proposer": "heuristic",
+          "plan_detail": "compute=auto residual=float32 attn=flash fused-qkv fused-norm"
+        },
+        {
+          "iteration": 2,
+          "plan": "wide(torch-norm)",
+          "utilization": 0.2591051161289215,
+          "passed": true,
+          "median_ms": 1.3712639808654785,
+          "speedup": 1.4283814408002924,
+          "status": "ok",
+          "detail": "",
+          "proposer": "heuristic",
+          "plan_detail": "compute=auto residual=float32 attn=flash fused-qkv"
+        },
+        {
+          "iteration": 3,
+          "plan": "fp16[attn]/tn",
+          "utilization": 0.2725925147533417,
+          "passed": true,
+          "median_ms": 1.2307999730110168,
+          "speedup": 1.591394266864064,
+          "status": "ok",
+          "detail": "",
+          "proposer": "heuristic",
+          "plan_detail": "compute=auto residual=float32 attn=flash fused-qkv [attn=float16]"
+        }
+      ],
+      "best": {
+        "plan": "fp16[attn]/tn",
+        "describe": "compute=auto residual=float32 attn=flash fused-qkv [attn=float16]",
+        "median_ms": 1.2307999730110168,
+        "speedup": 1.591394266864064,
+        "speedup_vs_compile": 0.16013000282768547,
+        "utilization": 0.2725925147533417
+      }
+    },
+    {
+      "case": "B64-S1024-d128-H4-F128-L4-causal",
+      "label": "B64-S1024-d128-H4-F128-L4-causal-float32",
+      "regime": "attention",
+      "profile": {
+        "regime": "other",
+        "cuda_ms": 60.92566745000003,
+        "cpu_ms": 23.48232605000002,
+        "launches": 115,
+        "launch_us": 4.666648260869407,
+        "buckets": {
+          "norm": 2.310575799999994,
+          "other": 19.272526600000027,
+          "gemm": 3.3919370999999936,
+          "copy": 11.092090499999951,
+          "elementwise": 19.171656950000056,
+          "softmax": 5.686880500000008
+        }
+      },
+      "stage_cost": {
+        "attn": 0.03617444634437561,
+        "out_proj": 0.09571203589439392,
+        "ffn1": 0.2031252086162567,
+        "ffn2": 0.03283798694610596
+      },
+      "baseline_ms": 24.969728469848633,
+      "compile_ms": 10.313776016235352,
+      "attempts": [
+        {
+          "iteration": 1,
+          "plan": "wide",
+          "utilization": 0.4836227595806122,
+          "passed": true,
+          "median_ms": 12.96020793914795,
+          "speedup": 1.926645667036283,
+          "status": "ok",
+          "detail": "",
+          "proposer": "heuristic",
+          "plan_detail": "compute=auto residual=float32 attn=flash fused-qkv fused-norm"
+        },
+        {
+          "iteration": 2,
+          "plan": "wide(torch-norm)",
+          "utilization": 0.39378923177719116,
+          "passed": true,
+          "median_ms": 13.966480255126953,
+          "speedup": 1.7878325829933064,
+          "status": "ok",
+          "detail": "",
+          "proposer": "heuristic",
+          "plan_detail": "compute=auto residual=float32 attn=flash fused-qkv"
+        },
+        {
+          "iteration": 3,
+          "plan": "fp16[ffn2]/tn",
+          "utilization": 0.4694051742553711,
+          "passed": true,
+          "median_ms": 14.015007972717285,
+          "speedup": 1.7816421166835343,
+          "status": "ok",
+          "detail": "",
+          "proposer": "heuristic",
+          "plan_detail": "compute=auto residual=float32 attn=flash fused-qkv [ffn2=float16]"
+        }
+      ],
+      "best": {
+        "plan": "wide",
+        "describe": "compute=auto residual=float32 attn=flash fused-qkv fused-norm",
+        "median_ms": 12.96020793914795,
+        "speedup": 1.926645667036283,
+        "speedup_vs_compile": 0.795803282220595,
+        "utilization": 0.4836227595806122
+      }
+    },
+    {
+      "case": "B64-S128-d1024-H4-F1024-L4-causal",
+      "label": "B64-S128-d1024-H4-F1024-L4-causal-float32",
+      "regime": "gemm",
+      "profile": {
+        "regime": "other",
+        "cuda_ms": 7.818224149999985,
+        "cpu_ms": 3.650303699999998,
+        "launches": 111,
+        "launch_us": 4.575209909909936,
+        "buckets": {
+          "norm": 0.6768852999999972,
+          "other": 2.1718110000000017,
+          "gemm": 1.8580937999999971,
+          "copy": 1.686901400000004,
+          "elementwise": 1.2884416499999887,
+          "softmax": 0.13609099999999807
+        }
+      },
+      "stage_cost": {
+        "attn": 0.023549407720565796,
+        "out_proj": 0.10619315505027771,
+        "ffn1": 0.0435197651386261,
+        "ffn2": -0.009162336587905884
+      },
+      "baseline_ms": 4.187455892562866,
+      "compile_ms": 3.1667840480804443,
+      "attempts": [
+        {
+          "iteration": 1,
+          "plan": "wide",
+          "utilization": 0.5302913784980774,
+          "passed": true,
+          "median_ms": 3.498128056526184,
+          "speedup": 1.1970562040319412,
+          "status": "ok",
+          "detail": "",
+          "proposer": "heuristic",
+          "plan_detail": "compute=auto residual=float32 attn=flash fused-qkv fused-norm"
+        },
+        {
+          "iteration": 2,
+          "plan": "wide(torch-norm)",
+          "utilization": 0.4336703419685364,
+          "passed": true,
+          "median_ms": 4.027904033660889,
+          "speedup": 1.0396116336359096,
+          "status": "ok",
+          "detail": "",
+          "proposer": "heuristic",
+          "plan_detail": "compute=auto residual=float32 attn=flash fused-qkv"
+        },
+        {
+          "iteration": 3,
+          "plan": "fp16[ffn2]/tn",
+          "utilization": 0.5357060432434082,
+          "passed": true,
+          "median_ms": 4.082736015319824,
+          "speedup": 1.0256494362726605,
+          "status": "ok",
+          "detail": "",
+          "proposer": "heuristic",
+          "plan_detail": "compute=auto residual=float32 attn=flash fused-qkv [ffn2=float16]"
+        }
+      ],
+      "best": {
+        "plan": "wide",
+        "describe": "compute=auto residual=float32 attn=flash fused-qkv fused-norm",
+        "median_ms": 3.498128056526184,
+        "speedup": 1.1970562040319412,
+        "speedup_vs_compile": 0.9052796229607498,
+        "utilization": 0.5302913784980774
+      }
+    }
+  ]
+}

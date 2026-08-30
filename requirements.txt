@@ -1,0 +1,15 @@
+# Core. A CUDA-capable GPU is required; verified on CUDA 12.6 and 13.0.
+# Install torch first, matched to your CUDA version, e.g.
+#   pip install torch --index-url https://download.pytorch.org/whl/cu126
+torch>=2.4
+
+# Triton supplies the two hand-written kernels.
+#   Linux:    triton
+#   Windows:  triton-windows   (needs MSVC build tools)
+triton>=3.0 ; platform_system != "Windows"
+triton-windows>=3.3 ; platform_system == "Windows"
+
+# Optional. Everything degrades gracefully without these.
+pynvml>=11.5      # energy accounting in the benchmark harness
+paramiko>=3.4     # scripts/cluster.py, Slurm driver over a jump host
+pytest>=8.0       # test suite

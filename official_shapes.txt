@@ -1,0 +1,36 @@
+# Official Track 3 test shapes, from Appendix 3.7 of the TikTok TechJam 2026
+# Information Document (problem statement updated 27 Aug 2026).
+#
+#   B<batch>-S<seq>-d<qkv_dim>-H<heads>-F<ffn>-L<layers>[-causal]
+#
+# Every official shape is causal, has 4 layers (2 for #14), and has ffn_dim
+# equal to qkv_dim -- none of which matched our pre-release assumptions.
+#
+#   python -m kernelforge.cli tune --shapes-file official_shapes.txt
+
+# 1-6: batch size sweep
+B64-S128-d128-H4-F128-L4-causal
+B1-S128-d128-H4-F128-L4-causal
+B4-S128-d128-H4-F128-L4-causal
+B16-S128-d128-H4-F128-L4-causal
+B128-S128-d128-H4-F128-L4-causal
+B10000-S128-d128-H4-F128-L4-causal
+
+# 7-8: model/ffn width sweep
+B64-S128-d32-H4-F32-L4-causal
+B64-S128-d1024-H4-F1024-L4-causal
+
+# 9-11: head count sweep  (head_dim 128, 64, 8)
+B64-S128-d128-H1-F128-L4-causal
+B64-S128-d128-H2-F128-L4-causal
+B64-S128-d128-H16-F128-L4-causal
+
+# 12-13: sequence length sweep
+B64-S32-d128-H4-F128-L4-causal
+B64-S1024-d128-H4-F128-L4-causal
+
+# 14: the extreme one. The reference implementation cannot run this at all --
+# it materializes [B,H,S,S] = 32*16*100000^2 fp32 = 18.6 TB. Ours never
+# materializes the score matrix, so it is the one shape where a fused
+# implementation is not an optimization but a precondition.
+B32-S100000-d1024-H16-F1024-L2-causal

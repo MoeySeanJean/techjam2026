@@ -1,0 +1,34 @@
+# Never commit credentials. The deliverable is a public repository;
+# NUS_PASS / SOCLAAS_API_KEY live in .env, which stays local.
+.env
+*.pem
+*.key
+id_*
+
+# Organizer material — not ours to redistribute. Keep it locally if you like.
+*.pdf
+
+__pycache__/
+*.pyc
+.pytest_cache/
+.ipynb_checkpoints/
+
+# `cli env` and `cli doctor` write a description of whatever machine they run
+# on. That is useful locally and meaningless to anyone else, so it stays out --
+# the environments our numbers came from are written out in docs/TECH_REPORT.md.
+results/environment_*.json
+
+# Raw run logs are large and machine-specific. The JSON artifacts in results/
+# are the reproducible record and ARE committed.
+logs/
+*.log
+
+# Triton / Inductor scratch
+.triton/
+
+# Scratch clones used to check what a fresh checkout actually contains.
+kf_clone/
+
+# Working directory: internal notes, raw artifacts, run logs.
+# Kept out of the submission to stay readable.
+_workspace/
