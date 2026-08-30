@@ -95,10 +95,9 @@ gives the smaller figure.
 python scripts/usecase.py --cold     # what an untuned system does
 ```
 
-**1.04x.** All four segments are shapes the dispatch table has never seen, so
-they fall back through nearest-neighbour to the bit-exact plan — correct, safe,
-and barely faster. The system does not pretend to be fast on shapes it has not
-measured. Then:
+**1.04x.** All four segments are shapes the table has never seen, so they fall
+back through nearest-neighbour to the bit-exact plan — correct, safe, barely
+faster. Then:
 
 ```bash
 python scripts/usecase.py --tune     # ~3 min per shape
@@ -106,18 +105,15 @@ python scripts/usecase.py --tune     # ~3 min per shape
 
 **2.47x** on the same machine, same workload, same command shape.
 
-`--cold` exists so that gap stays reproducible. Once you tune, the entries are
-frozen into the table and a plain run shows the tuned number — the "before" is
-gone, and you would be asking a reader to trust a figure they can no longer
-produce. `--cold` removes exactly those four entries and re-runs the same
-lookup, so the fallback path being measured is the real one, not a simulation
-of it.
+`--cold` exists so that gap stays reproducible: once you tune, the entries are
+frozen and a plain run shows only the tuned number. It removes exactly those four
+entries and re-runs the same lookup, so the fallback being measured is the real
+one, not a simulation.
 
-That gap *is* the product. The system does not claim to be fast on shapes it has
-not measured; it claims to be **correct everywhere and fast where it has been
-pointed**. Pointing it at a new workload is one command and no code change —
-which is exactly the situation a serving team is in when a model or a traffic
-pattern changes.
+That gap *is* the product. The system claims to be **correct everywhere and fast
+where it has been pointed**, and pointing it at a new workload is one command and
+no code change — which is the situation a serving team is in whenever a model or
+a traffic pattern changes.
 
 ## What it means for a service
 

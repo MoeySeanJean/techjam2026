@@ -105,25 +105,18 @@ same gate that governs everything else in this project.
 | `gelu` | fused bias-add + exact erf GELU | `F.gelu(x.float() + bias.float(), approximate="none")` |
 | `layernorm` | fused residual-add + row mask + LayerNorm | our block-boundary kernel |
 
-## Results — 24 generated kernels
+## Results — the shipped model's run
 
-| outcome | count | share |
-|---|---|---|
-| **ok** (compiles, correct, benchmarked) | **9** | 37.5% |
-| `compile_error` | 7 | 29.2% |
-| `numeric_fail` | 6 | 25.0% |
-| `syntax_error` | 1 | 4.2% |
-| `triton_global_not_constexpr` | 1 | 4.2% |
+`qwen3.8:27b`, 10 attempts per target, on the A100:
 
-Per target:
+| target | ok | how the rest failed | best generated kernel |
+|---|---|---|---|
+| `layernorm` | **10/10** | — | **2.46x** vs torch, envelope 0.042, 55 lines |
+| `gelu` | **7/10** | 3 `numeric_fail` | **3.91x** vs torch, envelope 0.031, 67 lines |
 
-| target | ok | compile | numeric | other | best result |
-|---|---|---|---|---|---|
-| `layernorm` | 5/12 (42%) | 4 | 2 | 1 syntax | **2.80x** vs torch, envelope 0.077, 165 lines |
-| `gelu` | 4/12 (33%) | 3 | 4 | 1 constexpr | **5.49x** vs torch, envelope 0.061, 102 lines |
-
-Successful attempts clustered tightly (layernorm 1.96–2.37x, gelu 1.85–4.05x
-against `torch` on the A100), so the wins are not a single lucky sample.
+Successful `gelu` attempts cluster tightly (3.59–3.91x), so the wins are not a
+single lucky sample. Per-attempt verdicts are in `results/codegen.json`; one arm
+per model per GPU is in `results/codegen_<model>_<arch>.json`.
 
 ## What we learned about how AI fails at kernels
 
@@ -232,73 +225,48 @@ the ones we wrote and reviewed. What the codegen loop demonstrates is that the
 kernels usable at all, and that with a precise enough contract the model
 produces kernels 2.8–5.5x faster than the torch formulation they replace.
 
-## We built the repair loop, and it did not help
+## We built the repair loop, and cannot tell whether it helps
 
-The obvious next step was to close the loop: instead of sampling independently,
-feed a failed kernel back with its compiler diagnostic and ask the model to fix
-*that* kernel. Most failures carry an actionable error message, so this should
-lift the success rate.
-
-We built it (`--repair N`), including a structural diagnosis of numerical
-errors — not just "envelope 256050" but *how* the output is wrong:
+The obvious next step is to close the loop: feed a failed kernel back with its
+compiler diagnostic and ask the model to fix *that* kernel rather than sampling
+a fresh one. We built it (`--repair N`), including a structural diagnosis of
+numeric failures — not just "envelope 256050" but *how* the output is wrong:
 
 > the error is nearly CONSTANT within each row, which means the per-row
 > statistics (mean/variance) are wrong — most likely reduced over a tile of the
 > feature axis instead of the whole row
 
-Then we A/B'd it at **equal attempt budget** — 20 generated kernels per arm,
-same two targets, same model (`qwen3-coder-next`), same A100:
+Then we A/B'd it at **equal attempt budget**, same targets, same model
+(`qwen3-coder-next`), and ran it twice:
 
-| | correct | repairs that worked |
+| run | `--repair 0` | `--repair 3` |
 |---|---|---|
-| `--repair 0` (pure resampling) | 8/20 (40%) | — |
-| `--repair 3` | **12/20 (60%)** | 4/6 (67%) |
+| A100, n=20 per arm | 8/20 | **12/20** (repairs worked 4/6) |
+| earlier, n=28 per arm | **13/28** | 12/28 (repairs worked 33%) |
 
-`results/codegen_repair3_sm_80.json` holds the `--repair 3` arm. The matching
-`--repair 0` arm's JSON was overwritten by a later H100 run before we scoped
-these artifacts by architecture (they are `codegen_<model>_<arch>.json` now); its
-number, 8/20, is in the job log, and the same arm re-measured 9/20 on the H100.
-Either way the 12/20 comparison below holds.
+**Opposite answers.** We had written the first up as a negative result with a
+plausible mechanism — a repair prompt anchors the model on a design that was
+already wrong, while a fresh sample is free to pick a different decomposition,
+which for structurally wrong code is exactly what you want. That argument is
+still plausible and no longer supported: at these sample sizes neither run
+resolves a gap that size.
 
-Note the model: this ablation predates the bake-off above and was run with
-`qwen3-coder-next`, which we no longer ship. Both arms use it, so the comparison
-is internally matched — but it has not been repeated on `qwen3.8:27b`, and those
-two differ by 40 points in base correct-kernel rate, so it should not be assumed
-to carry over.
+We leave `--repair 0` as the default — not because the measurement says so, but
+because flipping a default on one n=20 run that contradicts an n=28 run is the
+reasoning this project exists to avoid. `--repair 3` is one flag away.
 
-**On this hardware, repair helped.** And we are going to be awkward about that,
-because it is the second time we have run this experiment and the two runs
-disagree.
+The ablation predates the model bake-off and used `qwen3-coder-next`, which we
+no longer ship. Both arms use it, so the comparison is internally matched, but it
+should not be assumed to carry over to `qwen3.8:27b`.
+`results/codegen_repair3_sm_80.json` holds the repair arm; the matching
+`--repair 0` arm was overwritten by a later H100 run before we scoped artifacts
+by architecture, and its 8/20 is in the job log.
 
-An earlier run, on hardware whose timings we no longer report, went the other
-way: 13/28 correct with pure
-resampling against 12/28 with repair, and repaired kernels succeeding only 33%
-of the time against a 46% base rate. We wrote that up as a negative result and
-argued a plausible mechanism for it: **a repair prompt anchors the model on a
-design that was already wrong.** A fresh sample is free to pick a different
-decomposition; a repair carries the broken source in context and edits around
-it, which for structurally wrong code — the wrong reduction axis, the wrong
-tiling — is exactly the wrong move.
-
-That argument is still plausible. It is also no longer supported. At twenty to
-thirty attempts per arm, neither run can resolve a difference of this size, and
-we have one in each direction. **The honest summary is that we do not know**,
-and the reason this section still exists is that "we built the obvious
-improvement, measured it twice, and got opposite answers" is more useful to a
-reader than either run presented alone.
-
-We leave `--repair 0` as the default. Not because the measurement says so — on
-the hardware we report, it says the opposite — but because flipping a default on
-the strength of a single n=20 run that contradicts the previous n=28 run is
-exactly the reasoning this project is built to avoid. `--repair 3` is one flag
-away, and the numbers above are the argument for trying it.
-
-One mechanism did earn its place regardless. Repair loops stall: we watched the
-model return the same `TypeError` four times in a row, burning the whole budget
-on a lineage it did not understand. `error_signature()` fingerprints a failure
-with line numbers stripped, and a repair that reproduces its parent's signature
-abandons the lineage and samples fresh. It fired once in the run above and three
-times in the earlier one.
+One mechanism earned its place regardless: repair loops stall — we watched the
+model return the same `TypeError` four times, burning the budget on a lineage it
+did not understand. `error_signature()` fingerprints a failure with line numbers
+stripped, and a repair reproducing its parent's signature abandons the lineage
+and samples fresh.
 
 ## Where this goes next
 

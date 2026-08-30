@@ -322,8 +322,20 @@ def roofline_section(sweeps: Dict[str, dict]) -> List[str]:
     if not worst:
         return []
     worst.sort()
-    lines += ["", "**What this says.** The GEMM-bound shapes reach roughly "
-              "45-58% of the tensor-core ceiling on sm_86 and sm_80, which is a "
+    # Derived, not written down: an earlier hardcoded range drifted out of step
+    # with its own table and named an architecture the table no longer contains.
+    # The lowest cell overall is a bandwidth-bound shape, not a causal one --
+    # naming it "long causal attention" was wrong, so pick from causal cases.
+    causal = sorted(w for w in worst if "causal" in w[2])
+    causal_txt = (f"It sits at {causal[0][0]:.0%} of ceiling on "
+                  f"{causal[0][1]} (`{causal[0][2]}`), the lowest of the "
+                  f"compute-bound shapes." if causal else
+                  "No causal shape carries a roofline in these artifacts.")
+    gemm = sorted(u for u, _, _ in worst if u >= 0.20)
+    span = (f"{gemm[0]:.0%}-{gemm[-1]:.0%}" if gemm else "n/a")
+    archs = " and ".join(sorted({a for _, a, _ in worst}))
+    lines += ["", f"**What this says.** The GEMM-bound shapes reach "
+              f"{span} of the tensor-core ceiling on {archs}, which is a "
               "reasonable place to be for a mixed Triton/cuBLAS implementation. "
               "Two groups sit well below it, for different and instructive "
               "reasons:", "",
@@ -332,11 +344,9 @@ def roofline_section(sweeps: Dict[str, dict]) -> List[str]:
               "barely any arithmetic to do. Their speedups come from removing "
               "kernel launches, and the roofline confirms there is nothing "
               "further to win from better math.",
-              f"- **Long causal attention is the real headroom.** It sits at "
-              f"{worst[0][0]:.0%} of ceiling on {worst[0][1]}, the lowest "
-              f"figure in the table, which matches it being the one regime "
-              f"where we still fall back to a library implementation. That is "
-              f"where the next kernel should go.", "",
+              f"- **Long causal attention is the real headroom.** {causal_txt} "
+              f"That is the one regime where we still fall back to a library "
+              f"implementation, and where the next kernel should go.", "",
               "Utilization is uniformly lower on H100 than on A100: the machine "
               "is much larger and our tile sizes do not saturate it. Closing "
               "that would mean Hopper-specific work (TMA, wgmma, larger "

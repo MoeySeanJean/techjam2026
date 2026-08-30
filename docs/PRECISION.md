@@ -88,21 +88,18 @@ no float32 failure anywhere. The numbers come straight from
 reflection that is the wrong reading, and the right one is more interesting.
 
 The organizers chose the *naive* implementation as the reference and listed
-`torch.compile` as a suggested **tool**. Those two choices together define the
-actual problem: you may reach for aggressive optimizations, but correctness is
-measured against the unoptimized reference, and it is *your* job to establish
-where a given tool is admissible. At narrow I/O dtypes the reference's own
-rounding noise, amplified through six layers, exceeds the tolerance — so a
-blanket `torch.compile` submission fails, and a submission that never checks
-would fail silently.
+`torch.compile` as a suggested **tool**. Together those define the actual
+problem: you may reach for aggressive optimizations, but correctness is measured
+against the unoptimized reference, and establishing where a tool is admissible is
+your job. At narrow I/O dtypes the reference's own rounding noise, amplified
+through six layers, exceeds the tolerance — so a blanket `torch.compile`
+submission fails, and one that never checks fails silently.
 
-That reframes what the project contributes. It is not "we found a hole in your
-benchmark." It is **the discipline that lets aggressive tools be used exactly
-where they are provably correct, and nowhere else** — which is what the gate is
-for, and why `torch.compile` is a *candidate in our dispatch table* rather than
-merely a yardstick. It wins the shapes where it passes (long causal attention),
-and is rejected on the shapes where it does not (fp16/bf16 applied to the
-baseline), with no special-casing anywhere in the code.
+So this is not "we found a hole in your benchmark." It is **the discipline that
+lets aggressive tools be used exactly where they are provably correct**, which is
+why `torch.compile` is a *candidate in our dispatch table* rather than merely a
+yardstick: it wins the shapes where it passes and is rejected where it does not,
+with no special-casing anywhere in the code.
 
 ### Scope of this finding, now that the official shape list exists
 
@@ -113,26 +110,22 @@ It is not disqualified anywhere in the official test set, and we do not claim it
 is. Every official-shape result in `RESULTS.md` is a win over an *admissible*
 `torch.compile`, which is the harder and the honest comparison.
 
-The admissibility finding is therefore about the shapes *outside* that list —
-the fp16 and bf16 configurations the script also accepts, and which any real
-deployment would reach for first. There, compiling the baseline fails the gate,
-and the halving of the tolerance in the 27 August revision does not rescue it:
-the envelope is `abs_err / max(atol, rtol*|ref|)`, so doubling both constants
-exactly halves it, and the four fp16 measurements below (2.655 / 2.502 / 3.296 /
-2.853) become 1.33 / 1.25 / 1.65 / 1.43. Still failures, by a wide margin.
+The admissibility finding is therefore about the shapes *outside* that list — the
+fp16 and bf16 configurations the script also accepts. There, compiling the
+baseline fails the gate, and the 27 August tolerance loosening does not rescue
+it: doubling both constants exactly halves the envelope, so measurements of
+2.655 / 2.502 / 3.296 / 2.853 become 1.33 / 1.25 / 1.65 / 1.43 — still failures.
 
-We keep the check in the loop for the reason it was written: the shape list is
-fixed, but the dtype is a flag, and a system that assumes rather than measures
-would ship silent wrongness the first time someone changed it.
+We keep the check in the loop because the shape list is fixed but the dtype is a
+flag, and a system that assumes rather than measures would ship silent wrongness
+the first time someone changed it.
 
 ### A near-miss worth recording
 
-While adding `torch.compile` to the search we measured compiling our bit-exact
-rewrite at fp16 and got **0.000 envelope** — bit-identical output — together with
-a 2.98x speedup over eager, and confirmed it was a real compilation
-(`dynamo.explain`: 1 graph, 0 breaks, 131 ops), not a silent fallback. It looked
-like a genuine finding: compile the *rewrite* rather than the *baseline* and the
-gate is satisfied even at fp16.
+Compiling our bit-exact rewrite at fp16 once gave **0.000 envelope** with a 2.98x
+speedup, confirmed as a real compilation (`dynamo.explain`: 1 graph, 0 breaks,
+131 ops) rather than a fallback. It looked like a finding: compile the *rewrite*
+rather than the *baseline* and the gate is satisfied even at fp16.
 
 **It does not reproduce.** Re-measured four times in fresh processes, the same
 plan on the same shape gives 2.655 / 2.502 / 3.296 / 2.853 — all failures. What

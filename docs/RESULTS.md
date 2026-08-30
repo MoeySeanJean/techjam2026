@@ -218,10 +218,10 @@ Arithmetic intensity is FLOPs per byte of DRAM traffic for a *fused* implementat
 | sm_90 | `default_pad` | 103.6 | 583 | 178 | tensor cores | 25% |
 | sm_90 | `default_causal_pad` | 62.9 | 361 | 174 | tensor cores | 15% |
 
-**What this says.** The GEMM-bound shapes reach roughly 45-58% of the tensor-core ceiling on sm_86 and sm_80, which is a reasonable place to be for a mixed Triton/cuBLAS implementation. Two groups sit well below it, for different and instructive reasons:
+**What this says.** The GEMM-bound shapes reach 25%-52% of the tensor-core ceiling on sm_80 and sm_90, which is a reasonable place to be for a mixed Triton/cuBLAS implementation. Two groups sit well below it, for different and instructive reasons:
 
 - **`tiny` and `decode` are bandwidth-bound with very low intensity.** They are not failing to use the machine; there is barely any arithmetic to do. Their speedups come from removing kernel launches, and the roofline confirms there is nothing further to win from better math.
-- **Long causal attention is the real headroom.** It sits at 4% of ceiling on sm_90, the lowest figure in the table, which matches it being the one regime where we still fall back to a library implementation. That is where the next kernel should go.
+- **Long causal attention is the real headroom.** It sits at 11% of ceiling on sm_90 (`long_causal`), the lowest of the compute-bound shapes. That is the one regime where we still fall back to a library implementation, and where the next kernel should go.
 
 Utilization is uniformly lower on H100 than on A100: the machine is much larger and our tile sizes do not saturate it. Closing that would mean Hopper-specific work (TMA, wgmma, larger persistent tiles) that we scoped out.
 
