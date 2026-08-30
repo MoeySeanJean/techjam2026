@@ -42,44 +42,32 @@ reported rather than assumed:
   GPU, is the bottleneck — which is what makes CUDA-graph capture the dominant
   optimization there.
 
-### The host CPU is part of the measurement, and we got caught by it
+### Host CPU affects the measured speedup
 
-A cluster job gets an exclusive GPU but *shares* the host CPU. Because the
-baseline issues ~105 kernel launches per forward and our fastest plans capture a
-CUDA graph, a slower host inflates the baseline far more than it inflates us —
-which inflates the speedup ratio.
-
-This is not hypothetical. Two A100-80 runs, same GPU model, same code:
+A cluster job gets an exclusive GPU but *shares* the host CPU. The baseline
+issues ~105 kernel launches per forward while our fastest plans capture a CUDA
+graph, so a slower host inflates the baseline far more than it inflates us. Two
+A100-80 runs, same GPU model, same code:
 
 | node | µs per kernel launch | GPU time, `default` | baseline, `default` | our reported speedup |
 |---|---|---|---|---|
 | `xgph1` | 4.6 – 5.6 | 3.02 ms | 2.76 ms | 2.76x |
 | `xgpj0` | **9.9 – 11.8** | 3.02 ms | **7.31 ms** | **10.89x** |
 
-The GPU times are identical to three significant figures — it is the same card
-doing the same work. `xgpj0` simply has a host roughly 2.2x slower at submitting
-kernels, and that alone moved the headline number by 4x.
-
-We caught it because the profiler records launch overhead per run, and the
-discrepancy was too large to be real. The A100 figures in this report are from
-`xgph`-class nodes; `SLURMD_NODENAME` and the measured launch overhead are now
-recorded in every sweep artifact so two runs can be checked for comparability
-before they are put side by side.
-
-**A speedup is a property of a measurement setup, not of a kernel.**
-Interleaved A/B ordering protects against drift *within* a run; only recording
-which machine each run came from protects against comparing across them.
+Identical GPU times; `xgpj0`'s host is ~2.2x slower at submitting kernels, which
+alone moves the headline number by 4x. A100 figures in this report are from
+`xgph`-class nodes, and `SLURMD_NODENAME` plus measured launch overhead are
+recorded in every sweep artifact so two runs can be checked for comparability.
 
 Both nodes hold stable clocks under sustained load. We report no figure measured
-on hardware that throttles — we have watched the same shape measure 16.9x, 36.5x
-and 45.6x across three runs on such a machine.
+on throttling hardware — the same shape there measured 16.9x, 36.5x and 45.6x
+across three runs.
 
 ---
 
-## 2. The problem, as the script actually defines it
+## 2. What the script defines
 
-We read `torch_transformer_benchmark.py` rather than working from the prose.
-Three properties of it shaped every decision that follows.
+Three properties of `torch_transformer_benchmark.py` shaped every decision.
 
 **It evaluates a 6-layer stack, not a single layer.** Any perturbation is
 amplified as it propagates — measured at roughly 10³ end to end.
@@ -110,8 +98,7 @@ organized around.
 
 ## 3. What we built
 
-Not a hand-tuned kernel — a measurement-driven optimization loop, plus the
-kernels it produced.
+A measurement-driven optimization loop, plus the kernels it produced.
 
 ```
 profile ─► propose ─► compile ─► GATE ─► measure ─► feed back ─► freeze
@@ -128,9 +115,9 @@ profile ─► propose ─► compile ─► GATE ─► measure ─► feed bac
 | measure | `bench.py` | round-robin interleaved timing, median + p90, NVML power |
 | freeze | `dispatch.py` | writes the winner into a per-(arch, dtype, shape) table with its evidence |
 
-**At run time nothing clever happens.** `submission.py` looks up the frozen table
-and runs the named plan: no LLM call, no autotuning stall, no nondeterminism, and
-a fallback to the bit-exact path if anything at all goes wrong.
+At run time `submission.py` looks up the frozen table and runs the named plan:
+no LLM call, no autotuning stall, no nondeterminism, and a fallback to the
+bit-exact path if anything fails.
 
 ### The kernels
 
@@ -157,26 +144,23 @@ a fallback to the bit-exact path if anything at all goes wrong.
   as a suggested direction, so it competes in the search under the same gate. It
   wins long-causal shapes outright.
 
-### Ingesting shapes we have never seen
+### Unseen shapes
 
-The brief says the official shape combinations will be told to the participants.
-They had not been at build time, so the system treats an unseen shape as a
-first-class input rather than an edge case:
+An unseen shape is a first-class input, not an edge case:
 
 ```bash
 python -m kernelforge.cli tune --shapes-file official_shapes.txt
 ```
 
-A shape spec is parsed, classified into a bottleneck regime, searched,
-benchmarked, frozen, and then the entire table is re-verified with demotion.
-Verified on two shapes never in the matrix: `B4-S777-d640-H10-F2560-L9` found
-`fp16[attn]+graph` at 1.99x, and `B12-S384-d768-H12-F3072-L6-causal` found
-nothing that cleared the margin and correctly shipped the bit-exact plan at
-1.02x rather than guessing.
+The spec is parsed, classified into a bottleneck regime, searched, benchmarked,
+frozen; the whole table is then re-verified with demotion. On two shapes never in
+the matrix: `B4-S777-d640-H10-F2560-L9` found `fp16[attn]+graph` at 1.99x;
+`B12-S384-d768-H12-F3072-L6-causal` found nothing clearing the margin and shipped
+the bit-exact plan at 1.02x.
 
 ### Shape dispatch
 
-The problem statement invites shape specialization. Ours is keyed on
+Keyed on
 `(architecture, I/O dtype, B, S, d_model, heads, ffn, layers, causal)`, with
 fallback to the nearest same-regime entry and then to a dtype-level default.
 `num_layers` is part of the key because amplification grows with depth: the same
@@ -184,7 +168,7 @@ plan measures 0.55 envelope at L=6 and 0.98 at L=12.
 
 ---
 
-## 4. Optimizations, and what each one cost in accuracy
+## 4. Optimizations and their accuracy cost
 
 The central tool is a **per-stage error budget** (`kernelforge/budget.py`):
 narrow one stage to fp16, hold everything else wide, measure the envelope it
@@ -226,11 +210,10 @@ argument is in [EQUIVALENCE.md](EQUIVALENCE.md).
 
 ## 5. Final test results
 
-Full tables in [RESULTS.md](RESULTS.md); energy and fleet analysis in
-section 6. Every row cleared the accuracy gate at a 0.80 margin over three seeds
-**before** it was timed, and the frozen table was then re-measured end to end
-with `cli verify --demote` on each machine — **no entry was demoted** on either
-cluster GPU.
+Full tables in [RESULTS.md](RESULTS.md). Every row cleared the accuracy gate at a
+0.80 margin over three seeds **before** it was timed; the frozen table was then
+re-measured with `cli verify --demote` on each machine — **no entry was
+demoted**.
 
 ### The official 14 shapes (Appendix 3.7)
 
@@ -259,19 +242,15 @@ on its own.
 those comparisons is against an admissible opponent rather than a disqualified
 one.
 
-Envelope utilization is `max(abs_err / max(atol, rtol·|ref|))`, so 1.0 is the
-failure line. The two envelope rows differ because they are different
-measurements: the first is what a plan scored when it was selected, the second is
-what the same frozen plan scores re-measured later in a fresh process.
-Re-measurement moves it by up to ~0.1 as cuBLAS picks different kernels for the
-same call, which is why admission is gated at 0.80 and re-verification permits up
-to 0.90. The worst number we have ever seen from a shipped entry is 0.847.
+Envelope utilization is `max(abs_err / max(atol, rtol·|ref|))`; 1.0 fails. The
+two envelope rows are different measurements — at selection, and re-measured
+later in a fresh process. Re-measurement moves by up to ~0.1 as cuBLAS picks
+different kernels, which is why admission is gated at 0.80 and re-verification
+permits 0.90. Worst seen from a shipped entry: 0.847.
 
-The shape missing from both columns is #14, which no reference can run and which
-gets its own section below. All 13 others run on both nodes, including shape 6
-(`B10000`), whose baseline needs more memory than a small card has.
+Shape 14 is missing from both columns (below); all 13 others run on both nodes.
 
-Through the organizer's own script, unmodified, on official shape 1 (A100 node
+Through the organizer's script, unmodified, on official shape 1 (A100 node
 `xgph0`):
 
 ```
@@ -283,36 +262,33 @@ optimized: median=0.8335 ms | throughput=9828009.49 token/s
 speedup  : 2.343x based on median latency
 ```
 
-That 2.343x is lower than the 3.22x in the table above for the same shape, and
-the difference is worth explaining rather than hiding: the table comes from our
-own harness, which interleaves candidates round-robin over many more repeats and
-reports a median; the organizer's script times each implementation in one block
-with its own defaults, on a node we do not pin. Both are honest measurements of
-the same kernels. **The organizer's number is the one a judge will reproduce**,
-so it is the one to hold us to; ours is the more carefully controlled comparison,
-which is why we use it to *choose* between plans.
+This is lower than the 3.22x in the table above for the same shape: our harness
+interleaves candidates round-robin over many more repeats, while the organizer's
+script times each implementation in one block on an unpinned node. **The
+organizer's number is the one a judge reproduces**; ours is the controlled
+comparison used to *choose* between plans.
 
-### Shape 14: the shape the reference cannot run
+### Shape 14
 
 `B32-S100000-d1024-H16-F1024-L2-causal`. The baseline forms `[B,H,S,S]` before
 its softmax — 18.6 TB. We run it in **77.7 s on the A100-80** and **54.5 s on the
 H100 NVL**, at 45.9 GB peak, with finite output of the correct shape.
 
-We quote no speedup for it. A ratio against an implementation that cannot run is
-not a measurement; the claim is that the shape is reachable with a fused kernel
-and unreachable without one. Getting there needed three things, and the third
-was our own bug: the fp32 SDPA fallback built an `[S,S]` causal mask — 37.25 GiB —
-because SDPA accepts `is_causal` or an `attn_mask` but not both, so our fallback
-was reintroducing the quadratic term the flash kernel exists to remove. Dropping
-a padding mask that marks nothing invalid took peak memory from 84.6 GB to
-45.9 GB.
+No speedup is quoted: a ratio against an implementation that cannot run is not a
+measurement. The claim is that the shape is reachable with a fused kernel and
+unreachable without one.
 
-### How much does the hardware actually change the answer?
+Three things were required. The third was our own bug: the fp32 SDPA fallback
+built an `[S,S]` causal mask (37.25 GiB), because SDPA accepts `is_causal` or an
+`attn_mask` but not both — reintroducing the quadratic term the flash kernel
+removes. Dropping a padding mask that marks nothing invalid took peak memory from
+84.6 GB to 45.9 GB.
+
+### Divergence across GPUs
 
 **4 of the 13 official shapes chose a semantically different plan** on the A100
 than on the H100 — a different set of fp16 stages, or CUDA graphs on one card and
-not the other. Two generations apart, on the same vendor, with the same driver
-stack.
+not the other.
 
 Counted on plan *specifications*, not names: a name lists its fp16 stages in
 admission order, so two spellings of one plan look like two plans. That
@@ -323,7 +299,7 @@ it is smaller than we expected, and the list explains why: eleven of the fourtee
 official shapes are `S=128` variants of one another, far more homogeneous than a
 real serving mix.
 
-### Where we lose, stated plainly
+### Where we lose
 
 **On the cluster GPUs, nowhere** — all 26 measurements beat both references. Three
 things qualify that:
@@ -392,7 +368,7 @@ The double-measurements bound the noise: 15 vs 16 for the winner, 0 vs 3 for
 `ornith1.5:35b`. The first-to-second gap is far larger than that; the gaps among
 the bottom three are not, and we do not defend their order.
 
-### Does the LLM actually optimize *for the hardware*?
+### Per-architecture optimization
 
 This is the claim the track is really asking about — "generate more efficient
 implementations for **specific GPU hardware**" — so it needs evidence, not an
@@ -416,10 +392,9 @@ and picked larger flash tiles — the H100 has 227 KB of shared memory per block
 against the A100's 163 KB, stated in the spec sheet it was given. The fourth
 shape differed only in tile size.
 
-The claim is narrow on purpose: **the LLM re-decides per architecture rather than
-emitting one plan and relabelling it**, and diverges more than our heuristic,
-which narrows stages in a fixed order and cannot jump. Every proposal still
-passed the same gate before it was timed.
+**The LLM re-decides per architecture rather than emitting one plan and
+relabelling it**, and diverges more than our heuristic, which narrows stages in a
+fixed order. Every proposal still passed the same gate before it was timed.
 
 The kernel-writing half replicates across the two cards too — same model, same
 targets, independent runs:
@@ -439,33 +414,27 @@ outside the noise we measured on repeat arms.
 | heuristic | 12/12 | 12/12 | 277s / 197s |
 | LLM | 10/12 | 8/12 | 66s / 67s |
 
-The rejection counts are the cost of the freedom: the heuristic proposes only
-what it already believes legal and clears the gate every time; the LLM proposes
-things the gate throws out. Neither is a virtue alone — a proposer that is never
-rejected never explores, and one often rejected is only useful because something
-downstream checks. What it re-proposes are configurations the error budget had
-already ruled out (bfloat16 compute, an fp16 residual); where it helps is
+The heuristic proposes only what it believes legal and clears the gate every
+time; the LLM proposes things the gate rejects — configurations the error budget
+already ruled out (bfloat16 compute, an fp16 residual). Where it helps is
 reaching combinations the cheapest-stage-first ordering cannot jump to.
 
-### AI-generated kernel *source*
+### AI-generated kernel source
 
-Configuration search is not what the track means by "AI-based code generation",
-so we also had the model write complete Triton kernels against a contract, with
-every candidate compiled, gated and timed by the same harness. The shipped
-model's run: **20 kernels, 17 correct** — `layernorm` 10/10, best 2.46x vs
-`torch`; `gelu` 7/10, best 3.91x.
+The model also writes complete Triton kernels against a contract, every candidate
+compiled, gated and timed by the same harness. The shipped model's run:
+**20 kernels, 17 correct** — `layernorm` 10/10, best 2.46x vs `torch`; `gelu`
+7/10, best 3.91x.
 
-Three findings, detailed in [CODEGEN.md](CODEGEN.md):
+Findings, detailed in [CODEGEN.md](CODEGEN.md):
 
-- **Silent wrongness dominates.** The worst failures do not crash. One kernel
-  computes GELU correctly, in fp32, with masked loads — and substitutes a
-  polynomial approximation for exact `erf`, with a comment correctly quantifying
-  the error it introduces at ~1.5e-7. It is wrong because tolerance is measured
-  against the *reference*, which calls exact `erf`. Envelope 22.8. Only the gate
-  caught it, and the same model does it reproducibly on both GPUs.
-- **It is as much a specification gap as a model failure.** Adding one sentence
-  forbidding a split of the reduction axis moved one target from 0/5 to 5/12.
-  Writing a precise contract is the actual skill.
+- **Silent wrongness dominates.** One kernel computes GELU correctly in fp32
+  with masked loads, then substitutes a polynomial approximation for exact `erf`
+  and correctly quantifies its ~1.5e-7 error in a comment. Tolerance is measured
+  against the *reference*, which calls exact `erf`: envelope 22.8. Reproducible
+  on both GPUs; only the gate caught it.
+- **Under-specification, not incapability.** One sentence forbidding a split of
+  the reduction axis moved a target from 0/5 to 5/12.
 - **Process isolation is mandatory.** An out-of-bounds generated kernel corrupts
   the CUDA context — asynchronous, uncatchable, fatal to every later CUDA call.
   Each candidate is validated in a throwaway subprocess.
@@ -478,45 +447,34 @@ that size. We left the default at `--repair 0` rather than flip it on one
 contradicted sample.
 
 **Nothing generated is in the shipped dispatch table.** They are proposals; a
-public submission should not contain code no person has read. What the loop
-demonstrates is that the harness — contract, gate, isolation, taxonomy — is what
-makes AI-written kernels usable at all.
+public submission should not contain code no person has read.
 
-### Roofline: what is left
+### Roofline
 
 | GPU | GEMM-bound shapes | `tiny`/`decode` | long causal |
 |---|---|---|---|
 | sm_80 | 31–52% of tensor-core ceiling | bandwidth-bound, low intensity | **17%** |
 | sm_90 | 25–48% | bandwidth-bound | **11%** |
 
-`tiny` and `decode` are not underusing the machine — there is barely any
-arithmetic to do, which is why their wins come from removing launches. Long
-causal attention is the genuine headroom, and is exactly where we still fall back
-to a library implementation. H100 utilization is uniformly lower because the
-machine is larger than our tiles saturate; closing that means Hopper-specific
-work (TMA, wgmma) we scoped out. Per-shape table in [RESULTS.md](RESULTS.md).
+`tiny` and `decode` have barely any arithmetic to do; their wins come from
+removing launches. Long causal attention is the genuine headroom, and is where we
+still fall back to a library implementation. H100 utilization is lower because
+our tiles do not saturate the larger machine — closing that means Hopper-specific
+work (TMA, wgmma), which we scoped out. Per-shape table in
+[RESULTS.md](RESULTS.md).
 
-**The skill that mattered most was not prompting.** It was building the gate.
-An LLM proposing kernel configurations is only useful if something independent
-and trustworthy decides whether each one is correct — and that has to happen
-*before* anything is timed, because a wrong-but-fast configuration is exactly
-what a latency-ranked search will promote. A proposer is allowed to be wrong.
-The gate is not.
+The gate is what makes an LLM proposer usable: correctness is decided
+independently, *before* anything is timed, because a wrong-but-fast configuration
+is what a latency-ranked search promotes.
 
-### A near-miss that justifies the design
+### A non-reproducing measurement
 
-We measured `torch.compile` on our bit-exact rewrite at fp16 and got **0.000
-envelope** with a 2.98x speedup — apparently a real finding, and confirmed as a
-genuine compilation rather than a fallback. **It does not reproduce**: four
-re-measurements in fresh processes gave 2.655 / 2.502 / 3.296 / 2.853, all
-failures. Inductor's autotuning had happened to pick a kernel set whose rounding
-matched, and that is not stable across processes.
-
-The full sweep rejected the configuration automatically, with no special-casing.
-Had we trusted the first number, we would have shipped a plan that fails roughly
-three times in four. This is why the gate runs over multiple seeds, why the
-sweep re-measures, and why `cli verify --demote` re-checks the frozen table
-afterwards.
+`torch.compile` on our bit-exact rewrite at fp16 measured **0.000 envelope** with
+a 2.98x speedup once, confirmed as a genuine compilation. It does not reproduce:
+four re-measurements in fresh processes gave 2.655 / 2.502 / 3.296 / 2.853, all
+failures — inductor's autotuning had happened to select a kernel set whose
+rounding matched. The sweep rejected it automatically, which is why the gate runs
+over multiple seeds and `cli verify --demote` re-checks the frozen table.
 
 ---
 

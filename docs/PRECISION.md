@@ -40,7 +40,7 @@ points, and Finding 4 below has been rewritten accordingly.
 Note also that the script deliberately does *not* use `torch.isclose`, whose
 `atol + rtol*|ref|` is more permissive, and says so in a comment.
 
-## Finding 1 — the stack amplifies any perturbation by ~10^3
+## Finding 1 — the stack amplifies perturbations by ~10³
 
 The benchmark evaluates a **6-layer stack** by default, not a single layer. A
 change to any operation is amplified as it propagates.
@@ -101,7 +101,7 @@ why `torch.compile` is a *candidate in our dispatch table* rather than merely a
 yardstick: it wins the shapes where it passes and is rejected where it does not,
 with no special-casing anywhere in the code.
 
-### Scope of this finding, now that the official shape list exists
+### Scope
 
 Appendix 3.7 fixed the test set at 14 shapes, and **all 14 are fp32** — no
 `--dtype` is specified, so the script's default applies. On that list
@@ -120,7 +120,7 @@ We keep the check in the loop because the shape list is fixed but the dtype is a
 flag, and a system that assumes rather than measures would ship silent wrongness
 the first time someone changed it.
 
-### A near-miss worth recording
+### A non-reproducing measurement
 
 Compiling our bit-exact rewrite at fp16 once gave **0.000 envelope** with a 2.98x
 speedup, confirmed as a real compilation (`dynamo.explain`: 1 graph, 0 breaks,
@@ -133,19 +133,12 @@ we saw once was inductor's autotuning happening to select a kernel set whose
 rounding matched; that selection is not stable across processes, so the property
 is not one you can ship.
 
-We are recording it because it is the sharpest illustration of why this project
-is built the way it is. A single passing measurement is not evidence. The gate
-runs over multiple seeds, the sweep re-measures, and `cli verify --demote`
-re-checks the frozen table afterwards — and in the full sweep that machinery
-rejected this exact configuration automatically, with no special-casing. Had we
-trusted the first number, we would have shipped a plan that fails roughly three
-times in four.
+The sweep rejected it automatically, with no special-casing. This is why the gate
+runs over multiple seeds and `cli verify --demote` re-checks the frozen table.
+`RESULTS.md` marks shapes where `torch.compile` is faster but inadmissible with
+**†** rather than ⚠.
 
-Consequently, `RESULTS.md` marks any shape where `torch.compile` is faster but
-inadmissible with **†** rather than ⚠. Being outrun by a configuration that
-cannot pass the accuracy gate is not losing.
-
-The single-change ablation confirms where the line falls:
+Single-change ablation:
 
 | change (one at a time, from the baseline) | fp32 | fp16 | bf16 |
 |---|---|---|---|
@@ -156,24 +149,18 @@ The single-change ablation confirms where the line falls:
 | attention → SDPA | 0.694 | 2.197 FAIL | 19.775 FAIL |
 | attention → our flash kernel | 0.597 | 2.594 FAIL | 18.066 FAIL |
 
-Two things fall out of this table:
+1. **The structural rewrite is bit-exact** on every dtype — removing redundant
+   `.contiguous()` copies, hoisting the per-layer causal-mask allocation and
+   moving row masking to the block boundary change nothing numerically.
+2. **Fusing QKV is bit-exact in fp32 and bf16 but not fp16** (2.655): merging
+   three GEMMs changes cuBLAS kernel selection, and at fp16 that changes
+   accumulation order enough to matter.
 
-1. **Our structural rewrite is bit-exact.** Rung 1 measures 0.000 max absolute
-   error on every dtype. Removing the baseline's redundant `.contiguous()`
-   copies, hoisting its per-layer causal-mask allocation, and moving the row
-   masking to the block boundary changes nothing numerically. That is what makes
-   a safe fast path possible at all.
-2. **Fusing QKV is bit-exact in fp32 and bf16 but not fp16** (2.655). Merging
-   three GEMMs into one changes the cuBLAS kernel selection, and at fp16 that
-   changes the accumulation order enough to matter.
+**Consequence:** fp16 and bf16 inputs take a bit-exact path, with the speedup
+coming from removing ~105 kernel launches per forward and from compiling the
+bit-exact rewrite.
 
-**Consequence:** the dispatch table sends fp16 and bf16 inputs down a bit-exact
-path, and takes its speedup from removing ~105 kernel launches per forward
-(CUDA graph capture) and from compiling the bit-exact rewrite. We take the
-structural and launch-overhead wins and decline the arithmetic one, because at
-these dtypes the arithmetic one cannot be had correctly.
-
-## Finding 3 — in fp32 mode, fp16 attention is *free*, the FFN is not
+## Finding 3 — in fp32, fp16 attention is free; the FFN is not
 
 The reference runs its matmuls at **TF32** in fp32 mode (`--allow-tf32` defaults
 true, `matmul_precision='high'`). TF32 carries 10 explicit mantissa bits; fp16

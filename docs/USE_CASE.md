@@ -138,27 +138,24 @@ Spent on capacity that is a cheaper feed; spent on a longer user history or a
 larger candidate set, it is a *better* one. That is a product decision the
 speedup makes available, not an infrastructure footnote.
 
-## Honesty about this section
+## Assumptions
 
-- The **latencies are measured**, live, on the machine that runs the script.
-  Nothing in the table is estimated.
-- The **traffic shares and QPS are modelled**, not observed. They are inputs you
-  can change on the command line, and every derived figure scales linearly.
-- The **workload is representative, not proprietary**. It is built from the
-  organizer's own model definition and generator; we make no claim to know any
-  company's production configuration.
-- The headline table is from an **A100-80**, tuned and measured by the same
-  script in one job. The 2.47x figure quoted once above, from a throttling GPU,
-  is contrast only and is not part of the reported results.
-- The **53% capacity reduction is throughput arithmetic**, not a deployment study.
-  It assumes the ranker is the bottleneck and that freed capacity is actually
-  reclaimed — neither is automatic in a real service.
+- Latencies are **measured** live by the script; nothing in the table is
+  estimated.
+- Traffic shares and QPS are **modelled**. They are command-line inputs
+  (`--qps`, `--fleet`) and every derived figure scales linearly with them.
+- The workload is **representative, not proprietary** — built from the
+  organizer's own model definition and generator.
+- The headline table is an **A100-80**, tuned and measured in one job. The 2.47x
+  figure above is from a throttling GPU and is contrast only.
+- The **53% capacity reduction is throughput arithmetic**, not a deployment
+  study: it assumes the ranker is the bottleneck and that freed capacity is
+  reclaimed.
 
 ## Beyond ranking
 
-The same stack, and therefore the same dispatch machinery, sits under the other
-transformer inference in a short-video product: content-understanding encoders
-for video, audio and caption embeddings; moderation classifiers; query
-understanding in search; and creative ranking in ads. They differ in shape, not
-in kind — which is the case this project is designed for. Adding one is a line
-in `official_shapes.txt` and a `tune` invocation.
+The same stack sits under the other transformer inference in a short-video
+product: content-understanding encoders for video, audio and caption embeddings;
+moderation classifiers; query understanding in search; creative ranking in ads.
+They differ in shape, not in kind. Adding one is a line in `official_shapes.txt`
+and a `tune` invocation.
