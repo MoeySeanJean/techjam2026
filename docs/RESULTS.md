@@ -120,7 +120,7 @@ The matrix we tuned against before the official list was published, kept because
 | `B64-S1024-d128-H4-F128-L4-causal-float32` | attention | 43.651 | 15.312 | 3.595 | **12.14x** | 4.26x | `fp16[ffn2,attn,out_proj,ffn1]` | 0.598 |
 
 ⚠ `torch.compile` is genuinely faster here and passes the accuracy gate. We report these rather than omitting them.  
-† `torch.compile` **fails the organizer's accuracy gate** at this configuration, so its time is not an admissible result — it is shown for completeness, not as a target we lost to. Our entry is the bit-exact plan. See [docs/PRECISION.md](docs/PRECISION.md).
+† `torch.compile` **fails the organizer's accuracy gate** at this configuration, so its time is not an admissible result — it is shown for completeness, not as a target we lost to. Our entry is the bit-exact plan. See [PRECISION.md](PRECISION.md).
 
 ### NVIDIA H100 NVL [sm_90] 132 SMs | 93.1 GB | smem/block 227 KB | ~3511 GB/s | tensor-cores, bf16, tma, fp8
 
@@ -155,7 +155,7 @@ The matrix we tuned against before the official list was published, kept because
 | `B64-S1024-d128-H4-F128-L4-causal-float32` | attention | 25.171 | 9.104 | 2.214 | **11.37x** | 4.11x | `fp16[attn,ffn1,ffn2,out_proj]` | 0.676 |
 
 ⚠ `torch.compile` is genuinely faster here and passes the accuracy gate. We report these rather than omitting them.  
-† `torch.compile` **fails the organizer's accuracy gate** at this configuration, so its time is not an admissible result — it is shown for completeness, not as a target we lost to. Our entry is the bit-exact plan. See [docs/PRECISION.md](docs/PRECISION.md).
+† `torch.compile` **fails the organizer's accuracy gate** at this configuration, so its time is not an admissible result — it is shown for completeness, not as a target we lost to. Our entry is the bit-exact plan. See [PRECISION.md](PRECISION.md).
 
 ## Cross-architecture: the same search, different winners
 
@@ -227,7 +227,7 @@ Utilization is uniformly lower on H100 than on A100: the machine is much larger 
 
 ## AI-generated kernel source
 
-The LLM was asked to write complete Triton kernels against a contract, and every candidate was compiled, gated and timed by the same harness. **20 kernels generated.** Full write-up in [docs/CODEGEN.md](docs/CODEGEN.md).
+The LLM was asked to write complete Triton kernels against a contract, and every candidate was compiled, gated and timed by the same harness. **20 kernels generated.** Full write-up in [CODEGEN.md](CODEGEN.md).
 
 | outcome | count | share |
 |---|---|---|
@@ -340,4 +340,4 @@ python -m kernelforge.cli sweep
 python scripts/report.py
 ```
 
-See [docs/PRECISION.md](docs/PRECISION.md) for why fp16 and bfloat16 shapes ship a bit-exact plan, and [docs/EQUIVALENCE.md](docs/EQUIVALENCE.md) for why that plan is bit-exact.
+See [PRECISION.md](PRECISION.md) for why fp16 and bfloat16 shapes ship a bit-exact plan, and [EQUIVALENCE.md](EQUIVALENCE.md) for why that plan is bit-exact.

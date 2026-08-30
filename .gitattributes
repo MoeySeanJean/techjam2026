@@ -10,5 +10,5 @@
 
 # Generated, checked-in artifacts: diffs of these are noise.
 results/*.json      -diff
-dashboard.html      -diff linguist-generated
+docs/dashboard.html -diff linguist-generated
 results/generated/* linguist-generated

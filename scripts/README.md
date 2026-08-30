@@ -9,8 +9,8 @@ Each degrades to something correct if a dependency is missing, and says so.
 | `showcase.py` | the guided walkthrough — seven acts (`--list` shows them; the default runs the first five in ~3 min). `--no-gpu` runs the three that read committed artifacts, so it works with no GPU at all. |
 | `shape14.py` | official shape 14, which the reference implementation cannot run. `--scan` sweeps sequence length to find your GPU's limit. |
 | `usecase.py` | the ranking workload, measured end to end. `--cold` shows what an untuned system does; `--tune` fixes that. |
-| `report.py` | regenerates `RESULTS.md` from `results/*.json`. |
-| `dashboard.py` | regenerates `dashboard.html`. Self-contained; no network. |
+| `report.py` | regenerates `docs/RESULTS.md` from `results/*.json`. |
+| `dashboard.py` | regenerates `docs/dashboard.html`. Self-contained; no network. |
 | `impact.py` | recomputes the throughput and energy figures from committed artifacts. |
 | `pick_model.py` | scores every model your LLM key can reach on proposal quality. **Read `docs/CODEGEN.md` before trusting its recommendation** — we measured it to be anti-predictive of the thing that matters. |
 

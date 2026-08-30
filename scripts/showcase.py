@@ -370,11 +370,11 @@ def main() -> int:
     rule("Where to look next",
          f"walkthrough finished in {time.time() - started:.0f}s")
     for line in [
-        "RESULTS.md              every shape on every GPU, three-way",
+        "docs/RESULTS.md         every shape on every GPU, three-way",
         "docs/TECH_REPORT.md     environment, optimizations, results, AI tools",
         "docs/PRECISION.md       what we measured about the tolerance",
         "docs/CODEGEN.md         AI-written kernels, and a negative result",
-        "dashboard.html          interactive: pick a GPU and a shape",
+        "docs/dashboard.html     interactive: pick a GPU and a shape",
     ]:
         print(f"   {line}")
     return 0

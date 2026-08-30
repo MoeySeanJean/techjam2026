@@ -4,7 +4,7 @@
 
 *This file is the written project description required by deliverable 3.5.1. It
 is deliberately short; the evidence behind every number is in
-[RESULTS.md](RESULTS.md) and [docs/TECH_REPORT.md](docs/TECH_REPORT.md).*
+[RESULTS.md](RESULTS.md) and [docs/TECH_REPORT.md](TECH_REPORT.md).*
 
 ---
 
@@ -37,10 +37,10 @@ Four claims, and where each is evidenced:
 
 | claim | evidence |
 |---|---|
-| **AI and heuristics together optimize the kernel code.** Two proposers see the same spec sheet, profile and error budget, and are held to the same gate; the model also writes complete Triton source, all of it gated. | `results/genealogy_*.json`, `results/codegen*.json`, `results/generated/*.py`, [docs/CODEGEN.md](docs/CODEGEN.md) |
-| **It is worth something to a real workload.** A ranking traffic mix, measured end to end, untuned then tuned. | [docs/USE_CASE.md](docs/USE_CASE.md), `scripts/usecase.py` |
+| **AI and heuristics together optimize the kernel code.** Two proposers see the same spec sheet, profile and error budget, and are held to the same gate; the model also writes complete Triton source, all of it gated. | `results/genealogy_*.json`, `results/codegen*.json`, `results/generated/*.py`, [docs/CODEGEN.md](CODEGEN.md) |
+| **It is worth something to a real workload.** A ranking traffic mix, measured end to end, untuned then tuned. | [docs/USE_CASE.md](USE_CASE.md), `scripts/usecase.py` |
 | **The code performs.** 26 of 26 official-shape measurements beat both the naive baseline and `torch.compile`; zero demoted on re-verification. | [RESULTS.md](RESULTS.md), `results/sweep_*.json` |
-| **It generalizes.** Any CUDA GPU, any OpenAI-compatible LLM endpoint, or neither. Every path degrades to a correct one. | [README.md](README.md#running-this-on-your-hardware), `cli doctor` |
+| **It generalizes.** Any CUDA GPU, any OpenAI-compatible LLM endpoint, or neither. Every path degrades to a correct one. | [README.md](../README.md#running-this-on-your-hardware), `cli doctor` |
 
 ### What we actually wrote
 
@@ -137,7 +137,7 @@ third-party assets.
 
 ## Reflection: limitations, and what we would do next
 
-The honest list is in [README.md](README.md#limitations-and-what-we-would-do-next).
+The honest list is in [README.md](../README.md#limitations-and-what-we-would-do-next).
 The three that matter most:
 
 1. **We cannot prove shape 14's accuracy at full size.** Nothing can compute a
@@ -162,11 +162,11 @@ solution is. If you have limited time:
 |---|---|
 | that it passes and is faster | `python scripts/run_official.py --causal` — the organizer's script, unmodified |
 | the numbers, all of them | [RESULTS.md](RESULTS.md), or `dashboard.html` to click through them |
-| how it was built and why | [docs/TECH_REPORT.md](docs/TECH_REPORT.md) — environment, optimizations, results |
-| the AI-assisted parts | [docs/CODEGEN.md](docs/CODEGEN.md) + §7 of the tech report; raw transcripts in `results/` |
-| whether the correctness claims hold | [docs/PRECISION.md](docs/PRECISION.md), [docs/EQUIVALENCE.md](docs/EQUIVALENCE.md), `python -m pytest -q` |
-| that it runs on *your* hardware | [README.md](README.md#running-this-on-your-hardware) — different GPU, no LLM key, or no GPU at all |
-| what it would be worth | [docs/USE_CASE.md](docs/USE_CASE.md) — measured, with its assumptions stated |
+| how it was built and why | [docs/TECH_REPORT.md](TECH_REPORT.md) — environment, optimizations, results |
+| the AI-assisted parts | [docs/CODEGEN.md](CODEGEN.md) + §7 of the tech report; raw transcripts in `results/` |
+| whether the correctness claims hold | [docs/PRECISION.md](PRECISION.md), [docs/EQUIVALENCE.md](EQUIVALENCE.md), `python -m pytest -q` |
+| that it runs on *your* hardware | [README.md](../README.md#running-this-on-your-hardware) — different GPU, no LLM key, or no GPU at all |
+| what it would be worth | [docs/USE_CASE.md](USE_CASE.md) — measured, with its assumptions stated |
 | it working, in three minutes | `python scripts/showcase.py` (or `--no-gpu`, which needs no hardware) |
 
 Every claim in the documents above is backed by a JSON artifact in `results/`,

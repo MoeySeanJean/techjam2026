@@ -1,4 +1,4 @@
-"""Turn the artifacts in results/ into RESULTS.md.
+"""Turn the artifacts in results/ into docs/RESULTS.md.
 
 Reads every `sweep_<arch>.json` and `genealogy_<arch>.json` present, so the same
 script produces a single-GPU report today and a cross-architecture comparison
@@ -105,7 +105,7 @@ def speed_table(sweeps: Dict[str, dict]) -> List[str]:
             "† `torch.compile` **fails the organizer's accuracy gate** at this "
             "configuration, so its time is not an admissible result — it is shown "
             "for completeness, not as a target we lost to. Our entry is the "
-            "bit-exact plan. See [docs/PRECISION.md](docs/PRECISION.md).")
+            "bit-exact plan. See [PRECISION.md](PRECISION.md).")
         lines.append("")
     return lines
 
@@ -357,7 +357,7 @@ def codegen_section() -> List[str]:
              f"The LLM was asked to write complete Triton kernels against a "
              f"contract, and every candidate was compiled, gated and timed by "
              f"the same harness. **{total} kernels generated.** Full write-up in "
-             f"[docs/CODEGEN.md](docs/CODEGEN.md).", "",
+             f"[CODEGEN.md](CODEGEN.md).", "",
              "| outcome | count | share |", "|---|---|---|"]
     for k, v in sorted(tax.items(), key=lambda kv: -kv[1]):
         lines.append(f"| `{k}` | {v} | {100.0 * v / total:.1f}% |")
@@ -557,12 +557,14 @@ def main() -> int:
     out += ["## Reproducing", "",
             "```bash", "python -m kernelforge.cli sweep", "python scripts/report.py",
             "```", "",
-            "See [docs/PRECISION.md](docs/PRECISION.md) for why fp16 and bfloat16 "
+            "See [PRECISION.md](PRECISION.md) for why fp16 and bfloat16 "
             "shapes ship a bit-exact plan, and "
-            "[docs/EQUIVALENCE.md](docs/EQUIVALENCE.md) for why that plan is "
+            "[EQUIVALENCE.md](EQUIVALENCE.md) for why that plan is "
             "bit-exact.", ""]
 
-    path = os.path.join(ROOT, "RESULTS.md")
+    # Written into docs/ alongside the reports it cross-links, so every
+    # link below is a sibling path rather than a "docs/" prefix.
+    path = os.path.join(ROOT, "docs", "RESULTS.md")
     with open(path, "w", encoding="utf-8") as f:
         f.write("\n".join(out))
     print(f"wrote {path} ({len(out)} lines) from "

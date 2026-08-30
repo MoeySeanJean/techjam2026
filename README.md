@@ -43,7 +43,7 @@ LLM call, no autotuning stall, no nondeterminism.
 ### Results
 
 Measured on two nodes of the NUS SoC Slurm cluster. Full tables in
-[RESULTS.md](RESULTS.md); every figure is regenerated from the JSON artifacts in
+[RESULTS.md](docs/RESULTS.md); every figure is regenerated from the JSON artifacts in
 `results/`.
 
 | | A100-80 PCIe (sm_80) | H100 NVL (sm_90) |
@@ -75,7 +75,7 @@ run is not a measurement.
 | | |
 |---|---|
 | the full technical report | [docs/TECH_REPORT.md](docs/TECH_REPORT.md) |
-| every number, per shape, per GPU | [RESULTS.md](RESULTS.md) or `dashboard.html` |
+| every number, per shape, per GPU | [RESULTS.md](docs/RESULTS.md) or `docs/dashboard.html` |
 | AI-written kernels and the model bake-off | [docs/CODEGEN.md](docs/CODEGEN.md) |
 | what we measured about the tolerance | [docs/PRECISION.md](docs/PRECISION.md) |
 | why the rewrite is bit-exact | [docs/EQUIVALENCE.md](docs/EQUIVALENCE.md) |
@@ -142,10 +142,10 @@ lock-in.
 ```bash
 python -m pytest tests/ -q            # 41 of 129 pass, 88 skip cleanly
 python scripts/showcase.py --no-gpu   # three narrated acts from committed data
-python scripts/report.py              # regenerate RESULTS.md
+python scripts/report.py              # regenerate docs/RESULTS.md
 ```
 
-Every number in `RESULTS.md` and `dashboard.html` comes from committed JSON, so
+Every number in `docs/RESULTS.md` and `docs/dashboard.html` comes from committed JSON, so
 the results are inspectable without reproducing them.
 
 ---

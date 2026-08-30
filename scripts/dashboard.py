@@ -26,7 +26,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 RESULTS = os.path.join(ROOT, "results")
 TEMPLATE = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                         "dashboard_template.html")
-OUT = os.path.join(ROOT, "dashboard.html")
+OUT = os.path.join(ROOT, "docs", "dashboard.html")
 
 # Board power (W) for the energy view; same figures as scripts/impact.py.
 TDP = {"sm_86": 83, "sm_80": 300, "sm_90": 400}
@@ -114,7 +114,7 @@ def build_payload() -> dict:
 
     # Counted over the *official* shapes only. The explorer still shows every
     # shape we measured, but the headline count has to match the one quoted in
-    # RESULTS.md and the tech report -- two different numbers for the same claim
+    # docs/RESULTS.md and the tech report -- two different numbers for one claim
     # is worse than either number alone.
     official = set()
     ospath = os.path.join(ROOT, "official_shapes.txt")

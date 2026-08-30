@@ -234,7 +234,7 @@ argument is in [EQUIVALENCE.md](EQUIVALENCE.md).
 
 ## 5. Final test results
 
-Full tables in [../RESULTS.md](../RESULTS.md); energy and fleet analysis in
+Full tables in [../RESULTS.md](RESULTS.md); energy and fleet analysis in
 section 6. Every row cleared the accuracy gate at a 0.80 margin over three seeds
 **before** it was timed, and the frozen table was then re-measured end to end
 with `cli verify --demote` on each machine — **no entry was demoted** on either
