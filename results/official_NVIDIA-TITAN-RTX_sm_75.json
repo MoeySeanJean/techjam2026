@@ -1,0 +1,127 @@
+{
+  "gpu": "NVIDIA TITAN RTX",
+  "arch": "sm_75",
+  "sm_count": 72,
+  "total_gib": 23.5,
+  "smem_per_block_kb": 64.0,
+  "node": "xgpe1",
+  "slurm_job": "780159",
+  "method": "The organizer's torch_transformer_benchmark.py, unmodified, with UserOptimizedTransformer swapped for ours. Plans come from the frozen dispatch table for this architecture -- no tuning was run on this card, so nothing here fitted itself to the hardware it is measured on.",
+  "shapes_run": 13,
+  "shapes_total": 14,
+  "shapes_passed": 13,
+  "records": [
+    {
+      "passed": true,
+      "max_abs": 0.00135745,
+      "baseline_ms": 4.2453,
+      "ours_ms": 1.7797,
+      "speedup": 2.385,
+      "case": "B64-S128-d128-H4-F128-L4-causal"
+    },
+    {
+      "passed": true,
+      "max_abs": 0.00100195,
+      "baseline_ms": 2.9656,
+      "ours_ms": 0.3385,
+      "speedup": 8.76,
+      "case": "B1-S128-d128-H4-F128-L4-causal"
+    },
+    {
+      "passed": true,
+      "max_abs": 0.00109601,
+      "baseline_ms": 2.9676,
+      "ours_ms": 0.4141,
+      "speedup": 7.166,
+      "case": "B4-S128-d128-H4-F128-L4-causal"
+    },
+    {
+      "passed": true,
+      "max_abs": 0.00128907,
+      "baseline_ms": 2.9719,
+      "ours_ms": 0.6513,
+      "speedup": 4.563,
+      "case": "B16-S128-d128-H4-F128-L4-causal"
+    },
+    {
+      "passed": true,
+      "max_abs": 0.00147903,
+      "baseline_ms": 8.5118,
+      "ours_ms": 3.3382,
+      "speedup": 2.55,
+      "case": "B128-S128-d128-H4-F128-L4-causal"
+    },
+    {
+      "passed": true,
+      "max_abs": 0.00165617,
+      "baseline_ms": 682.0002,
+      "ours_ms": 290.6604,
+      "speedup": 2.346,
+      "case": "B10000-S128-d128-H4-F128-L4-causal"
+    },
+    {
+      "passed": true,
+      "max_abs": 1.19209e-06,
+      "baseline_ms": 2.9395,
+      "ours_ms": 0.9174,
+      "speedup": 3.204,
+      "case": "B64-S128-d32-H4-F32-L4-causal"
+    },
+    {
+      "passed": true,
+      "max_abs": 0.001413,
+      "baseline_ms": 50.9939,
+      "ours_ms": 15.422,
+      "speedup": 3.307,
+      "case": "B64-S128-d1024-H4-F1024-L4-causal"
+    },
+    {
+      "passed": true,
+      "max_abs": 0.0014323,
+      "baseline_ms": 2.7402,
+      "ours_ms": 1.4889,
+      "speedup": 1.84,
+      "case": "B64-S128-d128-H1-F128-L4-causal"
+    },
+    {
+      "passed": true,
+      "max_abs": 1.43051e-06,
+      "baseline_ms": 3.452,
+      "ours_ms": 1.6706,
+      "speedup": 2.066,
+      "case": "B64-S128-d128-H2-F128-L4-causal"
+    },
+    {
+      "passed": true,
+      "max_abs": 0.00133267,
+      "baseline_ms": 9.6937,
+      "ours_ms": 3.0212,
+      "speedup": 3.209,
+      "case": "B64-S128-d128-H16-F128-L4-causal"
+    },
+    {
+      "passed": true,
+      "max_abs": 0.00153723,
+      "baseline_ms": 3.0221,
+      "ours_ms": 0.3285,
+      "speedup": 9.2,
+      "case": "B64-S32-d128-H4-F128-L4-causal"
+    },
+    {
+      "passed": true,
+      "max_abs": 0.00160217,
+      "baseline_ms": 140.6166,
+      "ours_ms": 32.6224,
+      "speedup": 4.31,
+      "case": "B64-S1024-d128-H4-F128-L4-causal"
+    },
+    {
+      "ran": false,
+      "error": "torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 12.21 GiB. GPU 0 has a total capacity of 23.46 GiB of which 10.99 GiB is free. Including non-PyTor",
+      "case": "B32-S100000-d1024-H16-F1024-L2-causal"
+    }
+  ],
+  "median_speedup": 3.209,
+  "min_speedup": 1.84,
+  "max_speedup": 9.2
+}

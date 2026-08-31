@@ -308,7 +308,7 @@ def act5_new_shape(args):
 
 
 def act6_codegen_live(args):
-    """Have the AI write a kernel, live. Slow, needs SOCLAAS_API_KEY."""
+    """Have the AI write a kernel, live. Slow, needs LLM_API_KEY."""
     rule("ACT 7 - Watch the AI write a kernel  (~3 min, needs an API key)",
          "Generated source is gated exactly like everything else.")
     out = run([sys.executable, "-m", "kernelforge.cli", "codegen",
@@ -371,10 +371,8 @@ def main() -> int:
          f"walkthrough finished in {time.time() - started:.0f}s")
     for line in [
         "docs/RESULTS.md         every shape on every GPU, three-way",
-        "docs/TECH_REPORT.md     environment, optimizations, results, AI tools",
         "docs/PRECISION.md       what we measured about the tolerance",
         "docs/CODEGEN.md         AI-written kernels, and a negative result",
-        "docs/dashboard.html     interactive: pick a GPU and a shape",
     ]:
         print(f"   {line}")
     return 0

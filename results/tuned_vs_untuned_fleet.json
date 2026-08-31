@@ -1,0 +1,56 @@
+{
+  "question": "Per-device tuning produced no median gain (1.001x over 103 shape pairs) despite every shape being served by the card's own table. Individual shapes swung 0.47x-1.65x on the same node. Why?",
+  "method": "Each GPU was benchmarked twice through the organizer's unmodified script: once on the architecture table, once on a table tuned for that exact card. Per-shape latencies were paired and split by whether the tuned plan delegates to torch.compile.",
+  "result": {
+    "all_pairs": {
+      "n": 103,
+      "median": 1.001,
+      "mean": 0.989,
+      "better_than_1.02x": 18,
+      "worse_than_0.98x": 20,
+      "within_noise": 65
+    },
+    "tuned_plan_uses_torch_compile": {
+      "n": 23,
+      "median": 0.979,
+      "mean": 0.891,
+      "regressed": 12,
+      "regressed_below_0.9x": 9
+    },
+    "tuned_plan_is_our_own_kernel": {
+      "n": 80,
+      "median": 1.001,
+      "mean": 1.017,
+      "regressed": 8,
+      "regressed_below_0.9x": 4
+    }
+  },
+  "finding": "The wash is an average of two different populations. Plans that delegate to torch.compile lose 11% on average under the organizer's harness and regress on 52% of shapes; plans that run our own kernels gain 2% and regress on 10%. Our search therefore over-selects torch.compile: it is timed favourably in an interleaved sweep where the compiled model is already warm and its CUDA graph captured, and less favourably in the organizer's fresh-process warmup=20 / repeats=100 flow, which is the measurement that actually counts.",
+  "consequence": "This is a defect in how we select, not in what we built. It affects the architecture tables too, which also contain torch.compile plans. The fix is to require a torch.compile candidate to beat our own kernel by a real margin rather than by a hair before it is admitted, because a tie in our harness is a loss in theirs.",
+  "worst_examples": [
+    {
+      "gpu": "NVIDIA TITAN V",
+      "shape": "B64-S32-d128-H4-F128-L4-causal",
+      "tuned_plan": "compile[ro]",
+      "untuned_ms": 0.281,
+      "tuned_ms": 0.603,
+      "ratio": 0.47
+    },
+    {
+      "gpu": "NVIDIA A100 80GB PCIe",
+      "shape": "B64-S32-d128-H4-F128-L4-causal",
+      "tuned_plan": "compile[ro]",
+      "untuned_ms": 0.167,
+      "tuned_ms": 0.28,
+      "ratio": 0.6
+    },
+    {
+      "gpu": "NVIDIA H200 NVL",
+      "shape": "B64-S128-d128-H2-F128-L4-causal",
+      "tuned_plan": "exact+compile[ma]",
+      "untuned_ms": 0.232,
+      "tuned_ms": 0.349,
+      "ratio": 0.66
+    }
+  ]
+}

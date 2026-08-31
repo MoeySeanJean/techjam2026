@@ -29,10 +29,16 @@ RESULTS = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
                        "results")
 
 
-def _setup():
-    torch.backends.cuda.matmul.allow_tf32 = True
-    torch.backends.cudnn.allow_tf32 = True
-    torch.set_float32_matmul_precision("high")
+def _setup(tf32: bool = True):
+    """Match the organizer's defaults: `--allow-tf32` and `high` precision.
+
+    `tf32=False` reproduces their `--no-allow-tf32` run, which makes the
+    reference strictly more precise and so is the harder test for any plan that
+    spends a precision budget.
+    """
+    torch.backends.cuda.matmul.allow_tf32 = tf32
+    torch.backends.cudnn.allow_tf32 = tf32
+    torch.set_float32_matmul_precision("high" if tf32 else "highest")
     return torch.device("cuda")
 
 
@@ -91,10 +97,9 @@ def cmd_doctor(args):
     from . import secrets as _secrets
     from .dispatch import DispatchTable, _arch_major
     _secrets.load()
-    have_llm = bool(os.environ.get("SOCLAAS_API_KEY")
-                    or os.environ.get("OPENAI_API_KEY")
-                    or os.environ.get("ANTHROPIC_API_KEY"))
-    tuned = len(DispatchTable.load(spec.arch).entries)
+    from .agent.proposers import _env
+    have_llm = bool(_env("API_KEY") or os.environ.get("ANTHROPIC_API_KEY"))
+    tuned = len(DispatchTable.load_for(spec).entries)
 
     print("\ncapabilities on this machine")
     print("-" * 62)
@@ -162,13 +167,13 @@ def cmd_verify(args):
     pass re-rolls the noise, demotes another entry that was actually fine, and a
     few passes reduce the whole table to bit-exact for no safety gain.
     """
-    dev = _setup()
+    dev = _setup(tf32=not getattr(args, "no_tf32", False))
     spec = probe(measure=False)
     untuned = getattr(args, "untuned", False)
     # An empty table makes every lookup fall through to the architecture
     # default -- exactly what a card with no entries of its own would run.
-    table = DispatchTable() if untuned else DispatchTable.load(spec.arch)
-    failures, demoted, records = [], [], []
+    table = DispatchTable() if untuned else DispatchTable.load_for(spec)
+    failures, demoted, records, skipped = [], [], [], []
     if untuned:
         print(f"dispatch table ignored: checking the fallback path on "
               f"{spec.name} [{spec.arch}]")
@@ -206,6 +211,20 @@ def cmd_verify(args):
                 demoted.append((case.name, plan.name, r.envelope_utilization))
             if not r.passed:
                 failures.append((case.name, plan.name, str(r)))
+        except torch.cuda.OutOfMemoryError as e:
+            # "Could not be checked here" is not "checked and wrong". Verifying
+            # holds the reference and our output on the card at once, so a shape
+            # that fits at run time can still fail to fit here -- B10000 needs
+            # 10.4 GB for the reference alone on a 12 GB card
+            # (`results/capacity_sm_70.json`). Counting that as a failure made
+            # the whole job exit non-zero, which in turn broke `afterok`
+            # dependency chaining for everything downstream of it.
+            print(f"{case.name:<26} {plan.name:<32} {'SKIP':>9} "
+                  f"out of memory on this card, not a correctness result")
+            skipped.append((case.name, plan.name))
+            records.append({"case": case.name, "plan": plan.name,
+                            "source": source, "checked": False,
+                            "reason": "OutOfMemoryError"})
         except Exception as e:
             print(f"{case.name:<26} {plan.name:<32} {'ERR':>9} "
                   f"{type(e).__name__}: {str(e)[:60]}")
@@ -221,10 +240,16 @@ def cmd_verify(args):
                        "untuned": untuned, "records": records}, f, indent=2)
         print(f"wrote {args.json_out}")
     if demoted:
-        table.save(spec.arch)
+        table.save(spec.arch, device_slug(spec))
         print(f"demoted {len(demoted)} entr(y/ies) to the bit-exact plan:")
         for c, p, u in demoted:
             print(f"  {c:<26} {p:<32} re-measured {u:.3f}")
+        print()
+    if skipped:
+        print(f"{len(skipped)} shape(s) could not be checked on this card "
+              f"(out of memory while holding both implementations):")
+        for c, p in skipped:
+            print(f"  {c:<26} {p}")
         print()
     if failures:
         print(f"{len(failures)} FAILURE(S):")
@@ -331,7 +356,7 @@ def cmd_sweep(args):
     from .optimized import Plan
 
     spec = probe()
-    table = DispatchTable.load(spec.arch)
+    table = DispatchTable.load_for(spec)
     cases = _cases(args)
     print(f"# {spec.summary()}")
     print(f"# {host_summary()}")
@@ -397,7 +422,7 @@ def cmd_sweep(args):
                 plan=best_plan, utilization=b["utilization"],
                 speedup=b["speedup"],
                 speedup_vs_compile=b["speedup_vs_compile"]))
-            table.save(spec.arch)
+            table.save(spec.arch, device_slug(spec))
         records.append(rec)
         os.makedirs(RESULTS, exist_ok=True)
         records = _merge_records(device_slug(spec), records)
@@ -438,14 +463,18 @@ def cmd_rebuild_table(args):
     import glob
     from .shapes import all_cases, resolve
     by_name = {c.name: c for c in all_cases()}
+    # Keyed by (arch, device): a sweep belongs to the card that produced it, and
+    # rebuilding into an architecture table would merge measurements from
+    # different hardware back into one file -- the thing per-device tables
+    # exist to stop.
     tables = {}
     for path in sorted(glob.glob(os.path.join(RESULTS, "sweep_*.json"))):
         with open(path, encoding="utf-8") as f:
             blob = json.load(f)
-        arch = blob.get("arch")
-        if not arch:
+        arch, device = blob.get("arch"), blob.get("device")
+        if not arch or not device:
             continue
-        table = tables.setdefault(arch, DispatchTable())
+        table = tables.setdefault((arch, device), DispatchTable())
         for rec in blob.get("records", []):
             best = rec.get("best") or {}
             spec = best.get("plan_spec")
@@ -463,8 +492,9 @@ def cmd_rebuild_table(args):
                 utilization=best["utilization"], speedup=best["speedup"],
                 speedup_vs_compile=best.get("speedup_vs_compile", float("nan")),
                 case=case.name))
-    for arch, table in tables.items():
-        print(f"{arch}: {len(table.entries)} entries -> {table.save(arch)}")
+    for (arch, device), table in tables.items():
+        print(f"{device}: {len(table.entries)} entries -> "
+              f"{table.save(arch, device)}")
     if tables:
         print("\nNOTE: rebuilding restores sweep winners and discards any "
               "demotion a previous verify applied.\n"
@@ -489,7 +519,7 @@ def cmd_env(args):
 
 def cmd_table(args):
     spec = probe(measure=False)
-    print(summarize(DispatchTable.load(spec.arch)))
+    print(summarize(DispatchTable.load_for(spec)))
     return 0
 
 
@@ -539,7 +569,7 @@ def cmd_codegen(args):
     spec = probe()          # measure bandwidth: the model is told the real number
     proposer = proposers.build(args.provider)
     if not hasattr(proposer, "raw_completion"):
-        print("codegen needs an LLM proposer; set SOCLAAS_API_KEY in .env")
+        print("codegen needs an LLM proposer; set LLM_API_KEY in .env")
         return 1
     targets = args.targets.split(",") if args.targets else list(codegen.TARGETS)
     unknown = [t for t in targets if t not in codegen.TARGETS]
@@ -599,6 +629,11 @@ def main(argv=None) -> int:
                          "path -- what a GPU we never tuned would actually run")
     sp.add_argument("--json", dest="json_out", metavar="PATH",
                     help="write the per-case verdicts to PATH")
+    sp.add_argument("--no-tf32", action="store_true",
+                    help="re-measure with TF32 off, reproducing the "
+                         "organizer's --no-allow-tf32 run. The reference "
+                         "becomes strictly more precise, so this is the harder "
+                         "test for any plan that spends a precision budget")
     sp.set_defaults(func=cmd_verify)
 
     sp = common(sub.add_parser("sweep"))

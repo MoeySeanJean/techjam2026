@@ -1,0 +1,16 @@
+{
+  "question": "The agent promotes a proposal when its measured speedup beats the frozen entry's by 3%. Those two numbers come from different harnesses -- the agent times one proposal, the search times many interleaved. Are they comparable?",
+  "method": "For every shape the LLM agent won, compare the speedup the agent recorded against what the organizer's own benchmark then measured for the very same shipped plan, on the same card.",
+  "n": 89,
+  "agent_over_organizer": {
+    "median": 1.023,
+    "mean": 1.102,
+    "min": 0.154,
+    "max": 2.165,
+    "within_10pct": 30
+  },
+  "finding": "Unbiased on average -- median 1.02x -- but very noisy per shape, ranging 0.15x to 2.16x, with only 30 of 89 within 10%. The agent's own timing is therefore a poor predictor of what the organizer will measure for that plan, so the promotion decision is noisier than the 3% margin implies: some promotions are real wins, others are measurement luck.",
+  "why_it_still_helped": "The end-to-end result improved on all nine GPUs against the previous round, so the net effect is positive even though individual decisions are noisy. That is an argument for the gate-then-measure structure rather than for the agent's timing: nothing unsafe can be promoted, only something slower.",
+  "what_would_fix_it": "Re-time the winning proposal in the same harness that measured the incumbent before promoting, rather than comparing across harnesses. We did not do this.",
+  "caveat": "This round changed two things at once -- the torch.compile selection margin and the LLM agent -- so the improvement over the previous round cannot be attributed to the agent alone."
+}

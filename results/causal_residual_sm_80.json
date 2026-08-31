@@ -67,5 +67,53 @@
     "bit_exact": true,
     "bit_exact_note": "Dropping a `where` whose predicate is uniformly true removes no arithmetic that affects a result. Verified bit-identical on every shape, and under key padding with causal both on and off."
   },
-  "verdict": "shipped; pinned by tests/test_kernels.py"
+  "verdict": "shipped; pinned by tests/test_kernels.py",
+  "step_3_the_floor_is_not_0.50": {
+    "correction": "We had been comparing against 0.50, which is wrong for a tiled kernel. A program handling m-block `m` reads `m+1` key blocks, so the causal work is sum(m+1) over M blocks divided by M^2, i.e. (M+1)/2M. That only tends to 0.50 as M grows; at M=8 it is 0.562. The achievable floor is per-shape, and every earlier statement of this limitation overstated the gap.",
+    "per_shape": [
+      {
+        "shape": "B2-H8-S2048-d64",
+        "m_blocks": 32,
+        "floor": 0.516,
+        "measured": 0.65,
+        "vs_floor": 1.26
+      },
+      {
+        "shape": "B8-H8-S2048-d64",
+        "m_blocks": 32,
+        "floor": 0.516,
+        "measured": 0.6,
+        "vs_floor": 1.16
+      },
+      {
+        "shape": "B4-H16-S8192-d64",
+        "m_blocks": 128,
+        "floor": 0.504,
+        "measured": 0.55,
+        "vs_floor": 1.09
+      },
+      {
+        "shape": "B64-H4-S1024-d32",
+        "m_blocks": 16,
+        "floor": 0.531,
+        "measured": 0.53,
+        "vs_floor": 1.0
+      },
+      {
+        "shape": "B2-H8-S4096-d64",
+        "m_blocks": 64,
+        "floor": 0.508,
+        "measured": 0.62,
+        "vs_floor": 1.22
+      },
+      {
+        "shape": "B32-H8-S512-d64",
+        "m_blocks": 8,
+        "floor": 0.562,
+        "measured": 0.72,
+        "vs_floor": 1.28
+      }
+    ],
+    "finding": "Against the correct per-shape floor the kernel is 1.00x-1.28x, not the 1.06x-1.44x that comparing to 0.50 implied. `B64-H4-S1024-d32` sits exactly on its floor, which matters: it shows the arithmetic limit is reachable by this kernel and that the gap on the other shapes is real headroom rather than a structural barrier."
+  }
 }

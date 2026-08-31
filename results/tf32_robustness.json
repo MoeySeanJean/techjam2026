@@ -1,0 +1,22 @@
+{
+  "question": "Every fp16 stage we ship was admitted against a reference running its matmuls at TF32, because that is the organizer's default (--allow-tf32, default on). The flag is theirs to flip. If they run --no-allow-tf32 the reference becomes strictly more precise and our plans face a harder target. Do they still clear the gate?",
+  "method": "`verify --shapes-file official_shapes.txt` over the frozen dispatch table, run twice on the same node: once with the organizer's defaults, once with TF32 disabled and matmul precision at 'highest'. Reproduce with `--no-tf32`.",
+  "results": {
+    "sm_80": {
+      "gpu": "NVIDIA A100 80GB PCIe",
+      "slurm_job": "780077",
+      "worst_envelope_tf32_on": 0.728,
+      "worst_envelope_tf32_off": 0.823,
+      "failures_tf32_off": 0
+    },
+    "sm_90": {
+      "gpu": "NVIDIA H100 NVL",
+      "slurm_job": "780078",
+      "worst_envelope_tf32_on": 0.716,
+      "worst_envelope_tf32_off": 0.754,
+      "failures_tf32_off": 0
+    }
+  },
+  "finding": "Every shipped plan passes with TF32 disabled on both cards. The worst envelope rises from 0.728 to 0.823 on the A100 and from 0.716 to 0.754 on the H100, against a limit of 1.0 -- so the table keeps 18-25% of its budget in hand under the harder reference. The precision argument in docs/PRECISION.md leans on the reference computing at 10 mantissa bits, but the plans do not depend on it: the organizer's tolerance is 2% relative and fp16 carries about 0.1%, so the headroom survives the reference getting more accurate.",
+  "verdict": "robustness confirmed; no dispatch change needed"
+}

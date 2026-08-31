@@ -62,7 +62,7 @@ class UserOptimizedTransformer(BaselineTransformer):
                 from kernelforge.optimized import LADDER
                 plan, source = LADDER[_FORCED], f"env:{_FORCED}"
             else:
-                table = DispatchTable.load(spec.arch)
+                table = DispatchTable.load_for(spec)
                 plan, source = table.lookup(spec.arch, dtype, self.config, smem)
             impl = FusedTransformer(self.config, plan)
             impl.load_state_dict(self.state_dict(), strict=True)

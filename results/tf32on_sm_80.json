@@ -1,0 +1,137 @@
+{
+  "gpu": "NVIDIA A100 80GB PCIe",
+  "arch": "sm_80",
+  "untuned": false,
+  "records": [
+    {
+      "case": "B64-S128-d128-H4-F128-L4-causal",
+      "plan": "compile[ro]",
+      "source": "exact",
+      "passed": true,
+      "envelope": 0.303804874420166,
+      "max_abs": 0.000607609748840332,
+      "failed_elements": 0,
+      "total_elements": 1048576
+    },
+    {
+      "case": "B1-S128-d128-H4-F128-L4-causal",
+      "plan": "fp16[attn,ffn1,ffn2,out_proj]+graph",
+      "source": "exact",
+      "passed": true,
+      "envelope": 0.38609838485717773,
+      "max_abs": 0.0008548498153686523,
+      "failed_elements": 0,
+      "total_elements": 16384
+    },
+    {
+      "case": "B4-S128-d128-H4-F128-L4-causal",
+      "plan": "fp16[out_proj,attn,ffn2,ffn1]+graph",
+      "source": "exact",
+      "passed": true,
+      "envelope": 0.4171673059463501,
+      "max_abs": 0.0011020004749298096,
+      "failed_elements": 0,
+      "total_elements": 65536
+    },
+    {
+      "case": "B16-S128-d128-H4-F128-L4-causal",
+      "plan": "fp16[ffn2,out_proj,attn,ffn1]+graph",
+      "source": "exact",
+      "passed": true,
+      "envelope": 0.53514164686203,
+      "max_abs": 0.0011577904224395752,
+      "failed_elements": 0,
+      "total_elements": 262144
+    },
+    {
+      "case": "B128-S128-d128-H4-F128-L4-causal",
+      "plan": "fp16[attn,out_proj,ffn1,ffn2]+graph",
+      "source": "exact",
+      "passed": true,
+      "envelope": 0.7277931571006775,
+      "max_abs": 0.0014555864036083221,
+      "failed_elements": 0,
+      "total_elements": 2097152
+    },
+    {
+      "case": "B10000-S128-d128-H4-F128-L4-causal",
+      "plan": "fp16[ffn2,attn,ffn1]",
+      "source": "exact",
+      "passed": true,
+      "envelope": 0.7099670767784119,
+      "max_abs": 0.0014759302139282227,
+      "failed_elements": 0,
+      "total_elements": 163840000
+    },
+    {
+      "case": "B64-S128-d32-H4-F32-L4-causal",
+      "plan": "fp16[attn,ffn1,ffn2,out_proj]+graph",
+      "source": "exact",
+      "passed": true,
+      "envelope": 0.6318041086196899,
+      "max_abs": 0.0015861541032791138,
+      "failed_elements": 0,
+      "total_elements": 262144
+    },
+    {
+      "case": "B64-S128-d1024-H4-F1024-L4-causal",
+      "plan": "fp16[attn,ffn2,ffn1,out_proj]",
+      "source": "exact",
+      "passed": true,
+      "envelope": 0.6416886448860168,
+      "max_abs": 0.0014827549457550049,
+      "failed_elements": 0,
+      "total_elements": 8388608
+    },
+    {
+      "case": "B64-S128-d128-H1-F128-L4-causal",
+      "plan": "fp16[ffn2,attn,ffn1,out_proj]+graph",
+      "source": "exact",
+      "passed": true,
+      "envelope": 0.584635853767395,
+      "max_abs": 0.0011776089668273926,
+      "failed_elements": 0,
+      "total_elements": 1048576
+    },
+    {
+      "case": "B64-S128-d128-H2-F128-L4-causal",
+      "plan": "fp16[attn,out_proj,ffn1,ffn2]+graph",
+      "source": "exact",
+      "passed": true,
+      "envelope": 0.5740588307380676,
+      "max_abs": 0.0013262033462524414,
+      "failed_elements": 0,
+      "total_elements": 1048576
+    },
+    {
+      "case": "B64-S128-d128-H16-F128-L4-causal",
+      "plan": "fp16[attn,ffn1,out_proj,ffn2]+graph",
+      "source": "exact",
+      "passed": true,
+      "envelope": 0.5510681867599487,
+      "max_abs": 0.0013373196125030518,
+      "failed_elements": 0,
+      "total_elements": 1048576
+    },
+    {
+      "case": "B64-S32-d128-H4-F128-L4-causal",
+      "plan": "fp16[ffn1,ffn2,out_proj,attn]+graph",
+      "source": "exact",
+      "passed": true,
+      "envelope": 0.5315828323364258,
+      "max_abs": 0.0011851191520690918,
+      "failed_elements": 0,
+      "total_elements": 262144
+    },
+    {
+      "case": "B64-S1024-d128-H4-F128-L4-causal",
+      "plan": "fp16[attn,ffn2,ffn1,out_proj]",
+      "source": "exact",
+      "passed": true,
+      "envelope": 0.6219595670700073,
+      "max_abs": 0.0013331770896911621,
+      "failed_elements": 0,
+      "total_elements": 8388608
+    }
+  ]
+}

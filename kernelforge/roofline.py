@@ -134,8 +134,18 @@ def stack_bytes(batch: int, seq: int, d_model: int, heads: int, ffn: int,
     return weights + acts
 
 
-def analyse(case, seconds: float, arch: str, bandwidth_gbs: float,
+def analyse(case, millis: float, arch: str, bandwidth_gbs: float,
             dtype: str = "float32") -> Optional[Roofline]:
+    """Roofline for one measured case.
+
+    `millis` is milliseconds, matching the `median_ms` the benchmark records --
+    the `Roofline.seconds` field it fills is seconds. The parameter used to be
+    called `seconds` while every caller correctly passed milliseconds, which is
+    a 1000x error waiting to happen: it reads as correct at the call site and
+    produces a plausible-looking number either way. It cost us an afternoon
+    before the arithmetic was checked against first principles, so the name now
+    says what it wants.
+    """
     peaks = PEAK_TFLOPS_TF32 if dtype == "float32" else PEAK_TFLOPS
     peak = peaks.get(arch)
     if peak is None or not bandwidth_gbs:
@@ -148,7 +158,7 @@ def analyse(case, seconds: float, arch: str, bandwidth_gbs: float,
         bytes_moved=stack_bytes(case.batch_size, case.seq_len, case.d_model,
                                 case.num_heads, case.ffn_dim, case.num_layers,
                                 elem),
-        seconds=seconds / 1000.0,
+        seconds=millis / 1000.0,
         peak_tflops=peak,
         peak_bandwidth_gbs=bandwidth_gbs,
     )

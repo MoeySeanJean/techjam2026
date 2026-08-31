@@ -1,0 +1,156 @@
+{
+  "gpu": "NVIDIA A100 80GB PCIe",
+  "arch": "sm_80",
+  "sm_count": 108,
+  "total_gib": 79.2,
+  "smem_per_block_kb": 163.0,
+  "node": "xgph0",
+  "slurm_job": "785156",
+  "method": "The organizer's torch_transformer_benchmark.py, unmodified, with UserOptimizedTransformer swapped for ours. Plans are read from the frozen tables -- this card's device table where it has one, the architecture table otherwise. Nothing is tuned here; see `plan_source` per shape for which tier answered.",
+  "shapes_run": 13,
+  "shapes_total": 14,
+  "shapes_passed": 13,
+  "shapes_from_this_cards_own_table": 13,
+  "per_device_table_present": true,
+  "table_note": "`plan_source` is the dispatch tier that answered: `exact` means this card's own device table had an entry for the shape, `nearest`/`default` mean it fell through to the architecture table.",
+  "records": [
+    {
+      "passed": true,
+      "max_abs": 0.00160345,
+      "baseline_ms": 1.9738,
+      "ours_ms": 0.3758,
+      "speedup": 5.252,
+      "plan": "cuda_graph_fp16_small_block_optimized",
+      "plan_source": "exact",
+      "case": "B64-S128-d128-H4-F128-L4-causal"
+    },
+    {
+      "passed": true,
+      "max_abs": 0.001221,
+      "baseline_ms": 1.9702,
+      "ours_ms": 0.1239,
+      "speedup": 15.901,
+      "plan": "cuda_graph_fp16_flash_v2",
+      "plan_source": "exact",
+      "case": "B1-S128-d128-H4-F128-L4-causal"
+    },
+    {
+      "passed": true,
+      "max_abs": 0.001221,
+      "baseline_ms": 1.9835,
+      "ours_ms": 0.1352,
+      "speedup": 14.674,
+      "plan": "cuda_graph_fp16_flash",
+      "plan_source": "exact",
+      "case": "B4-S128-d128-H4-F128-L4-causal"
+    },
+    {
+      "passed": true,
+      "max_abs": 0.00142686,
+      "baseline_ms": 1.9743,
+      "ours_ms": 0.1802,
+      "speedup": 10.955,
+      "plan": "cuda_graph_fp16_flash_retry",
+      "plan_source": "exact",
+      "case": "B16-S128-d128-H4-F128-L4-causal"
+    },
+    {
+      "passed": true,
+      "max_abs": 0.00156517,
+      "baseline_ms": 2.7812,
+      "ours_ms": 1.0373,
+      "speedup": 2.681,
+      "plan": "fp16_ffn1_fp16_ffn2_fp32_cuda_graph",
+      "plan_source": "exact",
+      "case": "B128-S128-d128-H4-F128-L4-causal"
+    },
+    {
+      "passed": true,
+      "max_abs": 0.00159363,
+      "baseline_ms": 191.6764,
+      "ours_ms": 49.4423,
+      "speedup": 3.877,
+      "plan": "fp16[ffn2,attn,ffn1]+graph",
+      "plan_source": "exact",
+      "case": "B10000-S128-d128-H4-F128-L4-causal"
+    },
+    {
+      "passed": true,
+      "max_abs": 0.00167349,
+      "baseline_ms": 1.9722,
+      "ours_ms": 0.468,
+      "speedup": 4.214,
+      "plan": "fp16[attn,ffn2]+graph",
+      "plan_source": "exact",
+      "case": "B64-S128-d32-H4-F32-L4-causal"
+    },
+    {
+      "passed": true,
+      "max_abs": 0.00153751,
+      "baseline_ms": 8.1029,
+      "ours_ms": 3.5338,
+      "speedup": 2.293,
+      "plan": "fp16[attn,ffn1,ffn2,out_proj]",
+      "plan_source": "exact",
+      "case": "B64-S128-d1024-H4-F1024-L4-causal"
+    },
+    {
+      "passed": true,
+      "max_abs": 0.00144362,
+      "baseline_ms": 1.8043,
+      "ours_ms": 0.3758,
+      "speedup": 4.801,
+      "plan": "cuda_graph_fp16_retry",
+      "plan_source": "exact",
+      "case": "B64-S128-d128-H1-F128-L4-causal"
+    },
+    {
+      "passed": true,
+      "max_abs": 0.00129032,
+      "baseline_ms": 2.0009,
+      "ours_ms": 0.386,
+      "speedup": 5.183,
+      "plan": "cuda_graph_fp16_fused",
+      "plan_source": "exact",
+      "case": "B64-S128-d128-H2-F128-L4-causal"
+    },
+    {
+      "passed": true,
+      "max_abs": 0.0012762,
+      "baseline_ms": 3.5113,
+      "ours_ms": 0.6646,
+      "speedup": 5.284,
+      "plan": "fp16_flash_graphs",
+      "plan_source": "exact",
+      "case": "B64-S128-d128-H16-F128-L4-causal"
+    },
+    {
+      "passed": true,
+      "max_abs": 0.000970095,
+      "baseline_ms": 1.9794,
+      "ours_ms": 0.3492,
+      "speedup": 5.669,
+      "plan": "cuda_graph_fp32_measure",
+      "plan_source": "exact",
+      "case": "B64-S32-d128-H4-F128-L4-causal"
+    },
+    {
+      "passed": true,
+      "max_abs": 0.00160345,
+      "baseline_ms": 43.4673,
+      "ours_ms": 3.5912,
+      "speedup": 12.104,
+      "plan": "fp16_flash_fused_graph",
+      "plan_source": "exact",
+      "case": "B64-S1024-d128-H4-F128-L4-causal"
+    },
+    {
+      "ran": false,
+      "error": "torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 19073.49 GiB. GPU 0 has a total capacity of 79.25 GiB of which 17.60 GiB is free. Including non-Py",
+      "case": "B32-S100000-d1024-H16-F1024-L2-causal"
+    }
+  ],
+  "median_speedup": 5.252,
+  "min_speedup": 2.293,
+  "max_speedup": 15.901
+}

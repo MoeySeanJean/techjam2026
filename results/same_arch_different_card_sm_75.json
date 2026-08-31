@@ -1,0 +1,44 @@
+{
+  "question": "The dispatch table is keyed on (architecture, dtype, shape). Two cards can share an architecture and still want different plans. Does tuning on a different card of the same architecture matter, and if so by how much?",
+  "natural_experiment": "The TITAN RTX and the Tesla T4 are both sm_75, both 64 KB shared memory per block, both without TF32 -- and they differ 2.3x in measured memory bandwidth (568 vs 242 GB/s) and 4x in board power (280 vs 70 W). Both tune into the same dispatch_sm_75.json.",
+  "divergence": {
+    "shapes_compared": 12,
+    "shapes_wanting_different_plans": 6,
+    "note": "Compared on plan specification, not name: a name lists its fp16 stages in admission order, so two spellings of one plan look like two plans."
+  },
+  "which_card_won": "Collision resolution keeps the entry with the tighter envelope, and on sm_75 that was the TITAN RTX for every shape. The shipped table is effectively the RTX's choices.",
+  "cost_to_the_other_card": {
+    "titan_rtx": {
+      "median": 1.0,
+      "worst": 1.0,
+      "note": "its own plans shipped, so it pays nothing"
+    },
+    "tesla_t4": {
+      "median": 1.0,
+      "worst": 1.084,
+      "shapes_penalised": 3,
+      "detail": [
+        {
+          "shape": "B4-S128-d128-H4-F128-L4-causal",
+          "own_best_ms": 0.442,
+          "shipped_ms": 0.473,
+          "cost": 1.07
+        },
+        {
+          "shape": "B16-S128-d128-H4-F128-L4-causal",
+          "own_best_ms": 1.114,
+          "shipped_ms": 1.207,
+          "cost": 1.08
+        },
+        {
+          "shape": "B64-S128-d32-H4-F32-L4-causal",
+          "own_best_ms": 2.007,
+          "shipped_ms": 2.062,
+          "cost": 1.03
+        }
+      ]
+    }
+  },
+  "finding": "Yes, it matters, and the cost is bounded and small. Half the shapes choose differently on two cards of one architecture, but the plans are close enough in performance that taking the wrong card's choice costs nothing on 8 of 11 comparable shapes and at most 1.08x on the other three. Correctness is unaffected: every plan still clears the gate on both cards, because admission is re-verified per card rather than assumed from the table.",
+  "why_it_is_safe": "The table is keyed on architecture because that is what determines *legality* -- shared memory, TF32, tensor-core support. Which legal plan is *fastest* is per-card, and that is what this measures. A wrong-card plan is a slower plan, never an incorrect one."
+}

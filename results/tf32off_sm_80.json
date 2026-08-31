@@ -1,0 +1,137 @@
+{
+  "gpu": "NVIDIA A100 80GB PCIe",
+  "arch": "sm_80",
+  "untuned": false,
+  "records": [
+    {
+      "case": "B64-S128-d128-H4-F128-L4-causal",
+      "plan": "compile[ro]",
+      "source": "exact",
+      "passed": true,
+      "envelope": 0.00035855916212312877,
+      "max_abs": 1.1920928955078125e-06,
+      "failed_elements": 0,
+      "total_elements": 1048576
+    },
+    {
+      "case": "B1-S128-d128-H4-F128-L4-causal",
+      "plan": "fp16[attn,ffn1,ffn2,out_proj]+graph",
+      "source": "exact",
+      "passed": true,
+      "envelope": 0.47288551926612854,
+      "max_abs": 0.0009484291076660156,
+      "failed_elements": 0,
+      "total_elements": 16384
+    },
+    {
+      "case": "B4-S128-d128-H4-F128-L4-causal",
+      "plan": "fp16[out_proj,attn,ffn2,ffn1]+graph",
+      "source": "exact",
+      "passed": true,
+      "envelope": 0.5021095275878906,
+      "max_abs": 0.0011316090822219849,
+      "failed_elements": 0,
+      "total_elements": 65536
+    },
+    {
+      "case": "B16-S128-d128-H4-F128-L4-causal",
+      "plan": "fp16[ffn2,out_proj,attn,ffn1]+graph",
+      "source": "exact",
+      "passed": true,
+      "envelope": 0.652432382106781,
+      "max_abs": 0.0013048648834228516,
+      "failed_elements": 0,
+      "total_elements": 262144
+    },
+    {
+      "case": "B128-S128-d128-H4-F128-L4-causal",
+      "plan": "fp16[attn,out_proj,ffn1,ffn2]+graph",
+      "source": "exact",
+      "passed": true,
+      "envelope": 0.7343217134475708,
+      "max_abs": 0.0014686435461044312,
+      "failed_elements": 0,
+      "total_elements": 2097152
+    },
+    {
+      "case": "B10000-S128-d128-H4-F128-L4-causal",
+      "plan": "fp16[ffn2,attn,ffn1]",
+      "source": "exact",
+      "passed": true,
+      "envelope": 0.7998905777931213,
+      "max_abs": 0.0015997812151908875,
+      "failed_elements": 0,
+      "total_elements": 163840000
+    },
+    {
+      "case": "B64-S128-d32-H4-F32-L4-causal",
+      "plan": "fp16[attn,ffn1,ffn2,out_proj]+graph",
+      "source": "exact",
+      "passed": true,
+      "envelope": 0.8225297331809998,
+      "max_abs": 0.0016450595576316118,
+      "failed_elements": 0,
+      "total_elements": 262144
+    },
+    {
+      "case": "B64-S128-d1024-H4-F1024-L4-causal",
+      "plan": "fp16[attn,ffn2,ffn1,out_proj]",
+      "source": "exact",
+      "passed": true,
+      "envelope": 0.6623351573944092,
+      "max_abs": 0.0015319585800170898,
+      "failed_elements": 0,
+      "total_elements": 8388608
+    },
+    {
+      "case": "B64-S128-d128-H1-F128-L4-causal",
+      "plan": "fp16[ffn2,attn,ffn1,out_proj]+graph",
+      "source": "exact",
+      "passed": true,
+      "envelope": 0.7489393353462219,
+      "max_abs": 0.0015054941177368164,
+      "failed_elements": 0,
+      "total_elements": 1048576
+    },
+    {
+      "case": "B64-S128-d128-H2-F128-L4-causal",
+      "plan": "fp16[attn,out_proj,ffn1,ffn2]+graph",
+      "source": "exact",
+      "passed": true,
+      "envelope": 0.6206607818603516,
+      "max_abs": 0.001371622085571289,
+      "failed_elements": 0,
+      "total_elements": 1048576
+    },
+    {
+      "case": "B64-S128-d128-H16-F128-L4-causal",
+      "plan": "fp16[attn,ffn1,out_proj,ffn2]+graph",
+      "source": "exact",
+      "passed": true,
+      "envelope": 0.6341328620910645,
+      "max_abs": 0.0013747215270996094,
+      "failed_elements": 0,
+      "total_elements": 1048576
+    },
+    {
+      "case": "B64-S32-d128-H4-F128-L4-causal",
+      "plan": "fp16[ffn1,ffn2,out_proj,attn]+graph",
+      "source": "exact",
+      "passed": true,
+      "envelope": 0.7782354354858398,
+      "max_abs": 0.001616835594177246,
+      "failed_elements": 0,
+      "total_elements": 262144
+    },
+    {
+      "case": "B64-S1024-d128-H4-F128-L4-causal",
+      "plan": "fp16[attn,ffn2,ffn1,out_proj]",
+      "source": "exact",
+      "passed": true,
+      "envelope": 0.6598003506660461,
+      "max_abs": 0.001319600734859705,
+      "failed_elements": 0,
+      "total_elements": 8388608
+    }
+  ]
+}

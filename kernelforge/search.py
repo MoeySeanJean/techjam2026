@@ -121,6 +121,13 @@ def measure_stage_cost(
     return base_util, cost
 
 
+# How much faster our own kernel may be and still be preferred over a
+# `torch.compile` candidate. Set from the measured gap: compile plans came in at
+# a mean 0.891x under the organizer's harness against our kernels' 1.017x, so a
+# compile plan needs roughly 15% of headroom here to be genuinely ahead there.
+COMPILE_MARGIN = 1.15
+
+
 def search(
     case: Case,
     device: torch.device,
@@ -303,9 +310,31 @@ def search(
         c.speedup = baseline_ms / t.median_ms
         c.speedup_vs_compile = compile_ms / t.median_ms
 
+    # A `torch.compile` candidate has to win by a real margin, not by a hair.
+    #
+    # This harness times candidates interleaved, so a compiled model is already
+    # warm and its CUDA graph captured when we measure it. The organizer's
+    # script does not work that way -- fresh process, warmup 20, repeats 100 --
+    # and measured across 103 shape pairs on nine GPUs, plans that delegate to
+    # torch.compile came in at a mean 0.891x of what our own kernels achieved
+    # there, regressing on 52% of shapes, while our own kernels averaged 1.017x
+    # and regressed on 10% (`results/tuned_vs_untuned_fleet.json`).
+    #
+    # So a tie here is a loss there. Requiring a clear margin keeps the
+    # compiler where it genuinely wins and stops it taking shapes it only
+    # appears to win because of how we measure. This is a correction to our
+    # selection, not a claim that torch.compile is slow.
     ranked = [c for c in candidates if c.passed and c.median_ms == c.median_ms]
     ranked.sort(key=lambda c: c.median_ms)
+
+    def _delegates(cand) -> bool:
+        return bool(getattr(cand.plan, "torch_compile", None))
+
     best = ranked[0] if ranked else None
+    if best is not None and _delegates(best):
+        mine = next((c for c in ranked if not _delegates(c)), None)
+        if mine is not None and mine.median_ms <= best.median_ms * COMPILE_MARGIN:
+            best = mine
 
     # Free the reference models before returning: a sweep builds one of these
     # per case and the GPU memory matters more than the microsecond.

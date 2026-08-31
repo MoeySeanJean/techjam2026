@@ -126,7 +126,7 @@ def main() -> int:
             "changes.", ""]
 
     # Printed rather than written to a file: these figures are quoted inline in
-    # docs/TECH_REPORT.md section 6, and a second copy would only drift from it.
+    # the README, and a second copy would only drift from it.
     print("\n".join(lines))
     return 0
 

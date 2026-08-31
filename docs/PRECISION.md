@@ -183,6 +183,27 @@ storage compounds rather than merely rounding. `residual_dtype` is a separate
 knob from `compute_dtype` for this reason, and it is always fp32 in shipped
 plans.
 
+## The argument does not depend on TF32 being on
+
+Everything above leans on the reference computing its matmuls at 10 mantissa
+bits, which is the organizer's default (`--allow-tf32`, default on). That flag is
+theirs to flip, so the shipped table was re-verified with it off, on both tuned
+cards:
+
+| | worst envelope, TF32 on | worst envelope, TF32 off | failures |
+|---|---|---|---|
+| A100-80 | 0.728 | **0.823** | 0 |
+| H100 NVL | 0.716 | **0.754** | 0 |
+
+Every plan still passes, with 18–25% of the budget in hand. The reason is that
+the organizer's tolerance is 2% relative while fp16 carries about 0.1%: the
+headroom survives the reference becoming more accurate. The TF32 argument
+explains why the trade is *comfortable*, not why it is *safe*.
+
+```bash
+python -m kernelforge.cli verify --shapes-file official_shapes.txt --no-tf32
+```
+
 ## Margin
 
 We gate at 0.80, not 1.0. Utilization is measured over three seeds; the

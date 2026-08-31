@@ -1,0 +1,23 @@
+{
+  "question": "Roofline utilisation is lower on the H100 than the A100 for 12 of the 13 official shapes. We attributed that to our tiles not saturating the larger machine. Is that what it is?",
+  "method": "For each official shape, compare achieved DRAM bandwidth as a fraction of that card's own measured peak, rather than achieved TFLOP/s as a fraction of its tensor-core ceiling. A percentage of peak compute conflates two things: how well the kernel runs, and how much faster the ceiling grew than the memory system.",
+  "measurement": {
+    "bandwidth_bound_shapes": 11,
+    "mean_fraction_of_own_peak_dram_bandwidth": {
+      "A100": "10.4%",
+      "H100": "8.1%"
+    },
+    "compute_bound_shapes": {
+      "B64-S128-d1024-H4-F1024-L4-causal": {
+        "A100_pct_tensor_ceiling": "77%",
+        "H100_pct_tensor_ceiling": "53%"
+      },
+      "B64-S1024-d128-H4-F128-L4-causal": {
+        "A100_pct_tensor_ceiling": "25%",
+        "H100_pct_tensor_ceiling": "15%"
+      }
+    }
+  },
+  "finding": "On the 11 bandwidth-bound shapes neither card comes close to a hardware limit -- both sit under 11% of their own peak DRAM bandwidth -- so nothing there is tiling-limited. Those shapes are S=128 with d<=128: there is too little work to saturate either machine, and the binding constraint is launch and occupancy, not the tile. The H100's lower *percentage of tensor-core ceiling* is largely arithmetic: its ceiling is 2.7x the A100's while its memory bandwidth is only 2.1x, so identical behaviour scores lower. The real gap is confined to the two compute-bound shapes, where the H100 reaches 53% and 15% of ceiling against the A100's 77% and 25%.",
+  "consequence": "The limitation is narrower than we had written it. It is not 'our tiles do not saturate the H100' across the board; it is 'on the two official shapes with enough arithmetic to be compute-bound, we reach a lower fraction of the H100's ceiling than the A100's'. Larger tilings were measured and did not help (results/tile_space_probe_sm_90.json), so the remaining lever is TMA and wgmma, which we did not build."
+}

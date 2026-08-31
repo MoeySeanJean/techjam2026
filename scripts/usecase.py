@@ -139,7 +139,7 @@ def main() -> int:
     torch.set_float32_matmul_precision("high")
     device = torch.device("cuda")
     spec = probe()
-    table = DispatchTable.load(spec.arch)
+    table = DispatchTable.load_for(spec)
     if args.cold:
         table = forget(table, [sp for _, sp, _, _ in SEGMENTS], spec.arch)
 
@@ -167,7 +167,7 @@ def main() -> int:
             subprocess.run([sys.executable, "-m", "kernelforge.cli", "tune",
                             "--shapes", ",".join(untuned), "--trials", "2",
                             "--case-budget", "300"], cwd=ROOT, env=env)
-            table = DispatchTable.load(spec.arch)
+            table = DispatchTable.load_for(spec)
         else:
             print("  every segment already has a tuned entry\n")
 
@@ -220,8 +220,9 @@ def main() -> int:
     print(f"\n{'=' * 78}")
     print("What that is worth to the service")
     print(f"{'=' * 78}")
+    power = f"{watts} W/GPU" if watts else "board power not known for this GPU"
     print(f"  assumptions: {args.qps:,} ranking requests/s, "
-          f"{watts} W/GPU, PUE {PUE}, ${USD_PER_KWH}/kWh\n")
+          f"{power}, PUE {PUE}, ${USD_PER_KWH}/kWh\n")
     print(f"  requests/s per GPU      {reqs_per_gpu_s_base:12,.0f}  ->"
           f"{reqs_per_gpu_s_ours:12,.0f}")
     print(f"  GPUs to hold the load   {gpus_base:12,.0f}  ->"
@@ -232,6 +233,12 @@ def main() -> int:
         kwh_saved = (gpus_base - gpus_ours) * watts * PUE * HOURS_PER_YEAR / 1000
         print(f"  energy at that capacity {kwh_saved:12,.0f} kWh/year saved"
               f"   ~${kwh_saved * USD_PER_KWH:,.0f}/year")
+    else:
+        # Capacity is measured; energy needs a board-power figure we do not
+        # have for this card. Quoting a guessed wattage would make the dollar
+        # line look measured when it is not, so the line is dropped instead.
+        print("  energy                  omitted -- no board-power figure for "
+              f"{spec.name}; capacity above is measured and unaffected")
 
     print(f"\n  Latency matters as much as capacity: the realtime segments are "
           f"{rows[0]['baseline_ms'] / rows[0]['ours_ms']:.1f}x and "

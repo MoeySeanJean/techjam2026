@@ -61,7 +61,8 @@ ATOL, RTOL = _script_defaults()
 #                     re-rolls the noise and demotes good plans on every pass.
 #                     ADMISSION + SPREAD is that bound.
 #
-# Re-measure with `_workspace/envelope_spread.py` if the hardware changes.
+# Re-measure if the hardware changes: run `cli verify` over the frozen table
+# twice in separate processes and take the largest envelope difference.
 ENVELOPE_SPREAD = 0.141
 ADMISSION_MARGIN = 0.80
 DEMOTION_MARGIN = round(ADMISSION_MARGIN + ENVELOPE_SPREAD, 3)   # 0.941

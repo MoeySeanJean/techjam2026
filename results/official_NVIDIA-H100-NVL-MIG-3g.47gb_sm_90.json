@@ -1,0 +1,127 @@
+{
+  "gpu": "NVIDIA H100 NVL MIG 3g.47gb",
+  "arch": "sm_90",
+  "sm_count": 60,
+  "total_gib": 46.4,
+  "smem_per_block_kb": 227.0,
+  "node": "xgpi18",
+  "slurm_job": "780154",
+  "method": "The organizer's torch_transformer_benchmark.py, unmodified, with UserOptimizedTransformer swapped for ours. Plans come from the frozen dispatch table for this architecture -- no tuning was run on this card, so nothing here fitted itself to the hardware it is measured on.",
+  "shapes_run": 13,
+  "shapes_total": 14,
+  "shapes_passed": 13,
+  "records": [
+    {
+      "passed": true,
+      "max_abs": 0.00142229,
+      "baseline_ms": 1.5548,
+      "ours_ms": 0.391,
+      "speedup": 3.977,
+      "case": "B64-S128-d128-H4-F128-L4-causal"
+    },
+    {
+      "passed": true,
+      "max_abs": 0.00108945,
+      "baseline_ms": 1.4651,
+      "ours_ms": 0.1033,
+      "speedup": 14.183,
+      "case": "B1-S128-d128-H4-F128-L4-causal"
+    },
+    {
+      "passed": true,
+      "max_abs": 0.00114554,
+      "baseline_ms": 1.4499,
+      "ours_ms": 0.1147,
+      "speedup": 12.642,
+      "case": "B4-S128-d128-H4-F128-L4-causal"
+    },
+    {
+      "passed": true,
+      "max_abs": 0.00133263,
+      "baseline_ms": 1.4674,
+      "ours_ms": 0.1707,
+      "speedup": 8.597,
+      "case": "B16-S128-d128-H4-F128-L4-causal"
+    },
+    {
+      "passed": true,
+      "max_abs": 0.00173265,
+      "baseline_ms": 3.0289,
+      "ours_ms": 0.7051,
+      "speedup": 4.296,
+      "case": "B128-S128-d128-H4-F128-L4-causal"
+    },
+    {
+      "passed": true,
+      "max_abs": 0.00181061,
+      "baseline_ms": 214.0104,
+      "ours_ms": 54.3138,
+      "speedup": 3.94,
+      "case": "B10000-S128-d128-H4-F128-L4-causal"
+    },
+    {
+      "passed": true,
+      "max_abs": 0.000669926,
+      "baseline_ms": 1.4803,
+      "ours_ms": 0.4178,
+      "speedup": 3.543,
+      "case": "B64-S128-d32-H4-F32-L4-causal"
+    },
+    {
+      "passed": true,
+      "max_abs": 0.00149465,
+      "baseline_ms": 6.6728,
+      "ours_ms": 2.9844,
+      "speedup": 2.236,
+      "case": "B64-S128-d1024-H4-F1024-L4-causal"
+    },
+    {
+      "passed": true,
+      "max_abs": 0.00144792,
+      "baseline_ms": 1.3463,
+      "ours_ms": 0.3541,
+      "speedup": 3.801,
+      "case": "B64-S128-d128-H1-F128-L4-causal"
+    },
+    {
+      "passed": true,
+      "max_abs": 0.00137001,
+      "baseline_ms": 1.4713,
+      "ours_ms": 0.3648,
+      "speedup": 4.033,
+      "case": "B64-S128-d128-H2-F128-L4-causal"
+    },
+    {
+      "passed": true,
+      "max_abs": 0.00128047,
+      "baseline_ms": 3.6656,
+      "ours_ms": 0.7996,
+      "speedup": 4.584,
+      "case": "B64-S128-d128-H16-F128-L4-causal"
+    },
+    {
+      "passed": true,
+      "max_abs": 0.00133584,
+      "baseline_ms": 1.5597,
+      "ours_ms": 0.1434,
+      "speedup": 10.875,
+      "case": "B64-S32-d128-H4-F128-L4-causal"
+    },
+    {
+      "passed": true,
+      "max_abs": 0.00144076,
+      "baseline_ms": 46.3075,
+      "ours_ms": 3.1098,
+      "speedup": 14.891,
+      "case": "B64-S1024-d128-H4-F128-L4-causal"
+    },
+    {
+      "ran": false,
+      "error": "torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 12.21 GiB. GPU 0 has a total capacity of 46.38 GiB of which 9.22 GiB is free. Including non-PyTorc",
+      "case": "B32-S100000-d1024-H16-F1024-L2-causal"
+    }
+  ],
+  "median_speedup": 4.296,
+  "min_speedup": 2.236,
+  "max_speedup": 14.891
+}

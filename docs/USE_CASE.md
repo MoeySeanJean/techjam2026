@@ -38,7 +38,7 @@ Its properties map onto this project's choices:
 | Histories are **variable length** — a new user and a power user share a batch | every request is padded | our FlashAttention handles causal **and** key-padding in-register; SDPA cannot do both without falling off its fast path |
 | Latency is a hard SLO, so **batches stay small** | small batches are launch-bound, not compute-bound | CUDA-graph capture removes ~105 kernel launches per forward |
 | Traffic is **not one shape** — peak vs off-peak, light vs heavy history, first-pass vs re-rank | one kernel cannot be optimal for all of them | per-shape dispatch, tuned by search |
-| The serving fleet is **heterogeneous** across GPU generations | the best kernel differs per card | per-architecture tables; 4 of the 13 official shapes chose a different plan on an A100 than on an H100 |
+| The serving fleet is **heterogeneous** across GPU generations | the best kernel differs per card | one tuned table per card; two `sm_75` parts disagree on 6 of 12 official shapes, so architecture alone is not a fine enough key |
 | A wrong score ships the wrong video | correctness is not negotiable | every plan clears the accuracy gate *before* it is timed |
 
 ## The traffic mix
@@ -123,6 +123,42 @@ follows.
 The realtime segments also got 2.3x and 2.1x faster inside a fixed SLO — headroom
 that can be spent on capacity, or on a longer user history and a larger candidate
 set.
+
+## It runs on a laptop
+
+The cluster results are the headline, but nothing here is a cluster feature. The
+same use case, measured end to end on a **GeForce RTX 3070 Ti Laptop GPU**
+(`sm_86`, 8 GB, 46 SMs) — a card with no tuned entries when the run started:
+
+| | traffic-weighted | requests/s per GPU | GPUs for 100k QPS |
+|---|---|---|---|
+| architecture defaults | 1.65x | 1,912 → 3,134 | 52 → 32 (39% freed) |
+| **tuned, then LLM agent** | **2.66x** | 1,917 → **4,935** | 52 → **20 (61% freed)** |
+
+```bash
+python -m kernelforge.cli tune --cases <your four shapes>       # ~3 min a shape
+python -m kernelforge.cli agent --provider llm --cases <same>   # model competes
+python scripts/usecase.py                                       # measure
+```
+
+The middle step is the interesting one. The LLM proposed 20 configurations across
+the four shapes; 16 cleared the accuracy gate and 4 were rejected outright, one at
+envelope 5.33. Of the 16, exactly one beat what the search had already frozen by
+enough to take the slot:
+
+```
+-> promoted into the table (4.60x vs 3.34x held)
+   cuda_graph_fp16_flash_optimized   envelope 0.497
+```
+
+So the shipped four-shape table is three heuristic plans and one the model wrote
+the configuration for, and every one of them passes the organizer's tolerance.
+
+Two honest caveats. A laptop cannot lock its clocks, so absolute latencies drift
+with thermals — the baseline moved 34.3 to 36.3 ms across runs, which is why the
+ratio is the number to read and not the milliseconds. And we have no board-power
+figure for this part, so the script omits its energy line rather than inventing
+one. `results/usecase_laptop.json` holds the full record.
 
 ## Assumptions
 

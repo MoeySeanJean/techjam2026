@@ -577,6 +577,47 @@ def shape14_section() -> List[str]:
     return lines
 
 
+
+def fleet_section() -> List[str]:
+    """Every GPU the cluster offers, on the official shapes, one method.
+
+    These runs go through the organizer's own script with the frozen dispatch
+    table -- no tuning happened on any of them. That is what makes the two
+    kinds of row comparable: a card we tuned on and a card we had never seen
+    are measured the same way, and the untuned ones are the honest test of
+    whether a table keyed on architecture actually transfers.
+    """
+    # `load` keys by filename stem; we want the artifacts themselves.
+    blobs = list(load("official_*.json").values())
+    if not blobs:
+        return []
+    tuned = {"NVIDIA A100 80GB PCIe", "NVIDIA H100 NVL", "NVIDIA TITAN V",
+             "NVIDIA TITAN RTX", "Tesla T4"}
+    lines = ["## Every GPU on the cluster", "",
+             "The official shapes run through the organizer's "
+             "`torch_transformer_benchmark.py`, unmodified, with our layer "
+             "substituted in. Plans come from the frozen dispatch table for "
+             "each architecture; **no tuning was run on any card here**, so the "
+             "rows marked *untuned* are hardware the search never saw.", "",
+             "| GPU | arch | SMs | memory | shapes run | passed | median | range | tuned on? |",
+             "|---|---|---|---|---|---|---|---|---|"]
+    for b in sorted(blobs, key=lambda x: (x.get("arch", ""), -x.get("total_gib", 0))):
+        if not b.get("shapes_run"):
+            continue
+        seen = "tuned" if b.get("gpu") in tuned else "**untuned**"
+        lines.append(
+            f"| {b['gpu']} | `{b['arch']}` | {b.get('sm_count','?')} | "
+            f"{b.get('total_gib','?')} GB | {b['shapes_run']} of "
+            f"{b['shapes_total']} | {b['shapes_passed']}/{b['shapes_run']} | "
+            f"**{b['median_speedup']}x** | {b['min_speedup']}-{b['max_speedup']}x "
+            f"| {seen} |")
+    lines += ["", "Speedup is the organizer's own figure: our median latency "
+              "against their unmodified baseline, on the same input. Shapes "
+              "that do not run are memory, not correctness -- the largest "
+              "official shapes do not fit every card.", ""]
+    return lines
+
+
 def main() -> int:
     sweeps = load("sweep_*.json")
     gens = load("genealogy_*.json")
@@ -596,18 +637,17 @@ def main() -> int:
            "frozen table at 0.90.", "",
            ""]
     out += official_table(sweeps)
+    out += fleet_section()
     out += shape14_section()
-    out += ["## Every shape we measured", "",
-            "The matrix we tuned against before the official list was "
-            "published, kept because it is what makes the fallback path "
-            "credible on a shape nobody tuned for.", ""]
-    out += speed_table(sweeps)
+    # `speed_table` and the official table now cover the same set -- the sweeps
+    # hold official shapes only -- so emitting both was printing it twice.
     out += cross_arch(sweeps)
     out += roofline_section(sweeps)
     out += codegen_section()
     out += proposer_comparison(gens)
-    out += genealogy(gens)
-    out += regime_profile(sweeps)
+    # Per-attempt genealogy is long and the story is told in docs/CODEGEN.md;
+    # the artifacts stay in results/ for anyone who wants the raw record.
+    # Baseline profiling detail: interesting, not required by the deliverable.
     out += ["## Reproducing", "",
             "```bash", "python -m kernelforge.cli sweep", "python scripts/report.py",
             "```", "",

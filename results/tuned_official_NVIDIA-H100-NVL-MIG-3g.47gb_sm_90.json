@@ -1,0 +1,156 @@
+{
+  "gpu": "NVIDIA H100 NVL MIG 3g.47gb",
+  "arch": "sm_90",
+  "sm_count": 60,
+  "total_gib": 46.4,
+  "smem_per_block_kb": 227.0,
+  "node": "xgpi12",
+  "slurm_job": "785171",
+  "method": "The organizer's torch_transformer_benchmark.py, unmodified, with UserOptimizedTransformer swapped for ours. Plans are read from the frozen tables -- this card's device table where it has one, the architecture table otherwise. Nothing is tuned here; see `plan_source` per shape for which tier answered.",
+  "shapes_run": 13,
+  "shapes_total": 14,
+  "shapes_passed": 13,
+  "shapes_from_this_cards_own_table": 13,
+  "per_device_table_present": true,
+  "table_note": "`plan_source` is the dispatch tier that answered: `exact` means this card's own device table had an entry for the shape, `nearest`/`default` mean it fell through to the architecture table.",
+  "records": [
+    {
+      "passed": true,
+      "max_abs": 0.00142229,
+      "baseline_ms": 1.5887,
+      "ours_ms": 0.3626,
+      "speedup": 4.381,
+      "plan": "fp16_fused_graph_small_block",
+      "plan_source": "exact",
+      "case": "B64-S128-d128-H4-F128-L4-causal"
+    },
+    {
+      "passed": true,
+      "max_abs": 0.00108945,
+      "baseline_ms": 1.434,
+      "ours_ms": 0.108,
+      "speedup": 13.279,
+      "plan": "fp16[attn,out_proj,ffn2,ffn1]+graph",
+      "plan_source": "exact",
+      "case": "B1-S128-d128-H4-F128-L4-causal"
+    },
+    {
+      "passed": true,
+      "max_abs": 0.00114554,
+      "baseline_ms": 1.4779,
+      "ours_ms": 0.1185,
+      "speedup": 12.472,
+      "plan": "cuda_graph_fp16_compute",
+      "plan_source": "exact",
+      "case": "B4-S128-d128-H4-F128-L4-causal"
+    },
+    {
+      "passed": true,
+      "max_abs": 0.00133263,
+      "baseline_ms": 1.4765,
+      "ours_ms": 0.1583,
+      "speedup": 9.329,
+      "plan": "cuda_graph_fp16_opt",
+      "plan_source": "exact",
+      "case": "B16-S128-d128-H4-F128-L4-causal"
+    },
+    {
+      "passed": true,
+      "max_abs": 0.00173265,
+      "baseline_ms": 3.0745,
+      "ours_ms": 0.7186,
+      "speedup": 4.279,
+      "plan": "fp16[ffn2,ffn1,attn,out_proj]+graph",
+      "plan_source": "exact",
+      "case": "B128-S128-d128-H4-F128-L4-causal"
+    },
+    {
+      "passed": true,
+      "max_abs": 0.00184643,
+      "baseline_ms": 214.9465,
+      "ours_ms": 48.3271,
+      "speedup": 4.448,
+      "plan": "fp16[attn,ffn2,out_proj,ffn1]+graph",
+      "plan_source": "exact",
+      "case": "B10000-S128-d128-H4-F128-L4-causal"
+    },
+    {
+      "passed": true,
+      "max_abs": 0.00188218,
+      "baseline_ms": 1.4722,
+      "ours_ms": 0.3793,
+      "speedup": 3.882,
+      "plan": "fp16[attn,ffn2,out_proj,ffn1]+graph",
+      "plan_source": "exact",
+      "case": "B64-S128-d32-H4-F32-L4-causal"
+    },
+    {
+      "passed": true,
+      "max_abs": 0.00149465,
+      "baseline_ms": 6.726,
+      "ours_ms": 2.9976,
+      "speedup": 2.244,
+      "plan": "fp16[ffn2,attn,ffn1,out_proj]",
+      "plan_source": "exact",
+      "case": "B64-S128-d1024-H4-F1024-L4-causal"
+    },
+    {
+      "passed": true,
+      "max_abs": 0.00144792,
+      "baseline_ms": 1.3574,
+      "ours_ms": 0.3615,
+      "speedup": 3.755,
+      "plan": "fp16[attn,ffn1,ffn2,out_proj]+graph",
+      "plan_source": "exact",
+      "case": "B64-S128-d128-H1-F128-L4-causal"
+    },
+    {
+      "passed": true,
+      "max_abs": 0.00137001,
+      "baseline_ms": 1.5,
+      "ours_ms": 0.3586,
+      "speedup": 4.184,
+      "plan": "fp16_flash_graph_opt",
+      "plan_source": "exact",
+      "case": "B64-S128-d128-H2-F128-L4-causal"
+    },
+    {
+      "passed": true,
+      "max_abs": 0.00128047,
+      "baseline_ms": 3.7139,
+      "ours_ms": 0.8101,
+      "speedup": 4.585,
+      "plan": "fp16[attn,ffn1,out_proj,ffn2]+graph",
+      "plan_source": "exact",
+      "case": "B64-S128-d128-H16-F128-L4-causal"
+    },
+    {
+      "passed": true,
+      "max_abs": 0.00133584,
+      "baseline_ms": 1.5795,
+      "ours_ms": 0.1487,
+      "speedup": 10.62,
+      "plan": "fp16[out_proj,ffn2,ffn1,attn]+graph",
+      "plan_source": "exact",
+      "case": "B64-S32-d128-H4-F128-L4-causal"
+    },
+    {
+      "passed": true,
+      "max_abs": 0.00144076,
+      "baseline_ms": 46.5872,
+      "ours_ms": 3.1263,
+      "speedup": 14.902,
+      "plan": "fp16[attn,ffn1,ffn2,out_proj]",
+      "plan_source": "exact",
+      "case": "B64-S1024-d128-H4-F128-L4-causal"
+    },
+    {
+      "ran": false,
+      "error": "torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 12.21 GiB. GPU 0 has a total capacity of 46.38 GiB of which 9.22 GiB is free. Process 248510 has 8",
+      "case": "B32-S100000-d1024-H16-F1024-L2-causal"
+    }
+  ],
+  "median_speedup": 4.448,
+  "min_speedup": 2.244,
+  "max_speedup": 14.902
+}

@@ -178,10 +178,11 @@ def main() -> int:
     args = ap.parse_args()
 
     secrets.load()
-    base_url = (os.environ.get("SOCLAAS_BASE_URL") or "").rstrip("/")
-    api_key = os.environ.get("SOCLAAS_API_KEY")
+    from kernelforge.agent.proposers import _env
+    base_url = (_env("BASE_URL") or "").rstrip("/")
+    api_key = _env("API_KEY")
     if not base_url or not api_key:
-        print("set SOCLAAS_BASE_URL and SOCLAAS_API_KEY in .env")
+        print("set LLM_BASE_URL and LLM_API_KEY in .env")
         return 1
 
     if args.models:

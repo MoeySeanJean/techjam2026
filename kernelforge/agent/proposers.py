@@ -36,6 +36,19 @@ from ..search import SAFE, STAGES
 MODEL = os.environ.get("KERNELFORGE_MODEL", "claude-opus-5")
 
 
+def _env(suffix: str):
+    """First value set among the accepted aliases for `LLM_<suffix>`.
+
+    `LLM_*` is the documented name. `OPENAI_*` is accepted because most tools
+    already export it, and `SOCLAAS_*` because it is what our own runs used.
+    """
+    for prefix in ("LLM", "OPENAI", "SOCLAAS"):
+        val = os.environ.get(f"{prefix}_{suffix}")
+        if val:
+            return val
+    return None
+
+
 @dataclasses.dataclass
 class Attempt:
     """One entry in the kernel genealogy."""
@@ -179,7 +192,7 @@ Rules you must respect:
 class OpenAICompatProposer(Proposer):
     """LLM proposer over any OpenAI-compatible chat-completions gateway.
 
-    Used here with NUS SoC LLM-as-a-Service (`SOCLAAS_*` credentials), but the
+    Used here with NUS SoC LLM-as-a-Service, but the
     same class works against any endpoint exposing `POST /chat/completions`.
     Implemented on `urllib` rather than the `openai` SDK so the repository stays
     dependency-free and a reviewer can reproduce the loop without installing a
@@ -198,16 +211,18 @@ class OpenAICompatProposer(Proposer):
                  timeout: float = 120.0):
         from .. import secrets as _secrets
         _secrets.load()
-        self.base_url = (base_url or os.environ.get("SOCLAAS_BASE_URL")
-                         or os.environ.get("OPENAI_BASE_URL") or "").rstrip("/")
-        self.api_key = (api_key or os.environ.get("SOCLAAS_API_KEY")
-                        or os.environ.get("OPENAI_API_KEY"))
-        self.model = (model or os.environ.get("SOCLAAS_MODEL")
-                      or os.environ.get("OPENAI_MODEL") or "default")
+        # Provider-neutral names first. `SOCLAAS_*` is what our own gateway
+        # used and stays supported, but nothing here is specific to it -- any
+        # OpenAI-compatible /v1/chat/completions endpoint works, and naming the
+        # primary variable after one vendor made a general feature look tied to
+        # it.
+        self.base_url = (base_url or _env("BASE_URL") or "").rstrip("/")
+        self.api_key = api_key or _env("API_KEY")
+        self.model = model or _env("MODEL") or "default"
         self.timeout = timeout
         if not self.base_url or not self.api_key:
             raise RuntimeError(
-                "set SOCLAAS_BASE_URL and SOCLAAS_API_KEY (see .env.example)")
+                "set LLM_BASE_URL and LLM_API_KEY (see .env.example)")
         self.transcript = []
         self.failures = 0
         # What the gateway actually served. Our gateway aliases several model
@@ -258,7 +273,7 @@ class OpenAICompatProposer(Proposer):
             except urllib.error.URLError as e:
                 # Connection refused, DNS failure, bad TLS: a misconfigured
                 # endpoint, not a busy one. Retrying cannot fix it, and eight
-                # backoffs would make a judge with a typo in SOCLAAS_BASE_URL
+                # backoffs would make a judge with a typo in LLM_BASE_URL
                 # wait six minutes for an error we already know is permanent.
                 # Timeouts are the exception -- a slow model is worth waiting for.
                 if isinstance(e.reason, socket.timeout) and not last:
@@ -424,7 +439,7 @@ def build(provider: str) -> Proposer:
 
     if provider in ("llm", "soclaas", "openai", "auto"):
         try:
-            if os.environ.get("SOCLAAS_API_KEY") or os.environ.get("OPENAI_API_KEY"):
+            if _env("API_KEY"):
                 return OpenAICompatProposer()
         except Exception as e:
             if provider != "auto":

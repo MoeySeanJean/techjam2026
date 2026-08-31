@@ -1,14 +1,15 @@
 {
-  "gpu": "NVIDIA H100 NVL [sm_90] 132 SMs | 93.1 GB | smem/block 227 KB | ~3515 GB/s | tensor-cores, bf16, tma, fp8",
+  "gpu": "NVIDIA H100 NVL [sm_90] 132 SMs | 93.1 GB | smem/block 227 KB | ~3507 GB/s | tensor-cores, bf16, tma, fp8",
   "arch": "sm_90",
   "device": "h100-nvl-93gb_sm_90",
   "proposer": "llm",
   "proposer_model": "qwen3.8:27b",
-  "proposer_failures": 0,
-  "elapsed_s": 67.00807571411133,
+  "proposer_failures": 2,
+  "elapsed_s": 535.3111436367035,
   "taxonomy": {
-    "ok": 8,
-    "numeric_fail": 4
+    "ok": 52,
+    "numeric_fail": 21,
+    "runtime_error": 1
   },
   "records": [
     {
@@ -17,73 +18,110 @@
       "regime": "gemm",
       "profile": {
         "regime": "launch-bound",
-        "cuda_ms": 1.7195219000000053,
-        "cpu_ms": 2.5678180499999987,
+        "cuda_ms": 1.7144879499999868,
+        "cpu_ms": 2.5365727999999983,
         "launches": 107,
-        "launch_us": 3.893992523364452,
+        "launch_us": 3.8344906542055903,
         "buckets": {
-          "norm": 0.29042200000000473,
-          "other": 0.3242023000000032,
-          "gemm": 0.24746705000000374,
-          "copy": 0.32275649999999,
-          "elementwise": 0.4249740500000033,
-          "softmax": 0.10970000000000073
+          "norm": 0.2900157000000034,
+          "other": 0.3235891499999976,
+          "gemm": 0.24713039999999753,
+          "copy": 0.3197545999999973,
+          "elementwise": 0.4245152999999933,
+          "softmax": 0.1094827999999975
         }
       },
       "stage_cost": {
-        "attn": 0.037933021783828735,
-        "out_proj": 0.11656740307807922,
-        "ffn1": 0.07670864462852478,
-        "ffn2": 0.011518865823745728
+        "attn": 0.03755185008049011,
+        "out_proj": 0.10152813792228699,
+        "ffn1": 0.07306921482086182,
+        "ffn2": 0.14987680315971375
       },
-      "baseline_ms": 2.217855930328369,
-      "compile_ms": 0.4204480051994324,
+      "baseline_ms": 2.2088160514831543,
+      "compile_ms": 0.42603200674057007,
       "attempts": [
         {
           "iteration": 1,
-          "plan": "cuda_graph_fused_f32",
-          "utilization": 0.42521485686302185,
+          "plan": "cuda_graph_flash_f32",
+          "utilization": 0.4099051058292389,
           "passed": true,
-          "median_ms": 0.6152800023555756,
-          "speedup": 3.604628659857941,
+          "median_ms": 0.6187199950218201,
+          "speedup": 3.5699768380772263,
           "status": "ok",
           "detail": "",
           "proposer": "llm",
-          "plan_detail": "compute=float32 residual=float32 attn=flash fused-qkv fused-norm cuda-graph block=(128, 64, 8, 3)"
+          "plan_detail": "compute=auto residual=auto attn=flash fused-qkv fused-norm cuda-graph block=(128, 64, 8, 3)"
         },
         {
           "iteration": 2,
-          "plan": "cuda_graph_fused_f32_v2",
-          "utilization": 0.4753260612487793,
+          "plan": "cuda_graph_retry",
+          "utilization": 0.4790027141571045,
           "passed": true,
-          "median_ms": 0.6148959994316101,
-          "speedup": 3.6068797526386303,
+          "median_ms": 0.6179519891738892,
+          "speedup": 3.57441369261715,
           "status": "ok",
           "detail": "",
           "proposer": "llm",
-          "plan_detail": "compute=float32 residual=float32 attn=flash fused-qkv fused-norm cuda-graph block=(128, 128, 8, 3)"
+          "plan_detail": "compute=auto residual=auto attn=flash fused-qkv fused-norm cuda-graph block=(128, 64, 8, 3)"
         },
         {
           "iteration": 3,
-          "plan": "cuda_graph_fused_bf16",
-          "utilization": 4.673646450042725,
+          "plan": "cuda_graph_flash_f32_retry",
+          "utilization": 0.4458203613758087,
+          "passed": true,
+          "median_ms": 0.617247998714447,
+          "speedup": 3.5784904221374445,
+          "status": "ok",
+          "detail": "",
+          "proposer": "llm",
+          "plan_detail": "compute=auto residual=auto attn=flash fused-qkv fused-norm cuda-graph block=(128, 64, 8, 3)"
+        },
+        {
+          "iteration": 4,
+          "plan": "cuda_graph_bf16_stable",
+          "utilization": 5.780756950378418,
           "passed": false,
           "median_ms": NaN,
           "speedup": NaN,
           "status": "numeric_fail",
-          "detail": "envelope 4.674 > margin 0.8",
+          "detail": "envelope 5.781 > margin 0.8",
           "proposer": "llm",
-          "plan_detail": "compute=bfloat16 residual=float32 attn=flash fused-qkv fused-norm cuda-graph block=(128, 128, 8, 3)"
+          "plan_detail": "compute=bfloat16 residual=float32 attn=flash fused-qkv fused-norm cuda-graph block=(128, 64, 8, 3)"
+        },
+        {
+          "iteration": 5,
+          "plan": "cuda_graph_f32_stable",
+          "utilization": 0.4459209442138672,
+          "passed": true,
+          "median_ms": 0.617792010307312,
+          "speedup": 3.5753392964476984,
+          "status": "ok",
+          "detail": "",
+          "proposer": "llm",
+          "plan_detail": "compute=auto residual=auto attn=flash fused-qkv fused-norm cuda-graph block=(128, 64, 8, 3)"
+        },
+        {
+          "iteration": 6,
+          "plan": "cuda_graph_f32_optimized",
+          "utilization": 0.44724342226982117,
+          "passed": true,
+          "median_ms": 0.6191200017929077,
+          "speedup": 3.567670314457053,
+          "status": "ok",
+          "detail": "",
+          "proposer": "llm",
+          "plan_detail": "compute=auto residual=auto attn=flash fused-qkv fused-norm cuda-graph block=(128, 64, 8, 3)"
         }
       ],
       "best": {
-        "plan": "cuda_graph_fused_f32_v2",
-        "describe": "compute=float32 residual=float32 attn=flash fused-qkv fused-norm cuda-graph block=(128, 128, 8, 3)",
-        "median_ms": 0.6148959994316101,
-        "speedup": 3.6068797526386303,
-        "speedup_vs_compile": 0.6837709231936472,
-        "utilization": 0.4753260612487793
-      }
+        "plan": "cuda_graph_flash_f32_retry",
+        "describe": "compute=auto residual=auto attn=flash fused-qkv fused-norm cuda-graph block=(128, 64, 8, 3)",
+        "median_ms": 0.617247998714447,
+        "speedup": 3.5784904221374445,
+        "speedup_vs_compile": 0.6902120503069661,
+        "utilization": 0.4458203613758087
+      },
+      "promoted": false
     },
     {
       "case": "B1-S128-d128-H4-F128-L4-causal",
@@ -91,133 +129,95 @@
       "regime": "latency",
       "profile": {
         "regime": "launch-bound",
-        "cuda_ms": 0.562828400000019,
-        "cpu_ms": 2.228494500000005,
+        "cuda_ms": 0.5586879999999864,
+        "cpu_ms": 2.1349661499999977,
         "launches": 83,
-        "launch_us": 3.600069277108433,
+        "launch_us": 3.5471102409638546,
         "buckets": {
-          "norm": 0.054877000000008364,
-          "other": 0.1512104000000006,
-          "gemm": 0.1213092499999975,
-          "copy": 0.09122889999999889,
-          "elementwise": 0.11969065000001258,
-          "softmax": 0.024512200000001122
+          "norm": 0.05458200000000013,
+          "other": 0.14989644999999885,
+          "gemm": 0.12056979999999612,
+          "copy": 0.0902378999999947,
+          "elementwise": 0.11910054999999742,
+          "softmax": 0.02430129999999922
         }
       },
       "stage_cost": {
-        "attn": 0.11611354351043701,
-        "out_proj": -0.03330877423286438,
-        "ffn1": 0.03495150804519653,
-        "ffn2": 0.012636184692382812
+        "attn": 0.050976842641830444,
+        "out_proj": -0.0009872019290924072,
+        "ffn1": 0.10428297519683838,
+        "ffn2": 0.05375033617019653
       },
-      "baseline_ms": 1.9644960165023804,
-      "compile_ms": 0.1977439969778061,
+      "baseline_ms": 1.9664959907531738,
+      "compile_ms": 0.19889599829912186,
       "attempts": [
         {
           "iteration": 1,
-          "plan": "cuda_graph_bf16_fused",
-          "utilization": 3.8459932804107666,
+          "plan": "cuda_graph_bf16_flash",
+          "utilization": 3.4316813945770264,
           "passed": false,
           "median_ms": NaN,
           "speedup": NaN,
           "status": "numeric_fail",
-          "detail": "envelope 3.846 > margin 0.8",
+          "detail": "envelope 3.432 > margin 0.8",
           "proposer": "llm",
-          "plan_detail": "compute=bfloat16 residual=float32 attn=flash fused-qkv fused-norm cuda-graph block=(64, 64, 4, 4)"
+          "plan_detail": "compute=bfloat16 residual=float32 attn=flash fused-qkv fused-norm cuda-graph block=(32, 32, 4, 2)"
         },
         {
           "iteration": 2,
-          "plan": "cuda_graph_fp16_fused",
-          "utilization": 0.3930339515209198,
+          "plan": "cuda_graph_fp16_flash_large",
+          "utilization": 0.4670735001564026,
           "passed": true,
-          "median_ms": 0.1013759970664978,
-          "speedup": 19.378315117470706,
+          "median_ms": 0.10897600278258324,
+          "speedup": 18.045220420467313,
+          "status": "ok",
+          "detail": "",
+          "proposer": "llm",
+          "plan_detail": "compute=float16 residual=float32 attn=flash fused-qkv fused-norm cuda-graph block=(128, 64, 8, 3)"
+        },
+        {
+          "iteration": 3,
+          "plan": "cuda_graph_fp16_flash_small",
+          "utilization": 0.4876590967178345,
+          "passed": true,
+          "median_ms": 0.10316800326108932,
+          "speedup": 19.06110352622143,
           "status": "ok",
           "detail": "",
           "proposer": "llm",
           "plan_detail": "compute=float16 residual=float32 attn=flash fused-qkv fused-norm cuda-graph block=(64, 64, 4, 4)"
         },
         {
-          "iteration": 3,
-          "plan": "cuda_graph_fp16_fused_opt",
-          "utilization": 0.3730943202972412,
+          "iteration": 4,
+          "plan": "cuda_graph_fp16_flash_large_tile",
+          "utilization": 0.3932453393936157,
           "passed": true,
-          "median_ms": 0.10167999938130379,
-          "speedup": 19.320377935246114,
+          "median_ms": 0.10915199667215347,
+          "speedup": 18.016124768287085,
           "status": "ok",
           "detail": "",
           "proposer": "llm",
-          "plan_detail": "compute=float16 residual=float32 attn=flash fused-qkv fused-norm cuda-graph block=(64, 64, 4, 4)"
-        }
-      ],
-      "best": {
-        "plan": "cuda_graph_fp16_fused",
-        "describe": "compute=float16 residual=float32 attn=flash fused-qkv fused-norm cuda-graph block=(64, 64, 4, 4)",
-        "median_ms": 0.1013759970664978,
-        "speedup": 19.378315117470706,
-        "speedup_vs_compile": 1.9505997741072327,
-        "utilization": 0.3930339515209198
-      }
-    },
-    {
-      "case": "B64-S1024-d128-H4-F128-L4-causal",
-      "label": "B64-S1024-d128-H4-F128-L4-causal-float32",
-      "regime": "attention",
-      "profile": {
-        "regime": "other",
-        "cuda_ms": 62.068044600000114,
-        "cpu_ms": 23.684738100000033,
-        "launches": 115,
-        "launch_us": 4.541870434782776,
-        "buckets": {
-          "norm": 2.378819400000008,
-          "other": 20.00215790000003,
-          "gemm": 3.4014581500000176,
-          "copy": 11.119388900000018,
-          "elementwise": 19.392838850000068,
-          "softmax": 5.7733813999999954
-        }
-      },
-      "stage_cost": {
-        "attn": 0.10403802990913391,
-        "out_proj": 0.1551119089126587,
-        "ffn1": 0.14304089546203613,
-        "ffn2": 0.05650520324707031
-      },
-      "baseline_ms": 25.043071746826172,
-      "compile_ms": 10.39468765258789,
-      "attempts": [
+          "plan_detail": "compute=float16 residual=float32 attn=flash fused-qkv fused-norm cuda-graph block=(128, 128, 8, 3)"
+        },
         {
-          "iteration": 1,
-          "plan": "cuda_graph_bf16_fused",
-          "utilization": 5.451190948486328,
+          "iteration": 5,
+          "plan": "cuda_graph_bf16_flash_large_tile",
+          "utilization": 3.9683949947357178,
           "passed": false,
           "median_ms": NaN,
           "speedup": NaN,
           "status": "numeric_fail",
-          "detail": "envelope 5.451 > margin 0.8",
+          "detail": "envelope 3.968 > margin 0.8",
           "proposer": "llm",
-          "plan_detail": "compute=bfloat16 residual=float32 attn=flash fused-qkv fused-norm cuda-graph block=(128, 64, 8, 3)"
+          "plan_detail": "compute=bfloat16 residual=float32 attn=flash fused-qkv fused-norm cuda-graph block=(128, 128, 8, 3)"
         },
         {
-          "iteration": 2,
-          "plan": "float16_flash_fused",
-          "utilization": 0.6425101161003113,
+          "iteration": 6,
+          "plan": "cuda_graph_fp16_flash_optimal",
+          "utilization": 0.5542393326759338,
           "passed": true,
-          "median_ms": 2.345088005065918,
-          "speedup": 10.678947524667517,
-          "status": "ok",
-          "detail": "",
-          "proposer": "llm",
-          "plan_detail": "compute=float16 residual=float32 attn=flash fused-qkv fused-norm block=(128, 128, 8, 3)"
-        },
-        {
-          "iteration": 3,
-          "plan": "float16_flash_fused_graph",
-          "utilization": 0.7111876606941223,
-          "passed": true,
-          "median_ms": 2.232319951057434,
-          "speedup": 11.218406095848154,
+          "median_ms": 0.10870400071144104,
+          "speedup": 18.090373655826276,
           "status": "ok",
           "detail": "",
           "proposer": "llm",
@@ -225,13 +225,521 @@
         }
       ],
       "best": {
-        "plan": "float16_flash_fused_graph",
-        "describe": "compute=float16 residual=float32 attn=flash fused-qkv fused-norm cuda-graph block=(128, 128, 8, 3)",
-        "median_ms": 2.232319951057434,
-        "speedup": 11.218406095848154,
-        "speedup_vs_compile": 4.65645063453561,
-        "utilization": 0.7111876606941223
-      }
+        "plan": "cuda_graph_fp16_flash_small",
+        "describe": "compute=float16 residual=float32 attn=flash fused-qkv fused-norm cuda-graph block=(64, 64, 4, 4)",
+        "median_ms": 0.10316800326108932,
+        "speedup": 19.06110352622143,
+        "speedup_vs_compile": 1.9278845379586516,
+        "utilization": 0.4876590967178345
+      },
+      "promoted": true
+    },
+    {
+      "case": "B4-S128-d128-H4-F128-L4-causal",
+      "label": "B4-S128-d128-H4-F128-L4-causal-float32",
+      "regime": "latency",
+      "profile": {
+        "regime": "launch-bound",
+        "cuda_ms": 0.6261407999999917,
+        "cpu_ms": 2.0881392000000005,
+        "launches": 83,
+        "launch_us": 3.531659638554161,
+        "buckets": {
+          "norm": 0.05985929999999384,
+          "other": 0.16652425000000104,
+          "gemm": 0.1314152000000003,
+          "copy": 0.10189210000000068,
+          "elementwise": 0.1399320499999989,
+          "softmax": 0.02651789999999719
+        }
+      },
+      "stage_cost": {
+        "attn": 0.06368806958198547,
+        "out_proj": 0.02888774871826172,
+        "ffn1": 0.09483844041824341,
+        "ffn2": 0.062240272760391235
+      },
+      "baseline_ms": 1.9563999772071838,
+      "compile_ms": 0.2099519968032837,
+      "attempts": [
+        {
+          "iteration": 1,
+          "plan": "cuda_graph_f16_safe",
+          "utilization": 0.8367606997489929,
+          "passed": false,
+          "median_ms": NaN,
+          "speedup": NaN,
+          "status": "numeric_fail",
+          "detail": "envelope 0.837 > margin 0.8",
+          "proposer": "llm",
+          "plan_detail": "compute=float16 residual=float16 attn=flash fused-qkv fused-norm cuda-graph [ffn1=float32,attn=float32,ffn2=float32] block=(128, 64, 8, 3)"
+        },
+        {
+          "iteration": 2,
+          "plan": "cuda_graph_bf16_safe",
+          "utilization": 6.712205410003662,
+          "passed": false,
+          "median_ms": NaN,
+          "speedup": NaN,
+          "status": "numeric_fail",
+          "detail": "envelope 6.712 > margin 0.8",
+          "proposer": "llm",
+          "plan_detail": "compute=bfloat16 residual=bfloat16 attn=flash fused-qkv fused-norm cuda-graph [attn=float32,ffn1=float32,ffn2=float32] block=(128, 64, 8, 3)"
+        },
+        {
+          "iteration": 3,
+          "plan": "cuda_graph_f16_conservative",
+          "utilization": 0.37469711899757385,
+          "passed": true,
+          "median_ms": 0.2703680098056793,
+          "speedup": 7.23606309272055,
+          "status": "ok",
+          "detail": "",
+          "proposer": "llm",
+          "plan_detail": "compute=float16 residual=float32 attn=flash fused-qkv fused-norm cuda-graph [attn=float32,ffn1=float32,ffn2=float32] block=(128, 64, 8, 3)"
+        },
+        {
+          "iteration": 4,
+          "plan": "cuda_graph_f16_compute_f32_residual",
+          "utilization": 0.45268234610557556,
+          "passed": true,
+          "median_ms": 0.2709119915962219,
+          "speedup": 7.221533331470542,
+          "status": "ok",
+          "detail": "",
+          "proposer": "llm",
+          "plan_detail": "compute=float16 residual=float32 attn=flash fused-qkv fused-norm cuda-graph [attn=float32,ffn1=float32,ffn2=float32] block=(128, 64, 8, 3)"
+        },
+        {
+          "iteration": 5,
+          "plan": "cuda_graph_f16_ffn2_f16",
+          "utilization": 0.5026757717132568,
+          "passed": true,
+          "median_ms": 0.26953598856925964,
+          "speedup": 7.258399843345853,
+          "status": "ok",
+          "detail": "",
+          "proposer": "llm",
+          "plan_detail": "compute=float16 residual=float32 attn=flash fused-qkv fused-norm cuda-graph [attn=float32,ffn1=float32] block=(128, 64, 8, 3)"
+        }
+      ],
+      "best": {
+        "plan": "cuda_graph_f16_ffn2_f16",
+        "describe": "compute=float16 residual=float32 attn=flash fused-qkv fused-norm cuda-graph [attn=float32,ffn1=float32] block=(128, 64, 8, 3)",
+        "median_ms": 0.26953598856925964,
+        "speedup": 7.258399843345853,
+        "speedup_vs_compile": 0.7789386416179251,
+        "utilization": 0.5026757717132568
+      },
+      "promoted": false
+    },
+    {
+      "case": "B16-S128-d128-H4-F128-L4-causal",
+      "label": "B16-S128-d128-H4-F128-L4-causal-float32",
+      "regime": "gemm",
+      "profile": {
+        "regime": "launch-bound",
+        "cuda_ms": 0.812484099999999,
+        "cpu_ms": 2.102611049999999,
+        "launches": 83,
+        "launch_us": 4.139019277108397,
+        "buckets": {
+          "norm": 0.11164579999999726,
+          "other": 0.1799885500000002,
+          "gemm": 0.14291735000000022,
+          "copy": 0.1421985999999995,
+          "elementwise": 0.19489120000000318,
+          "softmax": 0.04084259999999854
+        }
+      },
+      "stage_cost": {
+        "attn": 0.013763070106506348,
+        "out_proj": -0.07152745127677917,
+        "ffn1": -0.05750265717506409,
+        "ffn2": -0.08894318342208862
+      },
+      "baseline_ms": 1.9279680252075195,
+      "compile_ms": 0.23889599740505219,
+      "attempts": [
+        {
+          "iteration": 1,
+          "plan": "cuda_graph_fp32",
+          "utilization": 0.5165114998817444,
+          "passed": true,
+          "median_ms": 0.30191999673843384,
+          "speedup": 6.385691726400621,
+          "status": "ok",
+          "detail": "",
+          "proposer": "llm",
+          "plan_detail": "compute=float32 residual=float32 attn=flash fused-qkv fused-norm cuda-graph block=(64, 64, 4, 4)"
+        },
+        {
+          "iteration": 2,
+          "plan": "cuda_graph_bf16",
+          "utilization": 4.485584735870361,
+          "passed": false,
+          "median_ms": NaN,
+          "speedup": NaN,
+          "status": "numeric_fail",
+          "detail": "envelope 4.486 > margin 0.8",
+          "proposer": "llm",
+          "plan_detail": "compute=bfloat16 residual=float32 attn=flash fused-qkv fused-norm cuda-graph [attn=float32] block=(128, 64, 8, 3)"
+        },
+        {
+          "iteration": 3,
+          "plan": "cuda_graph_fp32_optimized",
+          "utilization": 0.4564793109893799,
+          "passed": true,
+          "median_ms": 0.3031519949436188,
+          "speedup": 6.359740517511981,
+          "status": "ok",
+          "detail": "",
+          "proposer": "llm",
+          "plan_detail": "compute=float32 residual=float32 attn=flash fused-qkv fused-norm cuda-graph block=(64, 64, 4, 4)"
+        }
+      ],
+      "best": {
+        "plan": "cuda_graph_fp32",
+        "describe": "compute=float32 residual=float32 attn=flash fused-qkv fused-norm cuda-graph block=(64, 64, 4, 4)",
+        "median_ms": 0.30191999673843384,
+        "speedup": 6.385691726400621,
+        "speedup_vs_compile": 0.791255961797118,
+        "utilization": 0.5165114998817444
+      },
+      "promoted": false
+    },
+    {
+      "case": "B128-S128-d128-H4-F128-L4-causal",
+      "label": "B128-S128-d128-H4-F128-L4-causal-float32",
+      "regime": "gemm",
+      "profile": {
+        "regime": "bandwidth-bound",
+        "cuda_ms": 3.022845950000011,
+        "cpu_ms": 2.1295016499999986,
+        "launches": 83,
+        "launch_us": 3.5976036144578423,
+        "buckets": {
+          "norm": 0.5170348000000001,
+          "other": 0.5145301000000029,
+          "gemm": 0.37926540000000075,
+          "copy": 0.6252821000000013,
+          "elementwise": 0.7869429500000036,
+          "softmax": 0.19979060000000193
+        }
+      },
+      "stage_cost": {
+        "attn": 0.03663775324821472,
+        "out_proj": 0.054055362939834595,
+        "ffn1": 0.07042428851127625,
+        "ffn2": 0.06773275136947632
+      },
+      "baseline_ms": 1.9558079838752747,
+      "compile_ms": 0.6844480037689209,
+      "attempts": [
+        {
+          "iteration": 1,
+          "plan": "bf16_fused_flash",
+          "utilization": 10.73864459991455,
+          "passed": false,
+          "median_ms": NaN,
+          "speedup": NaN,
+          "status": "numeric_fail",
+          "detail": "envelope 10.739 > margin 0.8",
+          "proposer": "llm",
+          "plan_detail": "compute=bfloat16 residual=bfloat16 attn=flash fused-qkv fused-norm block=(128, 64, 8, 3)"
+        },
+        {
+          "iteration": 2,
+          "plan": "fp32_fused_graph",
+          "utilization": 0.4697955250740051,
+          "passed": true,
+          "median_ms": 0.9568799734115601,
+          "speedup": 2.043942854088837,
+          "status": "ok",
+          "detail": "",
+          "proposer": "llm",
+          "plan_detail": "compute=float32 residual=float32 attn=flash fused-qkv fused-norm cuda-graph block=(128, 64, 8, 3)"
+        },
+        {
+          "iteration": 3,
+          "plan": "fp32_fused_graph_v2",
+          "utilization": 0.4695702791213989,
+          "passed": true,
+          "median_ms": 0.9554240107536316,
+          "speedup": 2.0470576015067357,
+          "status": "ok",
+          "detail": "",
+          "proposer": "llm",
+          "plan_detail": "compute=float32 residual=float32 attn=flash fused-qkv fused-norm cuda-graph block=(128, 64, 8, 3)"
+        },
+        {
+          "iteration": 4,
+          "plan": "fp16_fused_graph",
+          "utilization": 0.5922717452049255,
+          "passed": true,
+          "median_ms": 0.3707520067691803,
+          "speedup": 5.275245846728229,
+          "status": "ok",
+          "detail": "",
+          "proposer": "llm",
+          "plan_detail": "compute=float16 residual=float32 attn=flash fused-qkv fused-norm cuda-graph block=(128, 64, 8, 3)"
+        },
+        {
+          "iteration": 5,
+          "plan": "fp16_ffn1_fp32_graph",
+          "utilization": 0.6067943572998047,
+          "passed": true,
+          "median_ms": 0.4036320000886917,
+          "speedup": 4.845522613285163,
+          "status": "ok",
+          "detail": "",
+          "proposer": "llm",
+          "plan_detail": "compute=float16 residual=float32 attn=flash fused-qkv fused-norm cuda-graph [ffn1=float32] block=(128, 64, 8, 3)"
+        },
+        {
+          "iteration": 6,
+          "plan": "fp16_ffn12_fp32_graph",
+          "utilization": 0.5860831141471863,
+          "passed": true,
+          "median_ms": 0.40303999185562134,
+          "speedup": 4.852639994534072,
+          "status": "ok",
+          "detail": "",
+          "proposer": "llm",
+          "plan_detail": "compute=float16 residual=float32 attn=flash fused-qkv fused-norm cuda-graph [ffn1=float32,ffn2=float32] block=(128, 64, 8, 3)"
+        }
+      ],
+      "best": {
+        "plan": "fp16_fused_graph",
+        "describe": "compute=float16 residual=float32 attn=flash fused-qkv fused-norm cuda-graph block=(128, 64, 8, 3)",
+        "median_ms": 0.3707520067691803,
+        "speedup": 5.275245846728229,
+        "speedup_vs_compile": 1.8461073474243899,
+        "utilization": 0.5922717452049255
+      },
+      "promoted": true
+    },
+    {
+      "case": "B10000-S128-d128-H4-F128-L4-causal",
+      "label": "B10000-S128-d128-H4-F128-L4-causal-float32",
+      "regime": "gemm",
+      "profile": {
+        "regime": "other",
+        "cuda_ms": 304.1189923500003,
+        "cpu_ms": 114.69954759999975,
+        "launches": 123,
+        "launch_us": 5.4001735772388795,
+        "buckets": {
+          "norm": 48.47829659999989,
+          "other": 102.70517855000011,
+          "copy": 51.72851730000001,
+          "elementwise": 65.2594910000002,
+          "softmax": 17.217061000000104,
+          "gemm": 18.730447899999984
+        }
+      },
+      "stage_cost": {
+        "attn": 0.03412550687789917,
+        "out_proj": 0.05975919961929321,
+        "ffn1": 0.028373658657073975,
+        "ffn2": 0.06199812889099121
+      },
+      "baseline_ms": 114.31494522094727,
+      "compile_ms": 48.76550483703613,
+      "attempts": [
+        {
+          "iteration": 1,
+          "plan": "cuda_graph_bf16_fused",
+          "utilization": 6.512343406677246,
+          "passed": false,
+          "median_ms": NaN,
+          "speedup": NaN,
+          "status": "numeric_fail",
+          "detail": "envelope 6.512 > margin 0.8",
+          "proposer": "llm",
+          "plan_detail": "compute=bfloat16 residual=float32 attn=flash fused-qkv fused-norm cuda-graph block=(128, 64, 8, 3)"
+        },
+        {
+          "iteration": 2,
+          "plan": "cuda_graph_fp16_fused",
+          "utilization": 0.7163732647895813,
+          "passed": true,
+          "median_ms": 25.67963218688965,
+          "speedup": 4.451580318167838,
+          "status": "ok",
+          "detail": "",
+          "proposer": "llm",
+          "plan_detail": "compute=float16 residual=float32 attn=flash fused-qkv fused-norm cuda-graph block=(128, 64, 8, 3)"
+        },
+        {
+          "iteration": 3,
+          "plan": "cuda_graph_bf16_fused_v2",
+          "utilization": 7.450412750244141,
+          "passed": false,
+          "median_ms": NaN,
+          "speedup": NaN,
+          "status": "numeric_fail",
+          "detail": "envelope 7.450 > margin 0.8",
+          "proposer": "llm",
+          "plan_detail": "compute=bfloat16 residual=float32 attn=flash fused-qkv fused-norm cuda-graph block=(128, 64, 8, 3)"
+        },
+        {
+          "iteration": 4,
+          "plan": "cuda_graph_fp16_fused_v3",
+          "utilization": 0.8156467080116272,
+          "passed": false,
+          "median_ms": NaN,
+          "speedup": NaN,
+          "status": "numeric_fail",
+          "detail": "envelope 0.816 > margin 0.8",
+          "proposer": "llm",
+          "plan_detail": "compute=float16 residual=float32 attn=flash fused-qkv fused-norm cuda-graph block=(128, 128, 8, 4)"
+        },
+        {
+          "iteration": 5,
+          "plan": "cuda_graph_fp16_fused_v4",
+          "utilization": 0.8725168704986572,
+          "passed": false,
+          "median_ms": NaN,
+          "speedup": NaN,
+          "status": "numeric_fail",
+          "detail": "envelope 0.873 > margin 0.8",
+          "proposer": "llm",
+          "plan_detail": "compute=float16 residual=float32 attn=flash fused-qkv fused-norm cuda-graph block=(128, 64, 8, 3)"
+        },
+        {
+          "iteration": 6,
+          "plan": "cuda_graph_fp16_fused_stable",
+          "utilization": 0.7105003595352173,
+          "passed": true,
+          "median_ms": 26.3165283203125,
+          "speedup": 4.3438459598302295,
+          "status": "ok",
+          "detail": "",
+          "proposer": "llm",
+          "plan_detail": "compute=float16 residual=float32 attn=flash fused-qkv fused-norm cuda-graph block=(128, 64, 8, 3)"
+        }
+      ],
+      "best": {
+        "plan": "cuda_graph_fp16_fused",
+        "describe": "compute=float16 residual=float32 attn=flash fused-qkv fused-norm cuda-graph block=(128, 64, 8, 3)",
+        "median_ms": 25.67963218688965,
+        "speedup": 4.451580318167838,
+        "speedup_vs_compile": 1.898995456092733,
+        "utilization": 0.7163732647895813
+      },
+      "promoted": true
+    },
+    {
+      "case": "B64-S128-d32-H4-F32-L4-causal",
+      "label": "B64-S128-d32-H4-F32-L4-causal-float32",
+      "regime": "gemm",
+      "profile": {
+        "regime": "launch-bound",
+        "cuda_ms": 1.4777325000000014,
+        "cpu_ms": 2.2074256500000042,
+        "launches": 83,
+        "launch_us": 4.172545783132466,
+        "buckets": {
+          "norm": 0.3273913999999975,
+          "other": 0.2352768999999979,
+          "gemm": 0.17110365000000033,
+          "copy": 0.23248630000000273,
+          "elementwise": 0.38741915000000193,
+          "softmax": 0.12405510000000095
+        }
+      },
+      "stage_cost": {
+        "attn": 0.0678044855594635,
+        "out_proj": -0.0034193694591522217,
+        "ffn1": 0.10407432913780212,
+        "ffn2": 0.018503963947296143
+      },
+      "baseline_ms": 1.9202719926834106,
+      "compile_ms": 0.3129599988460541,
+      "attempts": [
+        {
+          "iteration": 1,
+          "plan": "cuda_graph_fp32_baseline",
+          "utilization": 0.4363953769207001,
+          "passed": true,
+          "median_ms": 0.49620799720287323,
+          "speedup": 3.869893277633558,
+          "status": "ok",
+          "detail": "",
+          "proposer": "llm",
+          "plan_detail": "compute=float32 residual=float32 attn=sdpa fused-qkv fused-norm cuda-graph block=(128, 64, 8, 3)"
+        },
+        {
+          "iteration": 2,
+          "plan": "cuda_graph_fp16_ffn",
+          "utilization": NaN,
+          "passed": false,
+          "median_ms": NaN,
+          "speedup": NaN,
+          "status": "runtime_error",
+          "detail": "RuntimeError: cuDNN Frontend error: CUDNN_BACKEND_TENSOR_DESCRIPTOR cudnnFinalize failedptrDesc->finalize() cudnn_status: CUDNN_STATUS_SUBLIBRARY_VERSION_MISMATCH",
+          "proposer": "llm",
+          "plan_detail": "compute=float16 residual=float32 attn=sdpa fused-qkv fused-norm cuda-graph [ffn1=float16,ffn2=float16] block=(128, 64, 8, 3)"
+        },
+        {
+          "iteration": 3,
+          "plan": "cuda_graph_fp32_stable",
+          "utilization": 0.46645474433898926,
+          "passed": true,
+          "median_ms": 0.4882880002260208,
+          "speedup": 3.932662674066426,
+          "status": "ok",
+          "detail": "",
+          "proposer": "llm",
+          "plan_detail": "compute=float32 residual=float32 attn=sdpa fused-qkv fused-norm cuda-graph block=(128, 64, 8, 3)"
+        },
+        {
+          "iteration": 4,
+          "plan": "cuda_graph_fp16_ffn_exact_attn",
+          "utilization": 0.6769457459449768,
+          "passed": true,
+          "median_ms": 0.5807680189609528,
+          "speedup": 3.3064354957405424,
+          "status": "ok",
+          "detail": "",
+          "proposer": "llm",
+          "plan_detail": "compute=float16 residual=float32 attn=exact fused-qkv fused-norm cuda-graph [ffn1=float16,ffn2=float16] block=(128, 64, 8, 3)"
+        },
+        {
+          "iteration": 5,
+          "plan": "cuda_graph_fp16_ffn_exact_attn_v2",
+          "utilization": 0.6814214587211609,
+          "passed": true,
+          "median_ms": 0.5820319950580597,
+          "speedup": 3.299255039221438,
+          "status": "ok",
+          "detail": "",
+          "proposer": "llm",
+          "plan_detail": "compute=float16 residual=float32 attn=exact fused-qkv fused-norm cuda-graph [ffn1=float16,ffn2=float16] block=(128, 64, 8, 3)"
+        },
+        {
+          "iteration": 6,
+          "plan": "cuda_graph_fp16_ffn_exact_attn_v3",
+          "utilization": 0.5528334975242615,
+          "passed": true,
+          "median_ms": 0.580592006444931,
+          "speedup": 3.3074378761112824,
+          "status": "ok",
+          "detail": "",
+          "proposer": "llm",
+          "plan_detail": "compute=float16 residual=float32 attn=exact fused-qkv fused-norm cuda-graph [ffn1=float16,ffn2=float16] block=(128, 64, 8, 3)"
+        }
+      ],
+      "best": {
+        "plan": "cuda_graph_fp32_stable",
+        "describe": "compute=float32 residual=float32 attn=sdpa fused-qkv fused-norm cuda-graph block=(128, 64, 8, 3)",
+        "median_ms": 0.4882880002260208,
+        "speedup": 3.932662674066426,
+        "speedup_vs_compile": 0.6409332170792439,
+        "utilization": 0.46645474433898926
+      },
+      "promoted": false
     },
     {
       "case": "B64-S128-d1024-H4-F1024-L4-causal",
@@ -239,73 +747,665 @@
       "regime": "gemm",
       "profile": {
         "regime": "other",
-        "cuda_ms": 7.930561700000025,
-        "cpu_ms": 3.6000724499999923,
+        "cuda_ms": 7.839033950000027,
+        "cpu_ms": 3.5952521500000048,
         "launches": 111,
-        "launch_us": 4.464360810810837,
+        "launch_us": 3.908577927927869,
         "buckets": {
-          "norm": 0.6851147999999997,
-          "other": 2.2129842500000088,
-          "gemm": 1.8947819999999984,
-          "copy": 1.706364000000021,
-          "elementwise": 1.2929608500000018,
-          "softmax": 0.13835579999999517
+          "norm": 0.680462200000005,
+          "other": 2.186843600000014,
+          "gemm": 1.870936000000008,
+          "copy": 1.6824219999999976,
+          "elementwise": 1.2811781500000032,
+          "softmax": 0.13719199999999754
         }
       },
       "stage_cost": {
-        "attn": -0.011075317859649658,
-        "out_proj": -0.02541208267211914,
-        "ffn1": 0.03580373525619507,
-        "ffn2": 0.0416598916053772
+        "attn": 0.06878933310508728,
+        "out_proj": 0.09720584750175476,
+        "ffn1": 0.06775370240211487,
+        "ffn2": 0.051786452531814575
       },
-      "baseline_ms": 4.226175785064697,
-      "compile_ms": 3.0947999954223633,
+      "baseline_ms": 4.18009614944458,
+      "compile_ms": 4.241663932800293,
       "attempts": [
         {
           "iteration": 1,
-          "plan": "bf16_fused_cuda_graph",
-          "utilization": 4.606280326843262,
+          "plan": "graph_fused_bf16_safe_outproj",
+          "utilization": 4.8523030281066895,
           "passed": false,
           "median_ms": NaN,
           "speedup": NaN,
           "status": "numeric_fail",
-          "detail": "envelope 4.606 > margin 0.8",
+          "detail": "envelope 4.852 > margin 0.8",
           "proposer": "llm",
-          "plan_detail": "compute=bfloat16 residual=float32 attn=flash fused-qkv fused-norm cuda-graph [ffn1=float32,ffn2=float32] block=(128, 32, 4, 4)"
+          "plan_detail": "compute=bfloat16 residual=float32 attn=flash fused-qkv fused-norm cuda-graph [out_proj=float32] block=(128, 32, 4, 4)"
         },
         {
           "iteration": 2,
-          "plan": "fp16_fused_ffn32",
-          "utilization": 0.5482457876205444,
+          "plan": "float16_fused_graph_safe_outproj",
+          "utilization": 0.5791671276092529,
           "passed": true,
-          "median_ms": 2.222223997116089,
-          "speedup": 1.9017775843250972,
+          "median_ms": 2.16537606716156,
+          "speedup": 1.9304250253970783,
           "status": "ok",
           "detail": "",
           "proposer": "llm",
-          "plan_detail": "compute=float16 residual=float32 attn=flash fused-qkv fused-norm [ffn1=float32,ffn2=float32] block=(128, 32, 4, 4)"
+          "plan_detail": "compute=float16 residual=float32 attn=flash fused-qkv fused-norm cuda-graph [out_proj=float32] block=(128, 32, 4, 4)"
         },
         {
           "iteration": 3,
-          "plan": "fp16_fused_cuda_graph",
-          "utilization": 0.5133263468742371,
+          "plan": "bf16_fused_no_graph_safe_outproj",
+          "utilization": 5.4261980056762695,
+          "passed": false,
+          "median_ms": NaN,
+          "speedup": NaN,
+          "status": "numeric_fail",
+          "detail": "envelope 5.426 > margin 0.8",
+          "proposer": "llm",
+          "plan_detail": "compute=bfloat16 residual=float32 attn=flash fused-qkv fused-norm [out_proj=float32] block=(128, 32, 4, 4)"
+        },
+        {
+          "iteration": 4,
+          "plan": "float16_fused_graph_optimized_block",
+          "utilization": 0.6060041189193726,
           "passed": true,
-          "median_ms": 2.232864022254944,
-          "speedup": 1.8927152495371082,
+          "median_ms": 1.863856017589569,
+          "speedup": 2.242714088425396,
           "status": "ok",
           "detail": "",
           "proposer": "llm",
-          "plan_detail": "compute=float16 residual=float32 attn=flash fused-qkv fused-norm cuda-graph [ffn1=float32,ffn2=float32] block=(128, 32, 4, 4)"
+          "plan_detail": "compute=float16 residual=float32 attn=flash fused-qkv fused-norm cuda-graph [out_proj=float32] block=(64, 32, 4, 3)"
+        },
+        {
+          "iteration": 5,
+          "plan": "float16_fused_graph_aggressive_precision",
+          "utilization": 0.5921385884284973,
+          "passed": true,
+          "median_ms": 1.956272006034851,
+          "speedup": 2.1367663272538344,
+          "status": "ok",
+          "detail": "",
+          "proposer": "llm",
+          "plan_detail": "compute=float16 residual=float32 attn=flash fused-qkv fused-norm cuda-graph [ffn1=float16,ffn2=float16,attn=float16,out_proj=float32] block=(64, 32, 4, 3)"
+        },
+        {
+          "iteration": 6,
+          "plan": "float16_fused_graph_large_block",
+          "utilization": 0.5954280495643616,
+          "passed": true,
+          "median_ms": 2.2301759719848633,
+          "speedup": 1.8743346722206329,
+          "status": "ok",
+          "detail": "",
+          "proposer": "llm",
+          "plan_detail": "compute=float16 residual=float32 attn=flash fused-qkv fused-norm cuda-graph [ffn1=float16,ffn2=float16,attn=float16,out_proj=float32] block=(128, 32, 4, 4)"
         }
       ],
       "best": {
-        "plan": "fp16_fused_ffn32",
-        "describe": "compute=float16 residual=float32 attn=flash fused-qkv fused-norm [ffn1=float32,ffn2=float32] block=(128, 32, 4, 4)",
-        "median_ms": 2.222223997116089,
-        "speedup": 1.9017775843250972,
-        "speedup_vs_compile": 1.392658885620292,
-        "utilization": 0.5482457876205444
-      }
+        "plan": "float16_fused_graph_optimized_block",
+        "describe": "compute=float16 residual=float32 attn=flash fused-qkv fused-norm cuda-graph [out_proj=float32] block=(64, 32, 4, 3)",
+        "median_ms": 1.863856017589569,
+        "speedup": 2.242714088425396,
+        "speedup_vs_compile": 2.275746566671938,
+        "utilization": 0.6060041189193726
+      },
+      "promoted": true
+    },
+    {
+      "case": "B64-S128-d128-H1-F128-L4-causal",
+      "label": "B64-S128-d128-H1-F128-L4-causal-float32",
+      "regime": "gemm",
+      "profile": {
+        "regime": "launch-bound",
+        "cuda_ms": 1.2231733999999939,
+        "cpu_ms": 2.3262596499999955,
+        "launches": 91,
+        "launch_us": 4.437889010988941,
+        "buckets": {
+          "norm": 0.3035107000000017,
+          "other": 0.2867394499999985,
+          "gemm": 0.23171519999999962,
+          "elementwise": 0.26947554999999157,
+          "copy": 0.08859010000000107,
+          "softmax": 0.043142400000001774
+        }
+      },
+      "stage_cost": {
+        "attn": 0.1616012156009674,
+        "out_proj": 0.041243553161621094,
+        "ffn1": 0.09483471512794495,
+        "ffn2": 0.017531216144561768
+      },
+      "baseline_ms": 2.021247982978821,
+      "compile_ms": 2.1097599267959595,
+      "attempts": [
+        {
+          "iteration": 1,
+          "plan": "cuda_graph_f32_exact",
+          "utilization": 0.3697015047073364,
+          "passed": true,
+          "median_ms": 0.47756800055503845,
+          "speedup": 4.232377338158521,
+          "status": "ok",
+          "detail": "",
+          "proposer": "llm",
+          "plan_detail": "compute=float32 residual=float32 attn=exact fused-norm cuda-graph block=(128, 64, 8, 3)"
+        },
+        {
+          "iteration": 2,
+          "plan": "cuda_graph_bf16_flash",
+          "utilization": 9.62610149383545,
+          "passed": false,
+          "median_ms": NaN,
+          "speedup": NaN,
+          "status": "numeric_fail",
+          "detail": "envelope 9.626 > margin 0.8",
+          "proposer": "llm",
+          "plan_detail": "compute=bfloat16 residual=bfloat16 attn=flash fused-qkv fused-norm cuda-graph block=(128, 64, 8, 3)"
+        },
+        {
+          "iteration": 3,
+          "plan": "cuda_graph_f32_fused",
+          "utilization": 0.30381232500076294,
+          "passed": true,
+          "median_ms": 0.43727999925613403,
+          "speedup": 4.62231976403496,
+          "status": "ok",
+          "detail": "",
+          "proposer": "llm",
+          "plan_detail": "compute=float32 residual=float32 attn=exact fused-qkv fused-norm cuda-graph block=(128, 64, 8, 3)"
+        },
+        {
+          "iteration": 4,
+          "plan": "cuda_graph_f32_fused_qkv",
+          "utilization": 0.34099140763282776,
+          "passed": true,
+          "median_ms": 0.4371519982814789,
+          "speedup": 4.623673209603755,
+          "status": "ok",
+          "detail": "",
+          "proposer": "llm",
+          "plan_detail": "compute=float32 residual=float32 attn=exact fused-qkv fused-norm cuda-graph block=(128, 64, 8, 3)"
+        },
+        {
+          "iteration": 5,
+          "plan": "cuda_graph_fp16_fused",
+          "utilization": 0.7127001285552979,
+          "passed": true,
+          "median_ms": 0.37964800000190735,
+          "speedup": 5.324005349609813,
+          "status": "ok",
+          "detail": "",
+          "proposer": "llm",
+          "plan_detail": "compute=float16 residual=float32 attn=exact fused-qkv fused-norm cuda-graph block=(128, 64, 8, 3)"
+        },
+        {
+          "iteration": 6,
+          "plan": "cuda_graph_bf16_flash_f32res",
+          "utilization": 5.250055313110352,
+          "passed": false,
+          "median_ms": NaN,
+          "speedup": NaN,
+          "status": "numeric_fail",
+          "detail": "envelope 5.250 > margin 0.8",
+          "proposer": "llm",
+          "plan_detail": "compute=bfloat16 residual=float32 attn=flash fused-qkv fused-norm cuda-graph block=(128, 64, 8, 3)"
+        }
+      ],
+      "best": {
+        "plan": "cuda_graph_fp16_fused",
+        "describe": "compute=float16 residual=float32 attn=exact fused-qkv fused-norm cuda-graph block=(128, 64, 8, 3)",
+        "median_ms": 0.37964800000190735,
+        "speedup": 5.324005349609813,
+        "speedup_vs_compile": 5.557147480785781,
+        "utilization": 0.7127001285552979
+      },
+      "promoted": false
+    },
+    {
+      "case": "B64-S128-d128-H2-F128-L4-causal",
+      "label": "B64-S128-d128-H2-F128-L4-causal-float32",
+      "regime": "gemm",
+      "profile": {
+        "regime": "launch-bound",
+        "cuda_ms": 1.463959799999981,
+        "cpu_ms": 2.443287599999997,
+        "launches": 107,
+        "launch_us": 3.936860280373777,
+        "buckets": {
+          "norm": 0.2914937999999963,
+          "other": 0.2905957499999957,
+          "gemm": 0.22769289999999767,
+          "copy": 0.2702573999999943,
+          "elementwise": 0.3209592499999975,
+          "softmax": 0.0629606999999991
+        }
+      },
+      "stage_cost": {
+        "attn": -0.021496713161468506,
+        "out_proj": 0.011475831270217896,
+        "ffn1": -0.005049556493759155,
+        "ffn2": 0.026986658573150635
+      },
+      "baseline_ms": 2.220319986343384,
+      "compile_ms": 2.316272020339966,
+      "attempts": [
+        {
+          "iteration": 1,
+          "plan": "cuda_graph_f16_fused",
+          "utilization": 0.5815845131874084,
+          "passed": true,
+          "median_ms": 0.23022399842739105,
+          "speedup": 9.644172638429946,
+          "status": "ok",
+          "detail": "",
+          "proposer": "llm",
+          "plan_detail": "compute=float16 residual=float32 attn=flash fused-qkv fused-norm cuda-graph block=(128, 64, 8, 3)"
+        },
+        {
+          "iteration": 2,
+          "plan": "cuda_graph_bf16_fused",
+          "utilization": 5.989901542663574,
+          "passed": false,
+          "median_ms": NaN,
+          "speedup": NaN,
+          "status": "numeric_fail",
+          "detail": "envelope 5.990 > margin 0.8",
+          "proposer": "llm",
+          "plan_detail": "compute=bfloat16 residual=float32 attn=flash fused-qkv fused-norm cuda-graph block=(128, 64, 8, 3)"
+        },
+        {
+          "iteration": 3,
+          "plan": "cuda_graph_f16_fused_smaller_block",
+          "utilization": 0.678844690322876,
+          "passed": true,
+          "median_ms": 0.22673600167036057,
+          "speedup": 9.792533916035925,
+          "status": "ok",
+          "detail": "",
+          "proposer": "llm",
+          "plan_detail": "compute=float16 residual=float32 attn=flash fused-qkv fused-norm cuda-graph block=(64, 64, 4, 4)"
+        },
+        {
+          "iteration": 4,
+          "plan": "cuda_graph_f16_fused_large_block",
+          "utilization": 0.5773268342018127,
+          "passed": true,
+          "median_ms": 0.23105599731206894,
+          "speedup": 9.609445381954636,
+          "status": "ok",
+          "detail": "",
+          "proposer": "llm",
+          "plan_detail": "compute=float16 residual=float32 attn=flash fused-qkv fused-norm cuda-graph block=(128, 128, 8, 3)"
+        },
+        {
+          "iteration": 5,
+          "plan": "cuda_graph_f16_fused_large_block_v2",
+          "utilization": 0.6755850911140442,
+          "passed": true,
+          "median_ms": 0.2319839969277382,
+          "speedup": 9.571004964773506,
+          "status": "ok",
+          "detail": "",
+          "proposer": "llm",
+          "plan_detail": "compute=float16 residual=float32 attn=flash fused-qkv fused-norm cuda-graph block=(128, 128, 8, 3)"
+        },
+        {
+          "iteration": 6,
+          "plan": "cuda_graph_f16_fused_optimal",
+          "utilization": 0.5895588397979736,
+          "passed": true,
+          "median_ms": 0.23121599853038788,
+          "speedup": 9.602795656251162,
+          "status": "ok",
+          "detail": "",
+          "proposer": "llm",
+          "plan_detail": "compute=float16 residual=float32 attn=flash fused-qkv fused-norm cuda-graph block=(128, 128, 8, 3)"
+        }
+      ],
+      "best": {
+        "plan": "cuda_graph_f16_fused_smaller_block",
+        "describe": "compute=float16 residual=float32 attn=flash fused-qkv fused-norm cuda-graph block=(64, 64, 4, 4)",
+        "median_ms": 0.22673600167036057,
+        "speedup": 9.792533916035925,
+        "speedup_vs_compile": 10.215722264113445,
+        "utilization": 0.678844690322876
+      },
+      "promoted": true
+    },
+    {
+      "case": "B64-S128-d128-H16-F128-L4-causal",
+      "label": "B64-S128-d128-H16-F128-L4-causal-float32",
+      "regime": "gemm",
+      "profile": {
+        "regime": "bandwidth-bound",
+        "cuda_ms": 3.8949124,
+        "cpu_ms": 2.438436899999991,
+        "launches": 107,
+        "launch_us": 3.907622897196227,
+        "buckets": {
+          "norm": 0.28747809999999874,
+          "other": 0.6409947499999988,
+          "gemm": 0.43345490000000114,
+          "copy": 0.8392289000000033,
+          "elementwise": 1.301589349999996,
+          "softmax": 0.392166400000002
+        }
+      },
+      "stage_cost": {
+        "attn": 0.09163188934326172,
+        "out_proj": 0.03306382894515991,
+        "ffn1": 0.07731980085372925,
+        "ffn2": 0.0894768238067627
+      },
+      "baseline_ms": 2.227936029434204,
+      "compile_ms": 2.3124159574508667,
+      "attempts": [
+        {
+          "iteration": 1,
+          "plan": "bf16_fused_flash",
+          "utilization": 5.4371113777160645,
+          "passed": false,
+          "median_ms": NaN,
+          "speedup": NaN,
+          "status": "numeric_fail",
+          "detail": "envelope 5.437 > margin 0.8",
+          "proposer": "llm",
+          "plan_detail": "compute=bfloat16 residual=float32 attn=flash fused-qkv fused-norm block=(128, 64, 8, 3)"
+        },
+        {
+          "iteration": 2,
+          "plan": "fp32_fused_safe",
+          "utilization": 0.3971419930458069,
+          "passed": true,
+          "median_ms": 1.5899360179901123,
+          "speedup": 1.401274016202619,
+          "status": "ok",
+          "detail": "",
+          "proposer": "llm",
+          "plan_detail": "compute=float32 residual=float32 attn=flash fused-qkv fused-norm block=(128, 64, 8, 3)"
+        },
+        {
+          "iteration": 3,
+          "plan": "fp32_graph_flash",
+          "utilization": 0.431314080953598,
+          "passed": true,
+          "median_ms": 1.0486400127410889,
+          "speedup": 2.124595669023251,
+          "status": "ok",
+          "detail": "",
+          "proposer": "llm",
+          "plan_detail": "compute=float32 residual=float32 attn=flash fused-qkv fused-norm cuda-graph block=(128, 128, 8, 4)"
+        },
+        {
+          "iteration": 4,
+          "plan": "fp32_graph_flash_large",
+          "utilization": 0.4941299259662628,
+          "passed": true,
+          "median_ms": 1.050320029258728,
+          "speedup": 2.121197318313151,
+          "status": "ok",
+          "detail": "",
+          "proposer": "llm",
+          "plan_detail": "compute=float32 residual=float32 attn=flash fused-qkv fused-norm cuda-graph block=(128, 128, 8, 4)"
+        },
+        {
+          "iteration": 5,
+          "plan": "fp32_graph_flash_optimized",
+          "utilization": 0.4879720211029053,
+          "passed": true,
+          "median_ms": 1.0504800081253052,
+          "speedup": 2.1208742786168737,
+          "status": "ok",
+          "detail": "",
+          "proposer": "llm",
+          "plan_detail": "compute=float32 residual=float32 attn=flash fused-qkv fused-norm cuda-graph block=(128, 128, 8, 4)"
+        },
+        {
+          "iteration": 6,
+          "plan": "fp16_graph_flash",
+          "utilization": 0.722253680229187,
+          "passed": true,
+          "median_ms": 0.4761599898338318,
+          "speedup": 4.678965215476628,
+          "status": "ok",
+          "detail": "",
+          "proposer": "llm",
+          "plan_detail": "compute=float16 residual=float32 attn=flash fused-qkv fused-norm cuda-graph block=(128, 128, 8, 4)"
+        }
+      ],
+      "best": {
+        "plan": "fp16_graph_flash",
+        "describe": "compute=float16 residual=float32 attn=flash fused-qkv fused-norm cuda-graph block=(128, 128, 8, 4)",
+        "median_ms": 0.4761599898338318,
+        "speedup": 4.678965215476628,
+        "speedup_vs_compile": 4.8563844229286115,
+        "utilization": 0.722253680229187
+      },
+      "promoted": true
+    },
+    {
+      "case": "B64-S32-d128-H4-F128-L4-causal",
+      "label": "B64-S32-d128-H4-F128-L4-causal-float32",
+      "regime": "gemm",
+      "profile": {
+        "regime": "launch-bound",
+        "cuda_ms": 0.720623799999992,
+        "cpu_ms": 2.1206366999999937,
+        "launches": 83,
+        "launch_us": 3.6358644578312993,
+        "buckets": {
+          "norm": 0.11176720000000209,
+          "other": 0.17133484999999324,
+          "gemm": 0.13830199999999565,
+          "copy": 0.1234380000000047,
+          "elementwise": 0.15440224999999752,
+          "softmax": 0.021379499999998993
+        }
+      },
+      "stage_cost": {
+        "attn": 0.05499464273452759,
+        "out_proj": 0.04435330629348755,
+        "ffn1": 0.07964390516281128,
+        "ffn2": 0.07646346092224121
+      },
+      "baseline_ms": 1.9204800128936768,
+      "compile_ms": 2.0646079778671265,
+      "attempts": [
+        {
+          "iteration": 1,
+          "plan": "cuda_graph_fp32_fused",
+          "utilization": 0.39628517627716064,
+          "passed": true,
+          "median_ms": 0.2864159941673279,
+          "speedup": 6.705212180894157,
+          "status": "ok",
+          "detail": "",
+          "proposer": "llm",
+          "plan_detail": "compute=float32 residual=float32 attn=flash fused-qkv fused-norm cuda-graph block=(32, 32, 4, 2)"
+        },
+        {
+          "iteration": 2,
+          "plan": "cuda_graph_bf16_fused",
+          "utilization": 5.41723108291626,
+          "passed": false,
+          "median_ms": NaN,
+          "speedup": NaN,
+          "status": "numeric_fail",
+          "detail": "envelope 5.417 > margin 0.8",
+          "proposer": "llm",
+          "plan_detail": "compute=bfloat16 residual=float32 attn=flash fused-qkv fused-norm cuda-graph block=(32, 32, 4, 2)"
+        },
+        {
+          "iteration": 3,
+          "plan": "cuda_graph_fp32_fused_optimized",
+          "utilization": 0.41496750712394714,
+          "passed": true,
+          "median_ms": 0.2845439910888672,
+          "speedup": 6.749325492851062,
+          "status": "ok",
+          "detail": "",
+          "proposer": "llm",
+          "plan_detail": "compute=float32 residual=float32 attn=flash fused-qkv fused-norm cuda-graph block=(32, 32, 4, 2)"
+        },
+        {
+          "iteration": 4,
+          "plan": "cuda_graph_fp16_fused",
+          "utilization": 0.5385801196098328,
+          "passed": true,
+          "median_ms": 0.12854400277137756,
+          "speedup": 14.940253699033738,
+          "status": "ok",
+          "detail": "",
+          "proposer": "llm",
+          "plan_detail": "compute=float16 residual=float32 attn=flash fused-qkv fused-norm cuda-graph block=(32, 32, 4, 2)"
+        },
+        {
+          "iteration": 5,
+          "plan": "cuda_graph_bf16_fused_v2",
+          "utilization": 5.512740135192871,
+          "passed": false,
+          "median_ms": NaN,
+          "speedup": NaN,
+          "status": "numeric_fail",
+          "detail": "envelope 5.513 > margin 0.8",
+          "proposer": "llm",
+          "plan_detail": "compute=bfloat16 residual=float32 attn=flash fused-qkv fused-norm cuda-graph block=(32, 32, 4, 2)"
+        },
+        {
+          "iteration": 6,
+          "plan": "cuda_graph_fp32_hybrid_ffn_fp16",
+          "utilization": 0.5259290337562561,
+          "passed": true,
+          "median_ms": 0.2677920013666153,
+          "speedup": 7.171536129133603,
+          "status": "ok",
+          "detail": "",
+          "proposer": "llm",
+          "plan_detail": "compute=float32 residual=float32 attn=flash fused-qkv fused-norm cuda-graph [ffn1=float16,ffn2=float16] block=(32, 32, 4, 2)"
+        }
+      ],
+      "best": {
+        "plan": "cuda_graph_fp16_fused",
+        "describe": "compute=float16 residual=float32 attn=flash fused-qkv fused-norm cuda-graph block=(32, 32, 4, 2)",
+        "median_ms": 0.12854400277137756,
+        "speedup": 14.940253699033738,
+        "speedup_vs_compile": 16.061488154676052,
+        "utilization": 0.5385801196098328
+      },
+      "promoted": true
+    },
+    {
+      "case": "B64-S1024-d128-H4-F128-L4-causal",
+      "label": "B64-S1024-d128-H4-F128-L4-causal-float32",
+      "regime": "attention",
+      "profile": {
+        "regime": "other",
+        "cuda_ms": 61.84484814999999,
+        "cpu_ms": 23.613369700000018,
+        "launches": 115,
+        "launch_us": 4.453606956522056,
+        "buckets": {
+          "norm": 2.3429537999999837,
+          "other": 19.978129050000067,
+          "gemm": 3.389052600000016,
+          "copy": 11.101572000000015,
+          "elementwise": 19.28332339999993,
+          "softmax": 5.749817299999971
+        }
+      },
+      "stage_cost": {
+        "attn": 0.02019992470741272,
+        "out_proj": -0.0058081746101379395,
+        "ffn1": 0.04888653755187988,
+        "ffn2": 0.05435740947723389
+      },
+      "baseline_ms": 25.107184410095215,
+      "compile_ms": 24.894736289978027,
+      "attempts": [
+        {
+          "iteration": 1,
+          "plan": "cuda_graph_fused_bf16",
+          "utilization": 4.930516242980957,
+          "passed": false,
+          "median_ms": NaN,
+          "speedup": NaN,
+          "status": "numeric_fail",
+          "detail": "envelope 4.931 > margin 0.8",
+          "proposer": "llm",
+          "plan_detail": "compute=bfloat16 residual=float32 attn=flash fused-qkv fused-norm cuda-graph block=(128, 64, 8, 3)"
+        },
+        {
+          "iteration": 2,
+          "plan": "fused_fp16_residual_fp16",
+          "utilization": 1.2216120958328247,
+          "passed": false,
+          "median_ms": NaN,
+          "speedup": NaN,
+          "status": "numeric_fail",
+          "detail": "envelope 1.222 > margin 0.8",
+          "proposer": "llm",
+          "plan_detail": "compute=float16 residual=float16 attn=flash fused-qkv fused-norm block=(128, 64, 8, 3)"
+        },
+        {
+          "iteration": 3,
+          "plan": "fused_fp32_cuda_graph",
+          "utilization": 0.3980560898780823,
+          "passed": true,
+          "median_ms": 12.891071796417236,
+          "speedup": 1.9476413448471486,
+          "status": "ok",
+          "detail": "",
+          "proposer": "llm",
+          "plan_detail": "compute=float32 residual=float32 attn=flash fused-qkv fused-norm cuda-graph block=(128, 64, 8, 3)"
+        },
+        {
+          "iteration": 4,
+          "plan": "fp32_cuda_graph_large_block",
+          "utilization": 0.40049102902412415,
+          "passed": true,
+          "median_ms": 12.895904064178467,
+          "speedup": 1.9469115375816552,
+          "status": "ok",
+          "detail": "",
+          "proposer": "llm",
+          "plan_detail": "compute=float32 residual=float32 attn=flash fused-qkv fused-norm cuda-graph block=(128, 128, 8, 3)"
+        },
+        {
+          "iteration": 5,
+          "plan": "fp32_sdpa_cuda_graph",
+          "utilization": 0.4735535979270935,
+          "passed": true,
+          "median_ms": 13.329535961151123,
+          "speedup": 1.8835752784845623,
+          "status": "ok",
+          "detail": "",
+          "proposer": "llm",
+          "plan_detail": "compute=float32 residual=float32 attn=sdpa fused-qkv fused-norm cuda-graph block=(128, 64, 8, 3)"
+        },
+        {
+          "iteration": 6,
+          "plan": "fp32_sdpa_cuda_graph_optimized",
+          "utilization": 0.4051322340965271,
+          "passed": true,
+          "median_ms": 12.906960010528564,
+          "speedup": 1.9452438366288103,
+          "status": "ok",
+          "detail": "",
+          "proposer": "llm",
+          "plan_detail": "compute=float32 residual=float32 attn=sdpa fused-qkv fused-norm cuda-graph block=(128, 64, 8, 3)"
+        }
+      ],
+      "best": {
+        "plan": "fused_fp32_cuda_graph",
+        "describe": "compute=float32 residual=float32 attn=flash fused-qkv fused-norm cuda-graph block=(128, 64, 8, 3)",
+        "median_ms": 12.891071796417236,
+        "speedup": 1.9476413448471486,
+        "speedup_vs_compile": 1.9311610921984719,
+        "utilization": 0.3980560898780823
+      },
+      "promoted": false
     }
   ]
 }

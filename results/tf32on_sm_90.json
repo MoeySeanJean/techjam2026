@@ -1,0 +1,137 @@
+{
+  "gpu": "NVIDIA H100 NVL",
+  "arch": "sm_90",
+  "untuned": false,
+  "records": [
+    {
+      "case": "B64-S128-d128-H4-F128-L4-causal",
+      "plan": "fp16[attn,ffn2,ffn1,out_proj]+graph",
+      "source": "exact",
+      "passed": true,
+      "envelope": 0.545554518699646,
+      "max_abs": 0.0012912750244140625,
+      "failed_elements": 0,
+      "total_elements": 1048576
+    },
+    {
+      "case": "B1-S128-d128-H4-F128-L4-causal",
+      "plan": "fp16[out_proj,ffn2,ffn1,attn]+graph",
+      "source": "exact",
+      "passed": true,
+      "envelope": 0.4140324592590332,
+      "max_abs": 0.0008735954761505127,
+      "failed_elements": 0,
+      "total_elements": 16384
+    },
+    {
+      "case": "B4-S128-d128-H4-F128-L4-causal",
+      "plan": "fp16[ffn2,ffn1,attn,out_proj]+graph",
+      "source": "exact",
+      "passed": true,
+      "envelope": 0.5302813649177551,
+      "max_abs": 0.0011671856045722961,
+      "failed_elements": 0,
+      "total_elements": 65536
+    },
+    {
+      "case": "B16-S128-d128-H4-F128-L4-causal",
+      "plan": "fp16[attn,ffn2,ffn1,out_proj]+graph",
+      "source": "exact",
+      "passed": true,
+      "envelope": 0.571038544178009,
+      "max_abs": 0.0012377500534057617,
+      "failed_elements": 0,
+      "total_elements": 262144
+    },
+    {
+      "case": "B128-S128-d128-H4-F128-L4-causal",
+      "plan": "fp16[ffn2,attn,ffn1,out_proj]+graph",
+      "source": "exact",
+      "passed": true,
+      "envelope": 0.6166249513626099,
+      "max_abs": 0.0012958049774169922,
+      "failed_elements": 0,
+      "total_elements": 2097152
+    },
+    {
+      "case": "B10000-S128-d128-H4-F128-L4-causal",
+      "plan": "fp16[attn,ffn2,ffn1]",
+      "source": "exact",
+      "passed": true,
+      "envelope": 0.7160901427268982,
+      "max_abs": 0.001513838768005371,
+      "failed_elements": 0,
+      "total_elements": 163840000
+    },
+    {
+      "case": "B64-S128-d32-H4-F32-L4-causal",
+      "plan": "exact+compile[ro]",
+      "source": "exact",
+      "passed": true,
+      "envelope": 0.30697882175445557,
+      "max_abs": 0.0006139576435089111,
+      "failed_elements": 0,
+      "total_elements": 262144
+    },
+    {
+      "case": "B64-S128-d1024-H4-F1024-L4-causal",
+      "plan": "fp16[ffn2,ffn1,attn,out_proj]",
+      "source": "exact",
+      "passed": true,
+      "envelope": 0.6485962867736816,
+      "max_abs": 0.0014800429344177246,
+      "failed_elements": 0,
+      "total_elements": 8388608
+    },
+    {
+      "case": "B64-S128-d128-H1-F128-L4-causal",
+      "plan": "fp16[attn,ffn2,ffn1,out_proj]+graph",
+      "source": "exact",
+      "passed": true,
+      "envelope": 0.6452630758285522,
+      "max_abs": 0.0012905262410640717,
+      "failed_elements": 0,
+      "total_elements": 1048576
+    },
+    {
+      "case": "B64-S128-d128-H2-F128-L4-causal",
+      "plan": "fp16[attn,ffn2,ffn1,out_proj]+graph",
+      "source": "exact",
+      "passed": true,
+      "envelope": 0.5523264408111572,
+      "max_abs": 0.0014264583587646484,
+      "failed_elements": 0,
+      "total_elements": 1048576
+    },
+    {
+      "case": "B64-S128-d128-H16-F128-L4-causal",
+      "plan": "fp16[out_proj,attn,ffn2,ffn1]+graph",
+      "source": "exact",
+      "passed": true,
+      "envelope": 0.555671751499176,
+      "max_abs": 0.0013325214385986328,
+      "failed_elements": 0,
+      "total_elements": 1048576
+    },
+    {
+      "case": "B64-S32-d128-H4-F128-L4-causal",
+      "plan": "fp16[out_proj,attn,ffn1,ffn2]+graph",
+      "source": "exact",
+      "passed": true,
+      "envelope": 0.7070730924606323,
+      "max_abs": 0.0014141462743282318,
+      "failed_elements": 0,
+      "total_elements": 262144
+    },
+    {
+      "case": "B64-S1024-d128-H4-F128-L4-causal",
+      "plan": "fp16[ffn1,attn,out_proj,ffn2]",
+      "source": "exact",
+      "passed": true,
+      "envelope": 0.6550944447517395,
+      "max_abs": 0.0015799999237060547,
+      "failed_elements": 0,
+      "total_elements": 8388608
+    }
+  ]
+}

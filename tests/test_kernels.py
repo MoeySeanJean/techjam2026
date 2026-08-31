@@ -11,7 +11,7 @@ import pytest
 import torch
 import torch.nn.functional as F
 
-from conftest import requires_triton
+from conftest import requires_cuda, requires_triton
 from kernelforge.numerics import check
 from kernelforge.ops.flash import (flash_attention, legal_blocks, pick_block,
                                    smem_bytes)
@@ -258,6 +258,7 @@ def test_causal_default_stays_legal_on_a_small_shared_memory_budget():
                 f"smem {smem} head_dim {head_dim}: {block} is not legal")
 
 
+@requires_cuda
 @pytest.mark.parametrize("seq_len", [128, 512, 1024, 777])
 @pytest.mark.parametrize("padded", [False, True])
 def test_causal_loop_split_is_bit_identical_to_the_unsplit_form(seq_len, padded):
@@ -318,3 +319,34 @@ def test_only_power_of_two_tilings_are_offered():
     for bm, bn, _, _ in CANDIDATE_BLOCKS:
         assert bm & (bm - 1) == 0 and bn & (bn - 1) == 0, (
             f"candidate {bm}x{bn} is not a power of two and would never launch")
+
+
+def test_roofline_units_are_milliseconds_and_physically_sensible():
+    """Pin the units of `roofline.analyse`, which are easy to get wrong.
+
+    The function takes milliseconds and its `Roofline.seconds` field is seconds.
+    Passing the wrong one is a 1000x error that still produces a plausible
+    number, so this checks the arithmetic against first principles instead of
+    against itself: FLOPs and bytes are computed independently here and divided
+    by a time we choose.
+    """
+    from kernelforge import roofline, shapes
+    case = shapes.resolve(["B64-S128-d128-H4-F128-L4-causal"])[0]
+    c = case.to_config()
+    ms = 0.6676
+
+    flops = roofline.stack_flops(c.batch_size, c.seq_len, c.d_model,
+                                 c.num_heads, c.ffn_dim, c.num_layers, c.causal)
+    bytes_moved = roofline.stack_bytes(c.batch_size, c.seq_len, c.d_model,
+                                       c.num_heads, c.ffn_dim, c.num_layers, 4)
+    r = roofline.analyse(case, ms, "sm_80", 1653.0, "float32")
+
+    assert abs(r.achieved_tflops - flops / (ms / 1e3) / 1e12) < 1e-6
+    assert abs(r.achieved_bandwidth_gbs - bytes_moved / (ms / 1e3) / 1e9) < 1e-6
+
+    # And the answer must be physically possible on the card it names.
+    assert 0 < r.achieved_bandwidth_gbs < 1653.0, (
+        f"{r.achieved_bandwidth_gbs:.0f} GB/s exceeds the A100's DRAM bandwidth "
+        f"-- the units are wrong by a factor of a thousand")
+    assert 0 < r.achieved_tflops < 156.0, (
+        f"{r.achieved_tflops:.0f} TFLOP/s exceeds the A100's TF32 ceiling")

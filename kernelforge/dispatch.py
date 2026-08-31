@@ -110,8 +110,20 @@ class Entry:
 
 
 class DispatchTable:
-    def __init__(self, entries: Optional[List[Entry]] = None):
+    def __init__(self, entries: Optional[List[Entry]] = None,
+                 owned: Optional[set] = None):
         self.entries: List[Entry] = entries or []
+        # Keys this table may write back. `load` fills it from the *device*
+        # layer only, and `add` registers anything new. Without it, saving a
+        # table that was loaded as arch+device wrote the architecture entries
+        # into the card's own file -- every sm_80 device table came out holding
+        # all 27 arch rows, which made "this card's own entry" meaningless and
+        # would let a stale copy shadow a re-tuned arch table.
+        # A table built directly from a list owns all of it -- the caller is
+        # handing us its entries. Only `load` narrows this, to the device layer,
+        # so that a merged arch+device table saves back just the device rows.
+        self._owned: set = (set(owned) if owned is not None else
+                            {(e.arch, e.dtype, e.signature) for e in self.entries})
         self._index: Dict[Tuple[str, str, str], Entry] = {}
         self._reindex()
 
@@ -140,6 +152,7 @@ class DispatchTable:
         silently inherit a stale, weaker plan from a previous run.
         """
         key = (entry.arch, entry.dtype, entry.signature)
+        self._owned.add(key)
         existing = self._index.get(key)
 
         if existing is not None and existing.case == entry.case:
@@ -171,26 +184,70 @@ class DispatchTable:
     # --- persistence -------------------------------------------------------
 
     @staticmethod
-    def path_for(arch: str) -> str:
+    def path_for(arch: str, device: Optional[str] = None) -> str:
+        if device:
+            return os.path.join(TABLE_DIR, f"dispatch_{arch}__{device}.json")
         return os.path.join(TABLE_DIR, f"dispatch_{arch}.json")
 
-    def save(self, arch: str) -> str:
+    def save(self, arch: str, device: Optional[str] = None) -> str:
         os.makedirs(TABLE_DIR, exist_ok=True)
-        path = self.path_for(arch)
+        path = self.path_for(arch, device)
+        entries = self.entries
+        if device:
+            # Only what this card measured for itself; the architecture table
+            # stays the fallback and is not duplicated into the overlay.
+            entries = [e for e in entries
+                       if (e.arch, e.dtype, e.signature) in self._owned]
+        blob = {"arch": arch, "entries": [e.to_json() for e in entries]}
+        if device:
+            blob["device"] = device
         with open(path, "w", encoding="utf-8") as f:
-            json.dump({"arch": arch,
-                       "entries": [e.to_json() for e in self.entries]},
-                      f, indent=2)
+            json.dump(blob, f, indent=2)
         return path
 
     @staticmethod
-    def load(arch: str) -> "DispatchTable":
-        path = DispatchTable.path_for(arch)
-        if not os.path.exists(path):
-            return DispatchTable()
-        with open(path, encoding="utf-8") as f:
-            blob = json.load(f)
-        return DispatchTable([Entry.from_json(e) for e in blob.get("entries", [])])
+    def load(arch: str, device: Optional[str] = None) -> "DispatchTable":
+        """The architecture table, with this card's own entries laid over it.
+
+        Architecture decides what is *legal* -- shared memory, TF32, tensor-core
+        support -- so it is the right key for a table that must be correct on
+        hardware it has never seen. Which legal plan is *fastest* is a property
+        of the card: measured on two `sm_75` parts, six of twelve official
+        shapes want different plans, and taking the wrong card's choice costs up
+        to 1.08x (`results/same_arch_different_card_sm_75.json`).
+
+        So a device table is an overlay, never a replacement. Entries for this
+        exact card win; everything else falls through to the architecture table,
+        which keeps an untuned or unknown GPU working exactly as before.
+        """
+        tiers = []
+        # Architecture layer first, then the device layer on top of it.
+        for tier in (None, device):
+            path = DispatchTable.path_for(arch, tier)
+            if not os.path.exists(path):
+                continue
+            with open(path, encoding="utf-8") as f:
+                blob = json.load(f)
+            tiers.append(([Entry.from_json(e) for e in blob.get("entries", [])],
+                          tier is not None))
+
+        # Collapse to one entry per key, keeping the last -- the device layer.
+        # Without this the list carries both copies, and a later `--demote`
+        # would write the duplicates back out.
+        merged, owned = {}, set()
+        for tier_entries, is_device in tiers:
+            for e in tier_entries:
+                k = (e.arch, e.dtype, e.signature)
+                merged[k] = e
+                if is_device:
+                    owned.add(k)
+        return DispatchTable(list(merged.values()), owned=owned)
+
+    @staticmethod
+    def load_for(spec) -> "DispatchTable":
+        """Load the table for a probed GPU, device overlay included."""
+        from .hw import device_slug
+        return DispatchTable.load(spec.arch, device_slug(spec))
 
     # --- lookup ------------------------------------------------------------
 

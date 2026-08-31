@@ -441,7 +441,7 @@ def main() -> int:
     torch.set_float32_matmul_precision("high")
     device = torch.device("cuda")
     spec = probe(measure=False)
-    table = DispatchTable.load(spec.arch)
+    table = DispatchTable.load_for(spec)
 
     case = shapes.resolve([SHAPE])[0]
     tb = baseline_score_bytes(case) / 2**40

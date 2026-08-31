@@ -1,0 +1,90 @@
+{
+  "what": "The recommendation-ranking use case measured end to end on a consumer laptop GPU, to show the loop works off the cluster: give it a traffic mix, it tunes for those shapes, and the gain is measured on the same machine.",
+  "gpu": "NVIDIA GeForce RTX 3070 Ti Laptop GPU (sm_86, 8 GB, 46 SMs)",
+  "traffic_mix": "42% realtime_light, 18% realtime_heavy, 25% batched_peak, 15% rerank -- shares illustrative and settable, shapes are the point",
+  "untuned": {
+    "segments": {
+      "realtime_light": {
+        "share_pct": 42,
+        "baseline_ms": 10.47,
+        "ours_ms": 6.68,
+        "gain": 1.57
+      },
+      "realtime_heavy": {
+        "share_pct": 18,
+        "baseline_ms": 46.45,
+        "ours_ms": 25.15,
+        "gain": 1.85
+      },
+      "batched_peak": {
+        "share_pct": 25,
+        "baseline_ms": 86.61,
+        "ours_ms": 54.85,
+        "gain": 1.58
+      },
+      "rerank": {
+        "share_pct": 15,
+        "baseline_ms": 8.9,
+        "ours_ms": 3.89,
+        "gain": 2.29
+      }
+    },
+    "traffic_weighted": {
+      "baseline_ms": 35.74,
+      "ours_ms": 21.63,
+      "gain": 1.65
+    },
+    "requests_per_gpu_s": {
+      "baseline": 1912,
+      "ours": 3134
+    },
+    "gpus_for_100k_qps": {
+      "baseline": 52,
+      "ours": 32,
+      "freed_pct": 39
+    }
+  },
+  "tuned": {
+    "segments": {
+      "realtime_light": {
+        "share_pct": 42,
+        "baseline_ms": 10.15,
+        "ours_ms": 4.1,
+        "gain": 2.48
+      },
+      "realtime_heavy": {
+        "share_pct": 18,
+        "baseline_ms": 45.46,
+        "ours_ms": 15.48,
+        "gain": 2.94
+      },
+      "batched_peak": {
+        "share_pct": 25,
+        "baseline_ms": 80.48,
+        "ours_ms": 31.01,
+        "gain": 2.59
+      },
+      "rerank": {
+        "share_pct": 15,
+        "baseline_ms": 11.82,
+        "ours_ms": 2.28,
+        "gain": 5.19
+      }
+    },
+    "traffic_weighted": {
+      "baseline_ms": 34.34,
+      "ours_ms": 12.6,
+      "gain": 2.72
+    },
+    "requests_per_gpu_s": {
+      "baseline": 1950,
+      "ours": 5211
+    },
+    "gpus_for_100k_qps": {
+      "baseline": 51,
+      "ours": 19,
+      "freed_pct": 63
+    }
+  },
+  "caveat": "A laptop cannot lock its clocks, so absolute latencies drift with thermals between runs; the ratios are the stable quantity. Board power is unknown for this part, so the energy line is omitted rather than guessed. Every row cleared the organizer's accuracy gate before it was timed."
+}

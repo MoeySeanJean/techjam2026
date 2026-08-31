@@ -184,6 +184,17 @@ def run_case(
     }
 
 
+# How much a proposal must beat the frozen plan by before it takes the slot.
+#
+# A strict `>` promoted a 3.21x over a 3.20x on the laptop -- 0.3%, which is
+# inside run-to-run drift on a card that cannot lock its clocks. Displacing a
+# measured plan on that basis is fitting noise, and it would let the agent churn
+# the table on every run without improving anything. Three percent is a
+# judgement call rather than a measured constant, chosen to sit well above the
+# drift we have observed and well below the gaps that represent real wins.
+PROMOTE_MARGIN = 1.03
+
+
 def run_agent(
     device: torch.device,
     cases: Sequence[Case],
@@ -199,7 +210,7 @@ def run_agent(
     print(f"# proposer: {proposer.name} | {len(cases)} cases | "
           f"{iterations} iterations each | margin {margin}")
 
-    table = DispatchTable.load(spec.arch)
+    table = DispatchTable.load_for(spec)
     records, started = [], time.time()
     taxonomy = Counter()
 
@@ -215,13 +226,34 @@ def run_agent(
         for a in rec["attempts"]:
             taxonomy[a["status"]] += 1
         if plan is not None:
-            table.add(Entry(
+            # Only displace an existing entry if this proposal is actually
+            # faster. `DispatchTable.add` supersedes a same-case row outright,
+            # which is right for a re-measurement but wrong here: the agent runs
+            # after `tune`, so an LLM proposal that merely passed the gate would
+            # replace a better plan the search had already frozen. The proposer
+            # earns its way into the table; it is not handed the slot.
+            entry = Entry(
                 signature=shape_signature(case), dtype=case.dtype,
                 arch=spec.arch, regime=case.regime, case=case.name, plan=plan,
                 utilization=rec["best"]["utilization"],
                 speedup=rec["best"]["speedup"],
-                speedup_vs_compile=rec["best"]["speedup_vs_compile"]))
-            table.save(spec.arch)
+                speedup_vs_compile=rec["best"]["speedup_vs_compile"])
+            prior = table._index.get((entry.arch, entry.dtype, entry.signature))
+            improves = (prior is None
+                        or entry.speedup > prior.speedup * PROMOTE_MARGIN)
+            if improves:
+                table.add(entry)
+                table.save(spec.arch, device_slug(spec))
+                rec["promoted"] = True
+                print(f"    -> promoted into the table "
+                      f"({entry.speedup:.2f}x"
+                      + (f" vs {prior.speedup:.2f}x held" if prior else "")
+                      + ")")
+            else:
+                rec["promoted"] = False
+                print(f"    -> not promoted: {entry.speedup:.2f}x does not beat "
+                      f"the {prior.speedup:.2f}x already frozen by the "
+                      f"{PROMOTE_MARGIN:.0%} margin")
         records.append(rec)
 
         os.makedirs(RESULTS, exist_ok=True)

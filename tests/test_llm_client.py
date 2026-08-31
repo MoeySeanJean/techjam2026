@@ -26,9 +26,9 @@ from kernelforge.agent import proposers
 
 @pytest.fixture
 def client(monkeypatch):
-    monkeypatch.setenv("SOCLAAS_BASE_URL", "https://example.invalid/v1")
-    monkeypatch.setenv("SOCLAAS_API_KEY", "test-key")
-    monkeypatch.setenv("SOCLAAS_MODEL", "test-model")
+    monkeypatch.setenv("LLM_BASE_URL", "https://example.invalid/v1")
+    monkeypatch.setenv("LLM_API_KEY", "test-key")
+    monkeypatch.setenv("LLM_MODEL", "test-model")
     monkeypatch.setattr(proposers.time, "sleep", lambda *_: None)
     return proposers.OpenAICompatProposer()
 
@@ -78,7 +78,7 @@ def test_auth_failure_is_not_retried(client, monkeypatch):
 
 
 def test_refused_connection_is_not_retried(client, monkeypatch):
-    """The `SOCLAAS_BASE_URL` typo case: fail fast, not in six minutes."""
+    """The `LLM_BASE_URL` typo case: fail fast, not in six minutes."""
     calls = _install(
         monkeypatch,
         lambda n: urllib.error.URLError(ConnectionRefusedError("refused")))
@@ -133,7 +133,8 @@ def test_served_model_is_recorded(client):
 
 def test_heuristic_proposer_needs_no_credentials(monkeypatch):
     """The whole loop has to run with no LLM at all -- that is the fallback."""
-    for var in ("SOCLAAS_API_KEY", "SOCLAAS_BASE_URL", "OPENAI_API_KEY",
+    for var in ("LLM_API_KEY", "LLM_BASE_URL", "SOCLAAS_API_KEY",
+                "SOCLAAS_BASE_URL", "OPENAI_API_KEY",
                 "ANTHROPIC_API_KEY"):
         monkeypatch.delenv(var, raising=False)
     p = proposers.HeuristicProposer()
@@ -147,9 +148,10 @@ def test_llm_proposer_refuses_to_start_without_credentials(monkeypatch):
     # .env off disk and hand us working credentials. Neutralize it so this test
     # measures the no-credentials path rather than the machine it runs on.
     monkeypatch.setattr(_secrets, "load", lambda *a, **k: {})
-    for var in ("SOCLAAS_API_KEY", "SOCLAAS_BASE_URL", "OPENAI_API_KEY",
+    for var in ("LLM_API_KEY", "LLM_BASE_URL", "SOCLAAS_API_KEY",
+                "SOCLAAS_BASE_URL", "OPENAI_API_KEY",
                 "OPENAI_BASE_URL"):
         monkeypatch.delenv(var, raising=False)
     with pytest.raises(RuntimeError) as e:
         proposers.OpenAICompatProposer()
-    assert "SOCLAAS_BASE_URL" in str(e.value)
+    assert "LLM_BASE_URL" in str(e.value)

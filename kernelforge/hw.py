@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import dataclasses
 import platform
+import re
 import subprocess
 from typing import Optional
 
@@ -193,15 +194,25 @@ def probe(device: int = 0, measure: bool = True) -> GPUSpec:
 def device_slug(spec: "GPUSpec") -> str:
     """Filename-safe identifier for a specific card, not just its architecture.
 
-    The A100-40 and A100-80 are both sm_80: one dispatch table serves both
-    correctly (same shared memory, same instruction set), but their *timings*
-    are different measurements and must not overwrite one another. Dispatch
-    tables stay keyed by arch; sweep and genealogy artifacts key by device.
+    The A100-40 and A100-80 are both sm_80: the architecture table serves both
+    *correctly* -- same shared memory, same instruction set -- but their timings
+    are different measurements and must not overwrite one another.
+
+    Dispatch tables come in two tiers keyed by this slug and by arch. Measured
+    on two sm_75 cards, six of twelve official shapes prefer different plans and
+    taking the wrong card's choice costs up to 1.08x, so each card gets its own
+    overlay while the architecture table remains the fallback for hardware we
+    have never seen. Sweep and genealogy artifacts key by device too.
     """
     name = spec.name.lower()
     for junk in ("nvidia", "geforce", "rtx", "gpu", "pcie", "sxm", "(r)"):
         name = name.replace(junk, " ")
     slug = "-".join(part for part in name.split() if part)
+    # Junk words are removed from inside hyphenated names too -- "A100-PCIE-40GB"
+    # leaves "a100- -40gb", which joined naively gave "a100---40gb". Collapse
+    # runs of separators so the filename a table is stored under is stable and
+    # readable rather than an artefact of which words were stripped.
+    slug = re.sub(r"-{2,}", "-", slug).strip("-")
     mem = f"{spec.total_mem_gb:.0f}gb"
     if mem not in slug:
         slug = f"{slug}-{mem}"
