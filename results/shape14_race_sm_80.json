@@ -1,0 +1,18 @@
+{
+  "shape": "B32-S100000-d1024-H16-F1024-L2-causal",
+  "gpu": "NVIDIA A100 80GB PCIe",
+  "arch": "sm_80",
+  "plan": "stream(flash)+wide+fp16attn",
+  "ours_s": 17.93,
+  "ours_peak_gib": 30.2,
+  "reference_s": 166.89,
+  "reference_chunk": 2048,
+  "reference_by_chunk_s": {
+    "1024": 166.93,
+    "2048": 166.89
+  },
+  "speedup": 9.31,
+  "sdpa_reference_s": 77.54,
+  "speedup_vs_sdpa": 4.32,
+  "note": "The organizer's BaselineTransformer cannot run this shape: it materializes an 18.6 TB score matrix. The opponent here is that same model with the attention chunked to O(S) memory and nothing else changed, run under the organizer's own numerics (TF32 on, matmul_precision=high). Its chunk size is swept and its best time taken. `speedup_vs_sdpa` is against a second, independently written opponent: the same model with its attention replaced by PyTorch's scaled_dot_product_attention, which is not our code and does run this shape."
+}

@@ -11,51 +11,120 @@ Envelope utilization re-measures within roughly ±0.1 between runs (cuBLAS kerne
 
 The 14 shapes in Appendix 3.7 of the problem statement. Shape numbers are the organizers'.
 
-### NVIDIA A100 80GB PCIe [sm_80] 108 SMs | 79.2 GB | smem/block 163 KB | ~1657 GB/s | tensor-cores, bf16
+### NVIDIA A100 80GB PCIe [sm_80] 108 SMs | 79.2 GB | smem/block 163 KB | ~1653 GB/s | tensor-cores, bf16
 
 `python 3.12.3 | torch 2.13.0+cu130 | platform Linux 6.8.0-138-generic | triton 3.7.1 | cuda 13.0`  ·  node `xgph1`
 
 | # | shape | baseline ms | torch.compile ms | ours ms | vs baseline | vs compile | envelope | plan |
 |---|---|---|---|---|---|---|---|---|
-| 1 | `B64-S128-d128-H4-F128-L4-causal` | 2.136 | 0.673 | 0.663 | **3.22x** | 1.02x | 0.630 | `fp16[ffn1,ffn2,attn,out_proj]/tn+graph` |
-| 2 | `B1-S128-d128-H4-F128-L4-causal` | 2.092 | 0.220 | 0.208 | **10.06x** | 1.06x | 0.385 | `fp16[attn,out_proj]/tn+graph` |
-| 3 | `B4-S128-d128-H4-F128-L4-causal` | 2.092 | 0.223 | 0.137 | **15.25x** | 1.63x | 0.452 | `fp16[attn,ffn2,out_proj,ffn1]+graph` |
-| 4 | `B16-S128-d128-H4-F128-L4-causal` | 2.143 | 0.279 | 0.182 | **11.76x** | 1.53x | 0.526 | `fp16[attn,out_proj,ffn2,ffn1]+graph` |
-| 5 | `B128-S128-d128-H4-F128-L4-causal` | 2.777 | 1.208 | 1.134 | **2.45x** | 1.07x | 0.682 | `fp16[ffn2,out_proj,attn,ffn1]/tn+graph` |
-| 6 | `B10000-S128-d128-H4-F128-L4-causal` | 191.994 | 86.181 | 46.951 | **4.09x** | 1.84x | 0.733 | `fp16[attn,ffn1,ffn2]` |
-| 7 | `B64-S128-d32-H4-F32-L4-causal` | 2.065 | 0.442 | 0.314 | **6.57x** | 1.41x | 0.648 | `fp16[attn,ffn1,out_proj,ffn2]+graph` |
-| 8 | `B64-S128-d1024-H4-F1024-L4-causal` | 8.060 | 6.320 | 3.479 | **2.32x** | 1.82x | 0.649 | `fp16[attn,ffn2,ffn1,out_proj]` |
-| 9 | `B64-S128-d128-H1-F128-L4-causal` | 1.945 | 0.507 | 0.377 | **5.16x** | 1.35x | 0.635 | `fp16[ffn2,attn,out_proj,ffn1]+graph` |
-| 10 | `B64-S128-d128-H2-F128-L4-causal` | 2.114 | 0.593 | 0.392 | **5.39x** | 1.51x | 0.559 | `fp16[ffn1,ffn2,attn,out_proj]+graph` |
-| 11 | `B64-S128-d128-H16-F128-L4-causal` | 3.506 | 1.277 | 0.701 | **5.00x** | 1.82x | 0.565 | `fp16[attn,out_proj,ffn2,ffn1]+graph` |
-| 12 | `B64-S32-d128-H4-F128-L4-causal` | 2.087 | 0.272 | 0.167 | **12.50x** | 1.63x | 0.616 | `fp16[attn,out_proj,ffn2,ffn1]+graph` |
-| 13 | `B64-S1024-d128-H4-F128-L4-causal` | 43.651 | 15.312 | 3.595 | **12.14x** | 4.26x | 0.598 | `fp16[ffn2,attn,out_proj,ffn1]` |
+| 1 | `B64-S128-d128-H4-F128-L4-causal` | 2.082 | 0.671 | 0.668 | **3.12x** | 1.00x | 0.307 | `compile[ro]` |
+| 2 | `B1-S128-d128-H4-F128-L4-causal` | 2.111 | 0.221 | 0.130 | **16.24x** | 1.70x | 0.439 | `fp16[attn,ffn1,ffn2,out_proj]+graph` |
+| 3 | `B4-S128-d128-H4-F128-L4-causal` | 2.092 | 0.224 | 0.141 | **14.80x** | 1.59x | 0.473 | `fp16[out_proj,attn,ffn2,ffn1]+graph` |
+| 4 | `B16-S128-d128-H4-F128-L4-causal` | 2.125 | 0.280 | 0.186 | **11.40x** | 1.50x | 0.567 | `fp16[ffn2,out_proj,attn,ffn1]+graph` |
+| 5 | `B128-S128-d128-H4-F128-L4-causal` | 2.776 | 1.212 | 0.668 | **4.16x** | 1.82x | 0.615 | `fp16[attn,out_proj,ffn1,ffn2]+graph` |
+| 6 | `B10000-S128-d128-H4-F128-L4-causal` | 192.001 | 86.212 | 49.437 | **3.88x** | 1.74x | 0.760 | `fp16[ffn2,attn,ffn1]` |
+| 7 | `B64-S128-d32-H4-F32-L4-causal` | 2.067 | 0.437 | 0.319 | **6.47x** | 1.37x | 0.778 | `fp16[attn,ffn1,ffn2,out_proj]+graph` |
+| 8 | `B64-S128-d1024-H4-F1024-L4-causal` | 8.064 | 6.288 | 3.499 | **2.30x** | 1.80x | 0.664 | `fp16[attn,ffn2,ffn1,out_proj]` |
+| 9 | `B64-S128-d128-H1-F128-L4-causal` | 2.005 | 0.502 | 0.378 | **5.31x** | 1.33x | 0.700 | `fp16[ffn2,attn,ffn1,out_proj]+graph` |
+| 10 | `B64-S128-d128-H2-F128-L4-causal` | 2.157 | 0.591 | 0.410 | **5.27x** | 1.44x | 0.608 | `fp16[attn,out_proj,ffn1,ffn2]+graph` |
+| 11 | `B64-S128-d128-H16-F128-L4-causal` | 3.514 | 1.264 | 0.718 | **4.90x** | 1.76x | 0.616 | `fp16[attn,ffn1,out_proj,ffn2]+graph` |
+| 12 | `B64-S32-d128-H4-F128-L4-causal` | 2.103 | 0.268 | 0.169 | **12.45x** | 1.59x | 0.648 | `fp16[ffn1,ffn2,out_proj,attn]+graph` |
+| 13 | `B64-S1024-d128-H4-F128-L4-causal` | 43.623 | 15.218 | 3.058 | **14.27x** | 4.98x | 0.596 | `fp16[attn,ffn2,ffn1,out_proj]` |
 | 14 | `B32-S100000-d1024-H16-F1024-L2-causal` | — | — | — | — | — | — | *reference cannot run it — see below* |
 
-**13 of 14 shapes measured** on this GPU. Median **5.39x** over the reference and **1.53x** over `torch.compile`; range 2.32x–15.25x over the reference. Every measured shape cleared the accuracy gate (max envelope 0.733 of 1.0). Faster than `torch.compile` on 13 of 13.
+**13 of 14 shapes measured** on this GPU. Median **5.31x** over the reference and **1.59x** over `torch.compile`; range 2.30x–16.24x over the reference. Every measured shape cleared the accuracy gate (max envelope 0.778 of 1.0). Faster than `torch.compile` on 13 of 13.
 
-### NVIDIA H100 NVL [sm_90] 132 SMs | 93.1 GB | smem/block 227 KB | ~3511 GB/s | tensor-cores, bf16, tma, fp8
+### NVIDIA H100 NVL [sm_90] 132 SMs | 93.1 GB | smem/block 227 KB | ~3508 GB/s | tensor-cores, bf16, tma, fp8
 
 `python 3.12.3 | torch 2.13.0+cu130 | platform Linux 6.8.0-85-generic | triton 3.7.1 | cuda 13.0`  ·  node `xgpi10`
 
 | # | shape | baseline ms | torch.compile ms | ours ms | vs baseline | vs compile | envelope | plan |
 |---|---|---|---|---|---|---|---|---|
-| 1 | `B64-S128-d128-H4-F128-L4-causal` | 1.792 | 0.411 | 0.244 | **7.35x** | 1.69x | 0.598 | `fp16[attn,ffn1,ffn2,out_proj]+graph` |
-| 2 | `B1-S128-d128-H4-F128-L4-causal` | 1.533 | 0.188 | 0.183 | **8.37x** | 1.03x | 0.493 | `fp16[ffn2,out_proj,ffn1,attn]/tn+graph` |
-| 3 | `B4-S128-d128-H4-F128-L4-causal` | 1.504 | 0.208 | 0.113 | **13.29x** | 1.84x | 0.626 | `fp16[out_proj,ffn1,ffn2,attn]+graph` |
-| 4 | `B16-S128-d128-H4-F128-L4-causal` | 1.519 | 0.239 | 0.136 | **11.15x** | 1.75x | 0.488 | `fp16[attn,ffn1,out_proj,ffn2]+graph` |
-| 5 | `B128-S128-d128-H4-F128-L4-causal` | 1.689 | 0.657 | 0.367 | **4.61x** | 1.79x | 0.631 | `fp16[attn,ffn2,ffn1,out_proj]+graph` |
-| 6 | `B10000-S128-d128-H4-F128-L4-causal` | 115.821 | 50.030 | 26.545 | **4.36x** | 1.88x | 0.767 | `fp16[attn,out_proj,ffn1,ffn2]` |
-| 7 | `B64-S128-d32-H4-F32-L4-causal` | 1.505 | 0.285 | 0.256 | **5.88x** | 1.11x | 0.567 | `fp16[ffn1,ffn2,attn,out_proj]+graph` |
-| 8 | `B64-S128-d1024-H4-F1024-L4-causal` | 4.360 | 3.070 | 1.864 | **2.34x** | 1.65x | 0.623 | `fp16[attn,out_proj,ffn2,ffn1]` |
-| 9 | `B64-S128-d128-H1-F128-L4-causal` | 1.650 | 0.295 | 0.231 | **7.14x** | 1.28x | 0.590 | `fp16[ffn2,attn,ffn1,out_proj]+graph` |
-| 10 | `B64-S128-d128-H2-F128-L4-causal` | 1.816 | 0.366 | 0.222 | **8.19x** | 1.65x | 0.607 | `fp16[ffn2,attn,out_proj,ffn1]+graph` |
-| 11 | `B64-S128-d128-H16-F128-L4-causal` | 2.125 | 0.769 | 0.463 | **4.59x** | 1.66x | 0.528 | `fp16[attn,ffn2,ffn1,out_proj]+graph` |
-| 12 | `B64-S32-d128-H4-F128-L4-causal` | 1.514 | 0.214 | 0.126 | **12.01x** | 1.69x | 0.560 | `fp16[ffn2,attn,out_proj,ffn1]+graph` |
-| 13 | `B64-S1024-d128-H4-F128-L4-causal` | 25.171 | 9.104 | 2.214 | **11.37x** | 4.11x | 0.676 | `fp16[attn,ffn1,ffn2,out_proj]` |
+| 1 | `B64-S128-d128-H4-F128-L4-causal` | 1.810 | 0.411 | 0.247 | **7.31x** | 1.66x | 0.675 | `fp16[attn,ffn2,ffn1,out_proj]+graph` |
+| 2 | `B1-S128-d128-H4-F128-L4-causal` | 1.554 | 0.189 | 0.109 | **14.32x** | 1.74x | 0.420 | `fp16[out_proj,ffn2,ffn1,attn]+graph` |
+| 3 | `B4-S128-d128-H4-F128-L4-causal` | 1.522 | 0.222 | 0.115 | **13.20x** | 1.92x | 0.498 | `fp16[ffn2,ffn1,attn,out_proj]+graph` |
+| 4 | `B16-S128-d128-H4-F128-L4-causal` | 1.549 | 0.237 | 0.138 | **11.19x** | 1.71x | 0.503 | `fp16[attn,ffn2,ffn1,out_proj]+graph` |
+| 5 | `B128-S128-d128-H4-F128-L4-causal` | 1.686 | 0.658 | 0.378 | **4.46x** | 1.74x | 0.618 | `fp16[ffn2,attn,ffn1,out_proj]+graph` |
+| 6 | `B10000-S128-d128-H4-F128-L4-causal` | 117.057 | 51.181 | 30.900 | **3.79x** | 1.66x | 0.767 | `fp16[attn,ffn2,ffn1]` |
+| 7 | `B64-S128-d32-H4-F32-L4-causal` | 1.501 | 0.287 | 0.282 | **5.32x** | 1.02x | 0.313 | `exact+compile[ro]` |
+| 8 | `B64-S128-d1024-H4-F1024-L4-causal` | 4.443 | 3.186 | 1.902 | **2.34x** | 1.68x | 0.630 | `fp16[ffn2,ffn1,attn,out_proj]` |
+| 9 | `B64-S128-d128-H1-F128-L4-causal` | 1.655 | 0.307 | 0.238 | **6.94x** | 1.29x | 0.577 | `fp16[attn,ffn2,ffn1,out_proj]+graph` |
+| 10 | `B64-S128-d128-H2-F128-L4-causal` | 1.794 | 0.369 | 0.228 | **7.87x** | 1.62x | 0.668 | `fp16[attn,ffn2,ffn1,out_proj]+graph` |
+| 11 | `B64-S128-d128-H16-F128-L4-causal` | 2.121 | 0.770 | 0.472 | **4.49x** | 1.63x | 0.621 | `fp16[out_proj,attn,ffn2,ffn1]+graph` |
+| 12 | `B64-S32-d128-H4-F128-L4-causal` | 1.535 | 0.234 | 0.127 | **12.08x** | 1.84x | 0.575 | `fp16[out_proj,attn,ffn1,ffn2]+graph` |
+| 13 | `B64-S1024-d128-H4-F128-L4-causal` | 25.710 | 9.291 | 1.947 | **13.20x** | 4.77x | 0.580 | `fp16[ffn1,attn,out_proj,ffn2]` |
 | 14 | `B32-S100000-d1024-H16-F1024-L2-causal` | — | — | — | — | — | — | *reference cannot run it — see below* |
 
-**13 of 14 shapes measured** on this GPU. Median **7.35x** over the reference and **1.69x** over `torch.compile`; range 2.34x–13.29x over the reference. Every measured shape cleared the accuracy gate (max envelope 0.767 of 1.0). Faster than `torch.compile` on 13 of 13.
+**13 of 14 shapes measured** on this GPU. Median **7.31x** over the reference and **1.68x** over `torch.compile`; range 2.34x–14.32x over the reference. Every measured shape cleared the accuracy gate (max envelope 0.767 of 1.0). Faster than `torch.compile` on 13 of 13.
+
+### Tesla T4 [sm_75] 40 SMs | 14.6 GB | smem/block 64 KB | ~242 GB/s | tensor-cores
+
+`python 3.12.3 | torch 2.13.0+cu126 | platform Linux 6.8.0-138-generic | triton 3.7.1 | cuda 12.6`  ·  node `xgpf1`
+
+| # | shape | baseline ms | torch.compile ms | ours ms | vs baseline | vs compile | envelope | plan |
+|---|---|---|---|---|---|---|---|---|
+| 1 | `B64-S128-d128-H4-F128-L4-causal` | 9.494 | 4.986 | 3.960 | **2.40x** | 1.26x | 0.605 | `fp16[ffn2,out_proj,ffn1]` |
+| 2 | `B1-S128-d128-H4-F128-L4-causal` | 2.844 | 0.330 | 0.328 | **8.68x** | 1.01x | 0.444 | `fp16[out_proj,ffn2,ffn1]+graph` |
+| 3 | `B4-S128-d128-H4-F128-L4-causal` | 2.926 | 0.455 | 0.442 | **6.61x** | 1.03x | 0.000 | `exact+compile[ma]` |
+| 4 | `B16-S128-d128-H4-F128-L4-causal` | 2.951 | 1.152 | 1.114 | **2.65x** | 1.03x | 0.000 | `exact+compile[ma]` |
+| 5 | `B128-S128-d128-H4-F128-L4-causal` | 18.628 | 9.894 | 7.979 | **2.33x** | 1.24x | 0.597 | `fp16[ffn1,ffn2,out_proj]` |
+| 6 | `B10000-S128-d128-H4-F128-L4-causal` | — | — | — | — | — | — | *baseline does not fit this GPU* |
+| 7 | `B64-S128-d32-H4-F32-L4-causal` | 6.116 | 2.028 | 2.007 | **3.05x** | 1.01x | 0.000 | `exact+compile[ma]` |
+| 8 | `B64-S128-d1024-H4-F1024-L4-causal` | 124.731 | 112.162 | 34.252 | **3.64x** | 3.27x | 0.768 | `fp16[ffn2,attn,out_proj,ffn1]` |
+| 9 | `B64-S128-d128-H1-F128-L4-causal` | 6.031 | 3.883 | 3.173 | **1.90x** | 1.22x | 0.687 | `fp16[ffn2,attn,out_proj,ffn1]` |
+| 10 | `B64-S128-d128-H2-F128-L4-causal` | 7.568 | 4.390 | 4.357 | **1.74x** | 1.01x | 0.000 | `exact+compile[ro]` |
+| 11 | `B64-S128-d128-H16-F128-L4-causal` | 21.894 | 9.214 | 6.527 | **3.35x** | 1.41x | 0.569 | `fp16[out_proj,ffn1,ffn2]` |
+| 12 | `B64-S32-d128-H4-F128-L4-causal` | 2.875 | 0.893 | 0.539 | **5.33x** | 1.66x | 0.699 | `fp16[ffn2,out_proj,attn,ffn1]+graph` |
+| 13 | `B64-S1024-d128-H4-F128-L4-causal` | 314.432 | 138.141 | 62.868 | **5.00x** | 2.20x | 0.689 | `fp16[out_proj,ffn2,ffn1,attn]` |
+| 14 | `B32-S100000-d1024-H16-F1024-L2-causal` | — | — | — | — | — | — | *reference cannot run it — see below* |
+
+**12 of 14 shapes measured** on this GPU. Median **3.35x** over the reference and **1.24x** over `torch.compile`; range 1.74x–8.68x over the reference. Every measured shape cleared the accuracy gate (max envelope 0.768 of 1.0). Faster than `torch.compile` on 12 of 12.
+
+### NVIDIA TITAN RTX [sm_75] 72 SMs | 23.5 GB | smem/block 64 KB | ~568 GB/s | tensor-cores
+
+`python 3.12.3 | torch 2.13.0+cu126 | platform Linux 6.8.0-138-generic | triton 3.7.1 | cuda 12.6`  ·  node `xgpe1`
+
+| # | shape | baseline ms | torch.compile ms | ours ms | vs baseline | vs compile | envelope | plan |
+|---|---|---|---|---|---|---|---|---|
+| 1 | `B64-S128-d128-H4-F128-L4-causal` | 4.308 | 1.917 | 1.840 | **2.34x** | 1.04x | 0.575 | `fp16[ffn2,out_proj,ffn1]+graph` |
+| 2 | `B1-S128-d128-H4-F128-L4-causal` | 2.916 | 0.364 | 0.313 | **9.30x** | 1.16x | 0.460 | `fp16[out_proj,ffn2,ffn1]+graph` |
+| 3 | `B4-S128-d128-H4-F128-L4-causal` | 2.899 | 0.356 | 0.307 | **9.45x** | 1.16x | 0.510 | `fp16[out_proj,ffn2,ffn1]+graph` |
+| 4 | `B16-S128-d128-H4-F128-L4-causal` | 3.021 | 0.625 | 0.602 | **5.02x** | 1.04x | 0.573 | `fp16[out_proj,ffn2,ffn1]+graph` |
+| 5 | `B128-S128-d128-H4-F128-L4-causal` | 8.975 | 3.782 | 3.612 | **2.48x** | 1.05x | 0.608 | `fp16[ffn2,ffn1,out_proj]` |
+| 6 | `B10000-S128-d128-H4-F128-L4-causal` | 685.080 | 303.990 | 295.870 | **2.32x** | 1.03x | 0.796 | `fp16[ffn2,ffn1,out_proj]+graph` |
+| 7 | `B64-S128-d32-H4-F32-L4-causal` | 2.931 | 0.884 | 0.886 | **3.31x** | 1.00x ⚠ | 0.000 | `compile[ro]` |
+| 8 | `B64-S128-d1024-H4-F1024-L4-causal` | 54.986 | 52.042 | 16.008 | **3.43x** | 3.25x | 0.729 | `fp16[ffn2,ffn1,out_proj,attn]` |
+| 9 | `B64-S128-d128-H1-F128-L4-causal` | 2.763 | 1.629 | 1.529 | **1.81x** | 1.07x | 0.670 | `fp16[ffn2,attn,out_proj,ffn1]+graph` |
+| 10 | `B64-S128-d128-H2-F128-L4-causal` | 3.468 | 1.672 | 1.659 | **2.09x** | 1.01x | 0.000 | `exact+compile[ro]` |
+| 11 | `B64-S128-d128-H16-F128-L4-causal` | 9.729 | 3.547 | 3.027 | **3.21x** | 1.17x | 0.578 | `fp16[ffn2,out_proj,ffn1]` |
+| 12 | `B64-S32-d128-H4-F128-L4-causal` | 2.961 | 0.498 | 0.266 | **11.12x** | 1.87x | 0.746 | `fp16[ffn2,attn,out_proj,ffn1]+graph` |
+| 13 | `B64-S1024-d128-H4-F128-L4-causal` | 140.625 | 49.818 | 32.776 | **4.29x** | 1.52x | 0.640 | `fp16[ffn2,attn,out_proj]` |
+| 14 | `B32-S100000-d1024-H16-F1024-L2-causal` | — | — | — | — | — | — | *reference cannot run it — see below* |
+
+**13 of 14 shapes measured** on this GPU. Median **3.31x** over the reference and **1.07x** over `torch.compile`; range 1.81x–11.12x over the reference. Every measured shape cleared the accuracy gate (max envelope 0.796 of 1.0). Faster than `torch.compile` on 12 of 13.
+
+### NVIDIA TITAN V [sm_70] 80 SMs | 11.8 GB | smem/block 96 KB | ~600 GB/s | tensor-cores
+
+`python 3.12.3 | torch 2.13.0+cu126 | platform Linux 6.8.0-138-generic | triton 3.7.1 | cuda 12.6`  ·  node `xgpd6`
+
+| # | shape | baseline ms | torch.compile ms | ours ms | vs baseline | vs compile | envelope | plan |
+|---|---|---|---|---|---|---|---|---|
+| 1 | `B64-S128-d128-H4-F128-L4-causal` | 4.744 | 2.119 | 2.098 | **2.26x** | 1.01x | 0.000 | `exact+compile[ro]` |
+| 2 | `B1-S128-d128-H4-F128-L4-causal` | 2.847 | 0.341 | 0.337 | **8.45x** | 1.01x | 0.000 | `exact+compile[ro]` |
+| 3 | `B4-S128-d128-H4-F128-L4-causal` | 2.966 | 0.364 | 0.364 | **8.16x** | 1.00x ⚠ | 0.000 | `compile[ro]` |
+| 4 | `B16-S128-d128-H4-F128-L4-causal` | 2.922 | 0.753 | 0.749 | **3.90x** | 1.01x | 0.000 | `exact+compile[ma]` |
+| 5 | `B128-S128-d128-H4-F128-L4-causal` | 9.117 | 3.907 | 3.797 | **2.40x** | 1.03x | 0.000 | `exact+compile[ma]` |
+| 6 | `B10000-S128-d128-H4-F128-L4-causal` | — | — | — | — | — | — | *baseline does not fit this GPU* |
+| 7 | `B64-S128-d32-H4-F32-L4-causal` | 3.078 | 0.901 | 0.900 | **3.42x** | 1.00x | 0.000 | `compile[ro]` |
+| 8 | `B64-S128-d1024-H4-F1024-L4-causal` | 47.385 | 41.861 | 25.021 | **1.89x** | 1.67x | 0.543 | `fp16[ffn2,out_proj,ffn1]` |
+| 9 | `B64-S128-d128-H1-F128-L4-causal` | 3.141 | 1.930 | 1.872 | **1.68x** | 1.03x | 0.572 | `fp16[ffn2,out_proj,ffn1]+graph` |
+| 10 | `B64-S128-d128-H2-F128-L4-causal` | 3.927 | 1.856 | 1.846 | **2.13x** | 1.01x | 0.000 | `exact+compile[ro]` |
+| 11 | `B64-S128-d128-H16-F128-L4-causal` | 9.648 | 3.676 | 2.911 | **3.31x** | 1.26x | 0.611 | `fp16[ffn2,ffn1,out_proj]` |
+| 12 | `B64-S32-d128-H4-F128-L4-causal` | 2.938 | 0.646 | 0.281 | **10.47x** | 2.30x | 0.684 | `fp16[ffn2,attn,out_proj,ffn1]+graph` |
+| 13 | `B64-S1024-d128-H4-F128-L4-causal` | — | — | — | — | — | — | *baseline does not fit this GPU* |
+| 14 | `B32-S100000-d1024-H16-F1024-L2-causal` | — | — | — | — | — | — | *reference cannot run it — see below* |
+
+**11 of 14 shapes measured** on this GPU. Median **3.31x** over the reference and **1.01x** over `torch.compile`; range 1.68x–10.47x over the reference. Every measured shape cleared the accuracy gate (max envelope 0.684 of 1.0). Faster than `torch.compile` on 10 of 11.
 
 ⚠ marks a shape where `torch.compile` is faster than us. We report these rather than omitting them.
 
@@ -67,8 +136,8 @@ The 14 shapes in Appendix 3.7 of the problem statement. Shape numbers are the or
 
 | GPU | node | latency | peak memory | batch slice | plan | finite | shape |
 |---|---|---|---|---|---|---|---|
-| NVIDIA A100 80GB PCIe | `xgph1` | 77.7 s | 45.9 GB | 1/32 | `stream(flash)+wide` | yes | correct |
-| NVIDIA H100 NVL | `xgpi10` | 54.5 s | 45.9 GB | 2/32 | `stream(flash)+wide` | yes | correct |
+| NVIDIA A100 80GB PCIe | `xgph1` | 17.8 s | 45.8 GB | 1/32 | `stream(flash)+wide+fp16attn` | yes | correct |
+| NVIDIA H100 NVL | `xgpi10` | 8.5 s | 45.9 GB | 2/32 | `stream(flash)+wide+fp16attn` | yes | correct |
 
 Three things have to be true at once for this to run:
 
@@ -76,83 +145,120 @@ Three things have to be true at once for this to run:
 2. Batch streaming: no operation in this model mixes batch elements, so the batch is sliced and results written into one output buffer.
 3. SDPA fallback: it would build an [S,S] causal mask (37.25 GiB at S=100000), since SDPA accepts is_causal or an attn_mask but not both. With no padded token the mask is a no-op and is_causal alone is exact: 45.9 GB peak instead of 84.6 GB.
 
-`python scripts/shape14.py --scan` sweeps sequence length and reports where a given GPU stops.
-
-Accuracy for this code path is established at sequence lengths where the reference *can* be computed — `tests/test_kernels.py` checks the same kernel against an exact reference across causal × padding × length, and `tests/test_streaming.py` checks that slicing the batch does not change the answer.
+**Correctness at full length.** The reference cannot be materialized, but it can be *streamed*: chunking query rows and masking against the key index computes the same thing in O(S) instead of 18.6 TB. The entire output -- every batch element at full length -- is gated against that reference: fp32 with TF32 disabled, so stricter than the organizer's own, and a two-pass softmax rather than the online rescaling the kernel uses -- the whole output measures envelope **0.3990** against a limit of 1.0, with **0 of 3,276,800,000 elements** outside tolerance. Reproduce with `python scripts/shape14.py --gate --batch 32`.
 
 ## Every shape we measured
 
 The matrix we tuned against before the official list was published, kept because it is what makes the fallback path credible on a shape nobody tuned for.
 
-### NVIDIA A100 80GB PCIe [sm_80] 108 SMs | 79.2 GB | smem/block 163 KB | ~1657 GB/s | tensor-cores, bf16
+### NVIDIA A100 80GB PCIe [sm_80] 108 SMs | 79.2 GB | smem/block 163 KB | ~1653 GB/s | tensor-cores, bf16
 
 `python 3.12.3 | torch 2.13.0+cu130 | platform Linux 6.8.0-138-generic | triton 3.7.1 | cuda 13.0`  ·  node `xgph1`
 
 | shape | regime | baseline ms | torch.compile ms | ours ms | vs baseline | vs compile | plan | envelope |
 |---|---|---|---|---|---|---|---|---|
-| `B1-S64-d256-H4-F1024-L6-float32` | latency | 2.779 | 0.361 | 0.210 | **13.24x** | 1.72x | `fp16[out_proj,attn]+graph` | 0.639 |
-| `B32-S1-d512-H8-F2048-L6-float32` | latency | 2.901 | 0.302 | 0.253 | **11.47x** | 1.19x | `exact+compile[ro]` | 0.771 |
-| `B8-S128-d512-H8-F2048-L6-float32` | gemm | 2.754 | 1.006 | 0.828 | **3.32x** | 1.21x | `fp16[attn,out_proj]+graph` | 0.736 |
-| `B16-S512-d768-H12-F3072-L6-float32` | gemm | 19.266 | 13.286 | 9.915 | **1.94x** | 1.34x | `fp16[attn,out_proj]/tn+graph` | 0.697 |
-| `B8-S128-d1024-H16-F4096-L6-float32` | gemm | 3.203 | 2.473 | 1.932 | **1.66x** | 1.28x | `fp16[attn,out_proj]+graph` | 0.766 |
-| `B64-S128-d512-H8-F2048-L6-float32` | gemm | 7.886 | 5.852 | 4.229 | **1.86x** | 1.38x | `fp16[attn,out_proj]+graph` | 0.799 |
-| `B2-S2048-d512-H8-F2048-L6-float32` | attention | 13.987 | 7.550 | 3.512 | **3.98x** | 2.15x | `fp16[attn,out_proj]+graph` | 0.697 |
-| `B2-S2048-d512-H8-F2048-L6-causal-float32` | attention | 18.329 | 7.669 | 7.583 | **2.42x** | 1.01x | `exact+compile[ro]` | 0.688 |
-| `B8-S128-d512-H8-F2048-L6-pad0.4-float32` | gemm | 2.746 | 1.005 | 0.670 | **4.10x** | 1.50x | `fp16[attn,out_proj,ffn2]+graph` | 0.795 |
-| `B8-S128-d512-H8-F2048-L6-causal-pad0.4-float32` | gemm | 3.004 | 1.023 | 1.513 | **1.98x** | 0.68x ⚠ | `safe(exact)+graph` | 0.000 |
-| `B8-S128-d512-H8-F2048-L6-float16` | gemm | 2.979 | 0.671 † | 1.011 | **2.95x** | 0.66x † | `safe(exact)+graph` | 0.000 |
-| `B8-S128-d512-H8-F2048-L6-bfloat16` | gemm | 2.772 | 0.689 † | 1.037 | **2.67x** | 0.66x † | `safe(exact)+graph` | 0.000 |
-| `B32-S64-d512-H8-F2048-L6-pad0.4-float32` | gemm | 2.721 | 1.508 | 1.238 | **2.20x** | 1.22x | `fp16[attn,out_proj]+graph` | 0.775 |
-| `B32-S256-d512-H8-F2048-L6-pad0.4-float32` | bandwidth | 9.262 | 6.395 | 4.412 | **2.10x** | 1.45x | `fp16[attn,out_proj]+graph` | 0.698 |
-| `B128-S128-d512-H8-F2048-L6-pad0.4-float32` | bandwidth | 15.135 | 11.305 | 8.143 | **1.86x** | 1.39x | `fp16[out_proj,attn]` | 0.751 |
-| `B64-S128-d128-H4-F128-L4-causal-float32` | gemm | 2.136 | 0.673 | 0.663 | **3.22x** | 1.02x | `fp16[ffn1,ffn2,attn,out_proj]/tn+graph` | 0.630 |
-| `B1-S128-d128-H4-F128-L4-causal-float32` | latency | 2.092 | 0.220 | 0.208 | **10.06x** | 1.06x | `fp16[attn,out_proj]/tn+graph` | 0.385 |
-| `B4-S128-d128-H4-F128-L4-causal-float32` | latency | 2.092 | 0.223 | 0.137 | **15.25x** | 1.63x | `fp16[attn,ffn2,out_proj,ffn1]+graph` | 0.452 |
-| `B16-S128-d128-H4-F128-L4-causal-float32` | gemm | 2.143 | 0.279 | 0.182 | **11.76x** | 1.53x | `fp16[attn,out_proj,ffn2,ffn1]+graph` | 0.526 |
-| `B128-S128-d128-H4-F128-L4-causal-float32` | gemm | 2.777 | 1.208 | 1.134 | **2.45x** | 1.07x | `fp16[ffn2,out_proj,attn,ffn1]/tn+graph` | 0.682 |
-| `B10000-S128-d128-H4-F128-L4-causal-float32` | gemm | 191.994 | 86.181 | 46.951 | **4.09x** | 1.84x | `fp16[attn,ffn1,ffn2]` | 0.733 |
-| `B64-S128-d32-H4-F32-L4-causal-float32` | gemm | 2.065 | 0.442 | 0.314 | **6.57x** | 1.41x | `fp16[attn,ffn1,out_proj,ffn2]+graph` | 0.648 |
-| `B64-S128-d1024-H4-F1024-L4-causal-float32` | gemm | 8.060 | 6.320 | 3.479 | **2.32x** | 1.82x | `fp16[attn,ffn2,ffn1,out_proj]` | 0.649 |
-| `B64-S128-d128-H1-F128-L4-causal-float32` | gemm | 1.945 | 0.507 | 0.377 | **5.16x** | 1.35x | `fp16[ffn2,attn,out_proj,ffn1]+graph` | 0.635 |
-| `B64-S128-d128-H2-F128-L4-causal-float32` | gemm | 2.114 | 0.593 | 0.392 | **5.39x** | 1.51x | `fp16[ffn1,ffn2,attn,out_proj]+graph` | 0.559 |
-| `B64-S128-d128-H16-F128-L4-causal-float32` | gemm | 3.506 | 1.277 | 0.701 | **5.00x** | 1.82x | `fp16[attn,out_proj,ffn2,ffn1]+graph` | 0.565 |
-| `B64-S32-d128-H4-F128-L4-causal-float32` | gemm | 2.087 | 0.272 | 0.167 | **12.50x** | 1.63x | `fp16[attn,out_proj,ffn2,ffn1]+graph` | 0.616 |
-| `B64-S1024-d128-H4-F128-L4-causal-float32` | attention | 43.651 | 15.312 | 3.595 | **12.14x** | 4.26x | `fp16[ffn2,attn,out_proj,ffn1]` | 0.598 |
+| `B64-S128-d128-H4-F128-L4-causal-float32` | gemm | 2.082 | 0.671 | 0.668 | **3.12x** | 1.00x | `compile[ro]` | 0.307 |
+| `B1-S128-d128-H4-F128-L4-causal-float32` | latency | 2.111 | 0.221 | 0.130 | **16.24x** | 1.70x | `fp16[attn,ffn1,ffn2,out_proj]+graph` | 0.439 |
+| `B4-S128-d128-H4-F128-L4-causal-float32` | latency | 2.092 | 0.224 | 0.141 | **14.80x** | 1.59x | `fp16[out_proj,attn,ffn2,ffn1]+graph` | 0.473 |
+| `B16-S128-d128-H4-F128-L4-causal-float32` | gemm | 2.125 | 0.280 | 0.186 | **11.40x** | 1.50x | `fp16[ffn2,out_proj,attn,ffn1]+graph` | 0.567 |
+| `B128-S128-d128-H4-F128-L4-causal-float32` | gemm | 2.776 | 1.212 | 0.668 | **4.16x** | 1.82x | `fp16[attn,out_proj,ffn1,ffn2]+graph` | 0.615 |
+| `B10000-S128-d128-H4-F128-L4-causal-float32` | gemm | 192.001 | 86.212 | 49.437 | **3.88x** | 1.74x | `fp16[ffn2,attn,ffn1]` | 0.760 |
+| `B64-S128-d32-H4-F32-L4-causal-float32` | gemm | 2.067 | 0.437 | 0.319 | **6.47x** | 1.37x | `fp16[attn,ffn1,ffn2,out_proj]+graph` | 0.778 |
+| `B64-S128-d1024-H4-F1024-L4-causal-float32` | gemm | 8.064 | 6.288 | 3.499 | **2.30x** | 1.80x | `fp16[attn,ffn2,ffn1,out_proj]` | 0.664 |
+| `B64-S128-d128-H1-F128-L4-causal-float32` | gemm | 2.005 | 0.502 | 0.378 | **5.31x** | 1.33x | `fp16[ffn2,attn,ffn1,out_proj]+graph` | 0.700 |
+| `B64-S128-d128-H2-F128-L4-causal-float32` | gemm | 2.157 | 0.591 | 0.410 | **5.27x** | 1.44x | `fp16[attn,out_proj,ffn1,ffn2]+graph` | 0.608 |
+| `B64-S128-d128-H16-F128-L4-causal-float32` | gemm | 3.514 | 1.264 | 0.718 | **4.90x** | 1.76x | `fp16[attn,ffn1,out_proj,ffn2]+graph` | 0.616 |
+| `B64-S32-d128-H4-F128-L4-causal-float32` | gemm | 2.103 | 0.268 | 0.169 | **12.45x** | 1.59x | `fp16[ffn1,ffn2,out_proj,attn]+graph` | 0.648 |
+| `B64-S1024-d128-H4-F128-L4-causal-float32` | attention | 43.623 | 15.218 | 3.058 | **14.27x** | 4.98x | `fp16[attn,ffn2,ffn1,out_proj]` | 0.596 |
 
 ⚠ `torch.compile` is genuinely faster here and passes the accuracy gate. We report these rather than omitting them.  
 † `torch.compile` **fails the organizer's accuracy gate** at this configuration, so its time is not an admissible result — it is shown for completeness, not as a target we lost to. Our entry is the bit-exact plan. See [PRECISION.md](PRECISION.md).
 
-### NVIDIA H100 NVL [sm_90] 132 SMs | 93.1 GB | smem/block 227 KB | ~3511 GB/s | tensor-cores, bf16, tma, fp8
+### NVIDIA H100 NVL [sm_90] 132 SMs | 93.1 GB | smem/block 227 KB | ~3508 GB/s | tensor-cores, bf16, tma, fp8
 
 `python 3.12.3 | torch 2.13.0+cu130 | platform Linux 6.8.0-85-generic | triton 3.7.1 | cuda 13.0`  ·  node `xgpi10`
 
 | shape | regime | baseline ms | torch.compile ms | ours ms | vs baseline | vs compile | plan | envelope |
 |---|---|---|---|---|---|---|---|---|
-| `B1-S64-d256-H4-F1024-L6-float32` | latency | 2.105 | 0.340 | 0.187 | **11.23x** | 1.82x | `fp16[attn,out_proj]+graph` | 0.570 |
-| `B32-S1-d512-H8-F2048-L6-float32` | latency | 2.301 | 0.292 | 0.342 | **6.73x** | 0.85x ⚠ | `compile[ro]` | 0.750 |
-| `B8-S128-d512-H8-F2048-L6-float32` | gemm | 2.469 | 0.588 | 0.388 | **6.36x** | 1.51x | `fp16[attn,out_proj]+graph` | 0.644 |
-| `B16-S512-d768-H12-F3072-L6-float32` | gemm | 10.125 | 7.074 | 4.041 | **2.51x** | 1.75x | `fp16[attn,out_proj]` | 0.663 |
-| `B8-S128-d1024-H16-F4096-L6-float32` | gemm | 2.420 | 1.091 | 0.793 | **3.05x** | 1.37x | `fp16[out_proj,attn]+graph` | 0.753 |
-| `B64-S128-d512-H8-F2048-L6-float32` | gemm | 4.052 | 2.773 | 1.977 | **2.05x** | 1.40x | `fp16[attn,out_proj]+graph` | 0.750 |
-| `B2-S2048-d512-H8-F2048-L6-float32` | attention | 7.768 | 4.116 | 1.519 | **5.11x** | 2.71x | `fp16[attn]+graph` | 0.639 |
-| `B2-S2048-d512-H8-F2048-L6-causal-float32` | attention | 10.462 | 4.203 | 4.465 | **2.34x** | 0.94x ⚠ | `compile[ro]` | 0.670 |
-| `B8-S128-d512-H8-F2048-L6-pad0.4-float32` | gemm | 2.448 | 0.587 | 0.389 | **6.30x** | 1.51x | `fp16[out_proj,attn]+graph` | 0.637 |
-| `B8-S128-d512-H8-F2048-L6-causal-pad0.4-float32` | gemm | 2.682 | 0.574 | 0.627 | **4.28x** | 0.92x ⚠ | `exact+compile[ro]` | 0.698 |
-| `B8-S128-d512-H8-F2048-L6-float16` | gemm | 2.251 | 0.404 † | 0.662 | **3.40x** | 0.61x † | `safe(exact)+graph` | 0.000 |
-| `B8-S128-d512-H8-F2048-L6-bfloat16` | gemm | 2.238 | 0.383 † | 0.662 | **3.38x** | 0.58x † | `safe(exact)+graph` | 0.000 |
-| `B64-S128-d128-H4-F128-L4-causal-float32` | gemm | 1.792 | 0.411 | 0.244 | **7.35x** | 1.69x | `fp16[attn,ffn1,ffn2,out_proj]+graph` | 0.598 |
-| `B1-S128-d128-H4-F128-L4-causal-float32` | latency | 1.533 | 0.188 | 0.183 | **8.37x** | 1.03x | `fp16[ffn2,out_proj,ffn1,attn]/tn+graph` | 0.493 |
-| `B4-S128-d128-H4-F128-L4-causal-float32` | latency | 1.504 | 0.208 | 0.113 | **13.29x** | 1.84x | `fp16[out_proj,ffn1,ffn2,attn]+graph` | 0.626 |
-| `B16-S128-d128-H4-F128-L4-causal-float32` | gemm | 1.519 | 0.239 | 0.136 | **11.15x** | 1.75x | `fp16[attn,ffn1,out_proj,ffn2]+graph` | 0.488 |
-| `B128-S128-d128-H4-F128-L4-causal-float32` | gemm | 1.689 | 0.657 | 0.367 | **4.61x** | 1.79x | `fp16[attn,ffn2,ffn1,out_proj]+graph` | 0.631 |
-| `B10000-S128-d128-H4-F128-L4-causal-float32` | gemm | 115.821 | 50.030 | 26.545 | **4.36x** | 1.88x | `fp16[attn,out_proj,ffn1,ffn2]` | 0.767 |
-| `B64-S128-d32-H4-F32-L4-causal-float32` | gemm | 1.505 | 0.285 | 0.256 | **5.88x** | 1.11x | `fp16[ffn1,ffn2,attn,out_proj]+graph` | 0.567 |
-| `B64-S128-d1024-H4-F1024-L4-causal-float32` | gemm | 4.360 | 3.070 | 1.864 | **2.34x** | 1.65x | `fp16[attn,out_proj,ffn2,ffn1]` | 0.623 |
-| `B64-S128-d128-H1-F128-L4-causal-float32` | gemm | 1.650 | 0.295 | 0.231 | **7.14x** | 1.28x | `fp16[ffn2,attn,ffn1,out_proj]+graph` | 0.590 |
-| `B64-S128-d128-H2-F128-L4-causal-float32` | gemm | 1.816 | 0.366 | 0.222 | **8.19x** | 1.65x | `fp16[ffn2,attn,out_proj,ffn1]+graph` | 0.607 |
-| `B64-S128-d128-H16-F128-L4-causal-float32` | gemm | 2.125 | 0.769 | 0.463 | **4.59x** | 1.66x | `fp16[attn,ffn2,ffn1,out_proj]+graph` | 0.528 |
-| `B64-S32-d128-H4-F128-L4-causal-float32` | gemm | 1.514 | 0.214 | 0.126 | **12.01x** | 1.69x | `fp16[ffn2,attn,out_proj,ffn1]+graph` | 0.560 |
-| `B64-S1024-d128-H4-F128-L4-causal-float32` | attention | 25.171 | 9.104 | 2.214 | **11.37x** | 4.11x | `fp16[attn,ffn1,ffn2,out_proj]` | 0.676 |
+| `B64-S128-d128-H4-F128-L4-causal-float32` | gemm | 1.810 | 0.411 | 0.247 | **7.31x** | 1.66x | `fp16[attn,ffn2,ffn1,out_proj]+graph` | 0.675 |
+| `B1-S128-d128-H4-F128-L4-causal-float32` | latency | 1.554 | 0.189 | 0.109 | **14.32x** | 1.74x | `fp16[out_proj,ffn2,ffn1,attn]+graph` | 0.420 |
+| `B4-S128-d128-H4-F128-L4-causal-float32` | latency | 1.522 | 0.222 | 0.115 | **13.20x** | 1.92x | `fp16[ffn2,ffn1,attn,out_proj]+graph` | 0.498 |
+| `B16-S128-d128-H4-F128-L4-causal-float32` | gemm | 1.549 | 0.237 | 0.138 | **11.19x** | 1.71x | `fp16[attn,ffn2,ffn1,out_proj]+graph` | 0.503 |
+| `B128-S128-d128-H4-F128-L4-causal-float32` | gemm | 1.686 | 0.658 | 0.378 | **4.46x** | 1.74x | `fp16[ffn2,attn,ffn1,out_proj]+graph` | 0.618 |
+| `B10000-S128-d128-H4-F128-L4-causal-float32` | gemm | 117.057 | 51.181 | 30.900 | **3.79x** | 1.66x | `fp16[attn,ffn2,ffn1]` | 0.767 |
+| `B64-S128-d32-H4-F32-L4-causal-float32` | gemm | 1.501 | 0.287 | 0.282 | **5.32x** | 1.02x | `exact+compile[ro]` | 0.313 |
+| `B64-S128-d1024-H4-F1024-L4-causal-float32` | gemm | 4.443 | 3.186 | 1.902 | **2.34x** | 1.68x | `fp16[ffn2,ffn1,attn,out_proj]` | 0.630 |
+| `B64-S128-d128-H1-F128-L4-causal-float32` | gemm | 1.655 | 0.307 | 0.238 | **6.94x** | 1.29x | `fp16[attn,ffn2,ffn1,out_proj]+graph` | 0.577 |
+| `B64-S128-d128-H2-F128-L4-causal-float32` | gemm | 1.794 | 0.369 | 0.228 | **7.87x** | 1.62x | `fp16[attn,ffn2,ffn1,out_proj]+graph` | 0.668 |
+| `B64-S128-d128-H16-F128-L4-causal-float32` | gemm | 2.121 | 0.770 | 0.472 | **4.49x** | 1.63x | `fp16[out_proj,attn,ffn2,ffn1]+graph` | 0.621 |
+| `B64-S32-d128-H4-F128-L4-causal-float32` | gemm | 1.535 | 0.234 | 0.127 | **12.08x** | 1.84x | `fp16[out_proj,attn,ffn1,ffn2]+graph` | 0.575 |
+| `B64-S1024-d128-H4-F128-L4-causal-float32` | attention | 25.710 | 9.291 | 1.947 | **13.20x** | 4.77x | `fp16[ffn1,attn,out_proj,ffn2]` | 0.580 |
+
+⚠ `torch.compile` is genuinely faster here and passes the accuracy gate. We report these rather than omitting them.  
+† `torch.compile` **fails the organizer's accuracy gate** at this configuration, so its time is not an admissible result — it is shown for completeness, not as a target we lost to. Our entry is the bit-exact plan. See [PRECISION.md](PRECISION.md).
+
+### Tesla T4 [sm_75] 40 SMs | 14.6 GB | smem/block 64 KB | ~242 GB/s | tensor-cores
+
+`python 3.12.3 | torch 2.13.0+cu126 | platform Linux 6.8.0-138-generic | triton 3.7.1 | cuda 12.6`  ·  node `xgpf1`
+
+| shape | regime | baseline ms | torch.compile ms | ours ms | vs baseline | vs compile | plan | envelope |
+|---|---|---|---|---|---|---|---|---|
+| `B64-S128-d128-H4-F128-L4-causal-float32` | gemm | 9.494 | 4.986 | 3.960 | **2.40x** | 1.26x | `fp16[ffn2,out_proj,ffn1]` | 0.605 |
+| `B1-S128-d128-H4-F128-L4-causal-float32` | latency | 2.844 | 0.330 | 0.328 | **8.68x** | 1.01x | `fp16[out_proj,ffn2,ffn1]+graph` | 0.444 |
+| `B4-S128-d128-H4-F128-L4-causal-float32` | latency | 2.926 | 0.455 | 0.442 | **6.61x** | 1.03x | `exact+compile[ma]` | 0.000 |
+| `B16-S128-d128-H4-F128-L4-causal-float32` | gemm | 2.951 | 1.152 | 1.114 | **2.65x** | 1.03x | `exact+compile[ma]` | 0.000 |
+| `B128-S128-d128-H4-F128-L4-causal-float32` | gemm | 18.628 | 9.894 | 7.979 | **2.33x** | 1.24x | `fp16[ffn1,ffn2,out_proj]` | 0.597 |
+| `B64-S128-d32-H4-F32-L4-causal-float32` | gemm | 6.116 | 2.028 | 2.007 | **3.05x** | 1.01x | `exact+compile[ma]` | 0.000 |
+| `B64-S128-d1024-H4-F1024-L4-causal-float32` | gemm | 124.731 | 112.162 | 34.252 | **3.64x** | 3.27x | `fp16[ffn2,attn,out_proj,ffn1]` | 0.768 |
+| `B64-S128-d128-H1-F128-L4-causal-float32` | gemm | 6.031 | 3.883 | 3.173 | **1.90x** | 1.22x | `fp16[ffn2,attn,out_proj,ffn1]` | 0.687 |
+| `B64-S128-d128-H2-F128-L4-causal-float32` | gemm | 7.568 | 4.390 | 4.357 | **1.74x** | 1.01x | `exact+compile[ro]` | 0.000 |
+| `B64-S128-d128-H16-F128-L4-causal-float32` | gemm | 21.894 | 9.214 | 6.527 | **3.35x** | 1.41x | `fp16[out_proj,ffn1,ffn2]` | 0.569 |
+| `B64-S32-d128-H4-F128-L4-causal-float32` | gemm | 2.875 | 0.893 | 0.539 | **5.33x** | 1.66x | `fp16[ffn2,out_proj,attn,ffn1]+graph` | 0.699 |
+| `B64-S1024-d128-H4-F128-L4-causal-float32` | attention | 314.432 | 138.141 | 62.868 | **5.00x** | 2.20x | `fp16[out_proj,ffn2,ffn1,attn]` | 0.689 |
+
+⚠ `torch.compile` is genuinely faster here and passes the accuracy gate. We report these rather than omitting them.  
+† `torch.compile` **fails the organizer's accuracy gate** at this configuration, so its time is not an admissible result — it is shown for completeness, not as a target we lost to. Our entry is the bit-exact plan. See [PRECISION.md](PRECISION.md).
+
+### NVIDIA TITAN RTX [sm_75] 72 SMs | 23.5 GB | smem/block 64 KB | ~568 GB/s | tensor-cores
+
+`python 3.12.3 | torch 2.13.0+cu126 | platform Linux 6.8.0-138-generic | triton 3.7.1 | cuda 12.6`  ·  node `xgpe1`
+
+| shape | regime | baseline ms | torch.compile ms | ours ms | vs baseline | vs compile | plan | envelope |
+|---|---|---|---|---|---|---|---|---|
+| `B64-S128-d128-H4-F128-L4-causal-float32` | gemm | 4.308 | 1.917 | 1.840 | **2.34x** | 1.04x | `fp16[ffn2,out_proj,ffn1]+graph` | 0.575 |
+| `B1-S128-d128-H4-F128-L4-causal-float32` | latency | 2.916 | 0.364 | 0.313 | **9.30x** | 1.16x | `fp16[out_proj,ffn2,ffn1]+graph` | 0.460 |
+| `B4-S128-d128-H4-F128-L4-causal-float32` | latency | 2.899 | 0.356 | 0.307 | **9.45x** | 1.16x | `fp16[out_proj,ffn2,ffn1]+graph` | 0.510 |
+| `B16-S128-d128-H4-F128-L4-causal-float32` | gemm | 3.021 | 0.625 | 0.602 | **5.02x** | 1.04x | `fp16[out_proj,ffn2,ffn1]+graph` | 0.573 |
+| `B128-S128-d128-H4-F128-L4-causal-float32` | gemm | 8.975 | 3.782 | 3.612 | **2.48x** | 1.05x | `fp16[ffn2,ffn1,out_proj]` | 0.608 |
+| `B10000-S128-d128-H4-F128-L4-causal-float32` | gemm | 685.080 | 303.990 | 295.870 | **2.32x** | 1.03x | `fp16[ffn2,ffn1,out_proj]+graph` | 0.796 |
+| `B64-S128-d32-H4-F32-L4-causal-float32` | gemm | 2.931 | 0.884 | 0.886 | **3.31x** | 1.00x ⚠ | `compile[ro]` | 0.000 |
+| `B64-S128-d1024-H4-F1024-L4-causal-float32` | gemm | 54.986 | 52.042 | 16.008 | **3.43x** | 3.25x | `fp16[ffn2,ffn1,out_proj,attn]` | 0.729 |
+| `B64-S128-d128-H1-F128-L4-causal-float32` | gemm | 2.763 | 1.629 | 1.529 | **1.81x** | 1.07x | `fp16[ffn2,attn,out_proj,ffn1]+graph` | 0.670 |
+| `B64-S128-d128-H2-F128-L4-causal-float32` | gemm | 3.468 | 1.672 | 1.659 | **2.09x** | 1.01x | `exact+compile[ro]` | 0.000 |
+| `B64-S128-d128-H16-F128-L4-causal-float32` | gemm | 9.729 | 3.547 | 3.027 | **3.21x** | 1.17x | `fp16[ffn2,out_proj,ffn1]` | 0.578 |
+| `B64-S32-d128-H4-F128-L4-causal-float32` | gemm | 2.961 | 0.498 | 0.266 | **11.12x** | 1.87x | `fp16[ffn2,attn,out_proj,ffn1]+graph` | 0.746 |
+| `B64-S1024-d128-H4-F128-L4-causal-float32` | attention | 140.625 | 49.818 | 32.776 | **4.29x** | 1.52x | `fp16[ffn2,attn,out_proj]` | 0.640 |
+
+⚠ `torch.compile` is genuinely faster here and passes the accuracy gate. We report these rather than omitting them.  
+† `torch.compile` **fails the organizer's accuracy gate** at this configuration, so its time is not an admissible result — it is shown for completeness, not as a target we lost to. Our entry is the bit-exact plan. See [PRECISION.md](PRECISION.md).
+
+### NVIDIA TITAN V [sm_70] 80 SMs | 11.8 GB | smem/block 96 KB | ~600 GB/s | tensor-cores
+
+`python 3.12.3 | torch 2.13.0+cu126 | platform Linux 6.8.0-138-generic | triton 3.7.1 | cuda 12.6`  ·  node `xgpd6`
+
+| shape | regime | baseline ms | torch.compile ms | ours ms | vs baseline | vs compile | plan | envelope |
+|---|---|---|---|---|---|---|---|---|
+| `B64-S128-d128-H4-F128-L4-causal-float32` | gemm | 4.744 | 2.119 | 2.098 | **2.26x** | 1.01x | `exact+compile[ro]` | 0.000 |
+| `B1-S128-d128-H4-F128-L4-causal-float32` | latency | 2.847 | 0.341 | 0.337 | **8.45x** | 1.01x | `exact+compile[ro]` | 0.000 |
+| `B4-S128-d128-H4-F128-L4-causal-float32` | latency | 2.966 | 0.364 | 0.364 | **8.16x** | 1.00x ⚠ | `compile[ro]` | 0.000 |
+| `B16-S128-d128-H4-F128-L4-causal-float32` | gemm | 2.922 | 0.753 | 0.749 | **3.90x** | 1.01x | `exact+compile[ma]` | 0.000 |
+| `B128-S128-d128-H4-F128-L4-causal-float32` | gemm | 9.117 | 3.907 | 3.797 | **2.40x** | 1.03x | `exact+compile[ma]` | 0.000 |
+| `B64-S128-d32-H4-F32-L4-causal-float32` | gemm | 3.078 | 0.901 | 0.900 | **3.42x** | 1.00x | `compile[ro]` | 0.000 |
+| `B64-S128-d1024-H4-F1024-L4-causal-float32` | gemm | 47.385 | 41.861 | 25.021 | **1.89x** | 1.67x | `fp16[ffn2,out_proj,ffn1]` | 0.543 |
+| `B64-S128-d128-H1-F128-L4-causal-float32` | gemm | 3.141 | 1.930 | 1.872 | **1.68x** | 1.03x | `fp16[ffn2,out_proj,ffn1]+graph` | 0.572 |
+| `B64-S128-d128-H2-F128-L4-causal-float32` | gemm | 3.927 | 1.856 | 1.846 | **2.13x** | 1.01x | `exact+compile[ro]` | 0.000 |
+| `B64-S128-d128-H16-F128-L4-causal-float32` | gemm | 9.648 | 3.676 | 2.911 | **3.31x** | 1.26x | `fp16[ffn2,ffn1,out_proj]` | 0.611 |
+| `B64-S32-d128-H4-F128-L4-causal-float32` | gemm | 2.938 | 0.646 | 0.281 | **10.47x** | 2.30x | `fp16[ffn2,attn,out_proj,ffn1]+graph` | 0.684 |
 
 ⚠ `torch.compile` is genuinely faster here and passes the accuracy gate. We report these rather than omitting them.  
 † `torch.compile` **fails the organizer's accuracy gate** at this configuration, so its time is not an admissible result — it is shown for completeness, not as a target we lost to. Our entry is the bit-exact plan. See [PRECISION.md](PRECISION.md).
@@ -161,69 +267,63 @@ The matrix we tuned against before the official list was published, kept because
 
 The search is hardware-parameterized -- tile legality is derived from the measured shared-memory budget, and precision is chosen from a per-stage error budget measured on the target. Bringing up a new GPU is one `sweep` invocation with no code changes.
 
-| shape | a100-80gb-79gb_sm_80 plan | a100-80gb-79gb_sm_80 speedup | h100-nvl-93gb_sm_90 plan | h100-nvl-93gb_sm_90 speedup |
-|---|---|---|---|---|
-| `B1-S128-d128-H4-F128-L4-causal` | `fp16[attn,out_proj]/tn+graph` | 10.06x | `fp16[ffn2,out_proj,ffn1,attn]/tn+graph` | 8.37x |
-| `B10000-S128-d128-H4-F128-L4-causal` | `fp16[attn,ffn1,ffn2]` | 4.09x | `fp16[attn,out_proj,ffn1,ffn2]` | 4.36x |
-| `B128-S128-d128-H4-F128-L4-causal` | `fp16[ffn2,out_proj,attn,ffn1]/tn+graph` | 2.45x | `fp16[attn,ffn2,ffn1,out_proj]+graph` | 4.61x |
-| `B16-S128-d128-H4-F128-L4-causal` | `fp16[attn,out_proj,ffn2,ffn1]+graph` | 11.76x | `fp16[attn,ffn1,out_proj,ffn2]+graph` | 11.15x |
-| `B4-S128-d128-H4-F128-L4-causal` | `fp16[attn,ffn2,out_proj,ffn1]+graph` | 15.25x | `fp16[out_proj,ffn1,ffn2,attn]+graph` | 13.29x |
-| `B64-S1024-d128-H4-F128-L4-causal` | `fp16[ffn2,attn,out_proj,ffn1]` | 12.14x | `fp16[attn,ffn1,ffn2,out_proj]` | 11.37x |
-| `B64-S128-d1024-H4-F1024-L4-causal` | `fp16[attn,ffn2,ffn1,out_proj]` | 2.32x | `fp16[attn,out_proj,ffn2,ffn1]` | 2.34x |
-| `B64-S128-d128-H1-F128-L4-causal` | `fp16[ffn2,attn,out_proj,ffn1]+graph` | 5.16x | `fp16[ffn2,attn,ffn1,out_proj]+graph` | 7.14x |
-| `B64-S128-d128-H16-F128-L4-causal` | `fp16[attn,out_proj,ffn2,ffn1]+graph` | 5.00x | `fp16[attn,ffn2,ffn1,out_proj]+graph` | 4.59x |
-| `B64-S128-d128-H2-F128-L4-causal` | `fp16[ffn1,ffn2,attn,out_proj]+graph` | 5.39x | `fp16[ffn2,attn,out_proj,ffn1]+graph` | 8.19x |
-| `B64-S128-d128-H4-F128-L4-causal` | `fp16[ffn1,ffn2,attn,out_proj]/tn+graph` | 3.22x | `fp16[attn,ffn1,ffn2,out_proj]+graph` | 7.35x |
-| `B64-S128-d32-H4-F32-L4-causal` | `fp16[attn,ffn1,out_proj,ffn2]+graph` | 6.57x | `fp16[ffn1,ffn2,attn,out_proj]+graph` | 5.88x |
-| `B64-S32-d128-H4-F128-L4-causal` | `fp16[attn,out_proj,ffn2,ffn1]+graph` | 12.50x | `fp16[ffn2,attn,out_proj,ffn1]+graph` | 12.01x |
-| `bert_base` | `fp16[attn,out_proj]/tn+graph` | 1.94x | `fp16[attn,out_proj]` | 2.51x |
-| `big_batch` | `fp16[attn,out_proj]+graph` | 1.86x | `fp16[attn,out_proj]+graph` | 2.05x |
-| `decode` | `exact+compile[ro]` | 11.47x | `compile[ro]` | 6.73x |
-| `default` | `fp16[attn,out_proj]+graph` | 3.32x | `fp16[attn,out_proj]+graph` | 6.36x |
-| `default_bfloat16` | `safe(exact)+graph` | 2.67x | `safe(exact)+graph` | 3.38x |
-| `default_causal_pad` | `safe(exact)+graph` | 1.98x | `exact+compile[ro]` | 4.28x |
-| `default_float16` | `safe(exact)+graph` | 2.95x | `safe(exact)+graph` | 3.40x |
-| `default_pad` | `fp16[attn,out_proj,ffn2]+graph` | 4.10x | `fp16[out_proj,attn]+graph` | 6.30x |
-| `long_causal` | `exact+compile[ro]` | 2.42x | `compile[ro]` | 2.34x |
-| `long_seq` | `fp16[attn,out_proj]+graph` | 3.98x | `fp16[attn]+graph` | 5.11x |
-| `tiny` | `fp16[out_proj,attn]+graph` | 13.24x | `fp16[attn,out_proj]+graph` | 11.23x |
-| `wide` | `fp16[attn,out_proj]+graph` | 1.66x | `fp16[out_proj,attn]+graph` | 3.05x |
+| shape | a100-80gb-79gb_sm_80 plan | a100-80gb-79gb_sm_80 speedup | h100-nvl-93gb_sm_90 plan | h100-nvl-93gb_sm_90 speedup | tesla-t4-15gb_sm_75 plan | tesla-t4-15gb_sm_75 speedup | titan-23gb_sm_75 plan | titan-23gb_sm_75 speedup | titan-v-12gb_sm_70 plan | titan-v-12gb_sm_70 speedup |
+|---|---|---|---|---|---|---|---|---|---|---|
+| `B1-S128-d128-H4-F128-L4-causal` | `fp16[attn,ffn1,ffn2,out_proj]+graph` | 16.24x | `fp16[out_proj,ffn2,ffn1,attn]+graph` | 14.32x | `fp16[out_proj,ffn2,ffn1]+graph` | 8.68x | `fp16[out_proj,ffn2,ffn1]+graph` | 9.30x | `exact+compile[ro]` | 8.45x |
+| `B10000-S128-d128-H4-F128-L4-causal` | `fp16[ffn2,attn,ffn1]` | 3.88x | `fp16[attn,ffn2,ffn1]` | 3.79x | - | - | `fp16[ffn2,ffn1,out_proj]+graph` | 2.32x | - | - |
+| `B128-S128-d128-H4-F128-L4-causal` | `fp16[attn,out_proj,ffn1,ffn2]+graph` | 4.16x | `fp16[ffn2,attn,ffn1,out_proj]+graph` | 4.46x | `fp16[ffn1,ffn2,out_proj]` | 2.33x | `fp16[ffn2,ffn1,out_proj]` | 2.48x | `exact+compile[ma]` | 2.40x |
+| `B16-S128-d128-H4-F128-L4-causal` | `fp16[ffn2,out_proj,attn,ffn1]+graph` | 11.40x | `fp16[attn,ffn2,ffn1,out_proj]+graph` | 11.19x | `exact+compile[ma]` | 2.65x | `fp16[out_proj,ffn2,ffn1]+graph` | 5.02x | `exact+compile[ma]` | 3.90x |
+| `B4-S128-d128-H4-F128-L4-causal` | `fp16[out_proj,attn,ffn2,ffn1]+graph` | 14.80x | `fp16[ffn2,ffn1,attn,out_proj]+graph` | 13.20x | `exact+compile[ma]` | 6.61x | `fp16[out_proj,ffn2,ffn1]+graph` | 9.45x | `compile[ro]` | 8.16x |
+| `B64-S1024-d128-H4-F128-L4-causal` | `fp16[attn,ffn2,ffn1,out_proj]` | 14.27x | `fp16[ffn1,attn,out_proj,ffn2]` | 13.20x | `fp16[out_proj,ffn2,ffn1,attn]` | 5.00x | `fp16[ffn2,attn,out_proj]` | 4.29x | - | - |
+| `B64-S128-d1024-H4-F1024-L4-causal` | `fp16[attn,ffn2,ffn1,out_proj]` | 2.30x | `fp16[ffn2,ffn1,attn,out_proj]` | 2.34x | `fp16[ffn2,attn,out_proj,ffn1]` | 3.64x | `fp16[ffn2,ffn1,out_proj,attn]` | 3.43x | `fp16[ffn2,out_proj,ffn1]` | 1.89x |
+| `B64-S128-d128-H1-F128-L4-causal` | `fp16[ffn2,attn,ffn1,out_proj]+graph` | 5.31x | `fp16[attn,ffn2,ffn1,out_proj]+graph` | 6.94x | `fp16[ffn2,attn,out_proj,ffn1]` | 1.90x | `fp16[ffn2,attn,out_proj,ffn1]+graph` | 1.81x | `fp16[ffn2,out_proj,ffn1]+graph` | 1.68x |
+| `B64-S128-d128-H16-F128-L4-causal` | `fp16[attn,ffn1,out_proj,ffn2]+graph` | 4.90x | `fp16[out_proj,attn,ffn2,ffn1]+graph` | 4.49x | `fp16[out_proj,ffn1,ffn2]` | 3.35x | `fp16[ffn2,out_proj,ffn1]` | 3.21x | `fp16[ffn2,ffn1,out_proj]` | 3.31x |
+| `B64-S128-d128-H2-F128-L4-causal` | `fp16[attn,out_proj,ffn1,ffn2]+graph` | 5.27x | `fp16[attn,ffn2,ffn1,out_proj]+graph` | 7.87x | `exact+compile[ro]` | 1.74x | `exact+compile[ro]` | 2.09x | `exact+compile[ro]` | 2.13x |
+| `B64-S128-d128-H4-F128-L4-causal` | `compile[ro]` | 3.12x | `fp16[attn,ffn2,ffn1,out_proj]+graph` | 7.31x | `fp16[ffn2,out_proj,ffn1]` | 2.40x | `fp16[ffn2,out_proj,ffn1]+graph` | 2.34x | `exact+compile[ro]` | 2.26x |
+| `B64-S128-d32-H4-F32-L4-causal` | `fp16[attn,ffn1,ffn2,out_proj]+graph` | 6.47x | `exact+compile[ro]` | 5.32x | `exact+compile[ma]` | 3.05x | `compile[ro]` | 3.31x | `compile[ro]` | 3.42x |
+| `B64-S32-d128-H4-F128-L4-causal` | `fp16[ffn1,ffn2,out_proj,attn]+graph` | 12.45x | `fp16[out_proj,attn,ffn1,ffn2]+graph` | 12.08x | `fp16[ffn2,out_proj,attn,ffn1]+graph` | 5.33x | `fp16[ffn2,attn,out_proj,ffn1]+graph` | 11.12x | `fp16[ffn2,attn,out_proj,ffn1]+graph` | 10.47x |
 
-**10 of 25 shapes measured on more than one GPU chose a genuinely different plan.** That divergence is the point: a single hand-tuned kernel set cannot be optimal across a heterogeneous fleet.
+**12 of 13 shapes measured on more than one GPU chose a genuinely different plan.** That divergence is the point: a single hand-tuned kernel set cannot be optimal across a heterogeneous fleet.
 
 ## Roofline: how much of the machine are we using?
 
-Arithmetic intensity is FLOPs per byte of DRAM traffic for a *fused* implementation; the ridge point is where a kernel stops being bandwidth-bound and starts being tensor-core-bound. "% of ceiling" is against whichever limit binds. Peak figures are vendor numbers for the tensor-core path with fp32 accumulation and are listed in `kernelforge/roofline.py`.
+Arithmetic intensity is FLOPs per byte of DRAM traffic for a *fused* implementation; the ridge point is where a kernel stops being bandwidth-bound and starts being tensor-core-bound. "% of ceiling" is against whichever limit binds. Peak figures are vendor numbers for the tensor-core path with fp32 accumulation and are listed in `kernelforge/roofline.py`. Only `sm_80` and `sm_90` appear: a ceiling belongs to a card rather than to an architecture -- our two `sm_75` cards differ 2.3x in measured bandwidth -- so we quote a peak only where we can name the exact part, and omit the roofline rather than guess it.
 
 | GPU | shape | TFLOP/s | GB/s | intensity | limiter | % of ceiling |
 |---|---|---|---|---|---|---|
-| sm_80 | `tiny` | 3.0 | 112 | 27 | memory bandwidth | 7% |
-| sm_80 | `decode` | 4.8 | 317 | 15 | memory bandwidth | 19% |
-| sm_80 | `default` | 48.6 | 273 | 178 | tensor cores | 31% |
-| sm_80 | `bert_base` | 78.0 | 200 | 390 | tensor cores | 50% |
-| sm_80 | `wide` | 81.7 | 313 | 261 | tensor cores | 52% |
-| sm_80 | `big_batch` | 76.2 | 303 | 251 | tensor cores | 49% |
-| sm_80 | `long_seq` | 73.4 | 193 | 379 | tensor cores | 47% |
-| sm_80 | `long_causal` | 27.2 | 90 | 303 | tensor cores | 17% |
-| sm_80 | `default_pad` | 60.1 | 338 | 178 | tensor cores | 39% |
-| sm_80 | `default_causal_pad` | 26.1 | 150 | 174 | tensor cores | 17% |
-| sm_90 | `tiny` | 3.4 | 126 | 27 | memory bandwidth | 4% |
-| sm_90 | `decode` | 3.5 | 235 | 15 | memory bandwidth | 7% |
-| sm_90 | `default` | 103.7 | 583 | 178 | tensor cores | 25% |
-| sm_90 | `bert_base` | 191.3 | 490 | 390 | tensor cores | 46% |
-| sm_90 | `wide` | 198.9 | 761 | 261 | tensor cores | 48% |
-| sm_90 | `big_batch` | 162.9 | 649 | 251 | tensor cores | 39% |
-| sm_90 | `long_seq` | 169.7 | 447 | 379 | tensor cores | 41% |
-| sm_90 | `long_causal` | 46.2 | 152 | 303 | tensor cores | 11% |
-| sm_90 | `default_pad` | 103.6 | 583 | 178 | tensor cores | 25% |
-| sm_90 | `default_causal_pad` | 62.9 | 361 | 174 | tensor cores | 15% |
+| sm_80 | `B64-S128-d128-H4-F128-L4-causal` | 11.3 | 153 | 74 | memory bandwidth | 9% |
+| sm_80 | `B1-S128-d128-H4-F128-L4-causal` | 0.9 | 24 | 37 | memory bandwidth | 1% |
+| sm_80 | `B4-S128-d128-H4-F128-L4-causal` | 3.3 | 56 | 60 | memory bandwidth | 3% |
+| sm_80 | `B16-S128-d128-H4-F128-L4-causal` | 10.1 | 143 | 70 | memory bandwidth | 9% |
+| sm_80 | `B128-S128-d128-H4-F128-L4-causal` | 22.5 | 304 | 74 | memory bandwidth | 18% |
+| sm_80 | `B10000-S128-d128-H4-F128-L4-causal` | 23.8 | 318 | 75 | memory bandwidth | 19% |
+| sm_80 | `B64-S128-d32-H4-F32-L4-causal` | 2.1 | 79 | 27 | memory bandwidth | 5% |
+| sm_80 | `B64-S128-d1024-H4-F1024-L4-causal` | 120.3 | 259 | 465 | tensor cores | 77% |
+| sm_80 | `B64-S128-d128-H1-F128-L4-causal` | 19.9 | 271 | 74 | memory bandwidth | 16% |
+| sm_80 | `B64-S128-d128-H2-F128-L4-causal` | 18.4 | 250 | 74 | memory bandwidth | 15% |
+| sm_80 | `B64-S128-d128-H16-F128-L4-causal` | 10.5 | 142 | 74 | memory bandwidth | 9% |
+| sm_80 | `B64-S32-d128-H4-F128-L4-causal` | 9.9 | 158 | 63 | memory bandwidth | 10% |
+| sm_80 | `B64-S1024-d128-H4-F128-L4-causal` | 39.3 | 264 | 149 | tensor cores | 25% |
+| sm_90 | `B64-S128-d128-H4-F128-L4-causal` | 30.4 | 413 | 74 | memory bandwidth | 12% |
+| sm_90 | `B1-S128-d128-H4-F128-L4-causal` | 1.1 | 29 | 37 | memory bandwidth | 1% |
+| sm_90 | `B4-S128-d128-H4-F128-L4-causal` | 4.1 | 68 | 60 | memory bandwidth | 2% |
+| sm_90 | `B16-S128-d128-H4-F128-L4-causal` | 13.6 | 193 | 70 | memory bandwidth | 6% |
+| sm_90 | `B128-S128-d128-H4-F128-L4-causal` | 39.8 | 537 | 74 | memory bandwidth | 15% |
+| sm_90 | `B10000-S128-d128-H4-F128-L4-causal` | 38.0 | 509 | 75 | memory bandwidth | 15% |
+| sm_90 | `B64-S128-d32-H4-F32-L4-causal` | 2.4 | 89 | 27 | memory bandwidth | 3% |
+| sm_90 | `B64-S128-d1024-H4-F1024-L4-causal` | 221.3 | 476 | 465 | tensor cores | 53% |
+| sm_90 | `B64-S128-d128-H1-F128-L4-causal` | 31.5 | 429 | 74 | memory bandwidth | 12% |
+| sm_90 | `B64-S128-d128-H2-F128-L4-causal` | 33.0 | 448 | 74 | memory bandwidth | 13% |
+| sm_90 | `B64-S128-d128-H16-F128-L4-causal` | 15.9 | 216 | 74 | memory bandwidth | 6% |
+| sm_90 | `B64-S32-d128-H4-F128-L4-causal` | 13.2 | 210 | 63 | memory bandwidth | 6% |
+| sm_90 | `B64-S1024-d128-H4-F128-L4-causal` | 61.8 | 414 | 149 | tensor cores | 15% |
 
-**What this says.** The GEMM-bound shapes reach 25%-52% of the tensor-core ceiling on sm_80 and sm_90, which is a reasonable place to be for a mixed Triton/cuBLAS implementation. Two groups sit well below it, for different and instructive reasons:
+**What this says.**
 
-- **`tiny` and `decode` are bandwidth-bound with very low intensity.** They are not failing to use the machine; there is barely any arithmetic to do. Their speedups come from removing kernel launches, and the roofline confirms there is nothing further to win from better math.
-- **Long causal attention is the real headroom.** It sits at 11% of ceiling on sm_90 (`long_causal`), the lowest of the compute-bound shapes. That is the one regime where we still fall back to a library implementation, and where the next kernel should go.
+- **The compute-bound shapes reach 15%-77% of the tensor-core ceiling on sm_80 and sm_90.** The best is `B64-S128-d1024-H4-F1024-L4-causal` at 77% on sm_80, which is a good place to be for a mixed Triton/cuBLAS implementation; the weakest is `B64-S1024-d128-H4-F128-L4-causal` at 15% on sm_90.
+- **The other 22 rows are memory-bandwidth-bound**, at arithmetic intensities of 37-75 FLOP/byte against ridge points an order of magnitude higher. They are not failing to use the machine; there is barely any arithmetic to do. Their speedups come from removing kernel launches, and the roofline confirms there is nothing further to win from better math on them.
 
-Utilization is uniformly lower on H100 than on A100: the machine is much larger and our tile sizes do not saturate it. Closing that would mean Hopper-specific work (TMA, wgmma, larger persistent tiles) that we scoped out.
+Utilization is lower on sm_90 than on sm_80 for 12 of the 13 shapes both cards ran: the machine is larger and our tiles do not saturate it. Closing that would mean Hopper-specific work (TMA, wgmma, larger persistent tiles) that we scoped out.
 
 ## AI-generated kernel source
 

@@ -302,89 +302,7 @@
       "case": "long_seq"
     },
     {
-      "signature": "B4-S128-d128-H4-F128-L4-causal",
-      "dtype": "float32",
-      "arch": "sm_90",
-      "regime": "latency",
-      "plan": {
-        "name": "fp16[out_proj,ffn1,ffn2,attn]+graph",
-        "compute_dtype": "auto",
-        "residual_dtype": "float32",
-        "fuse_qkv": true,
-        "attention": "flash",
-        "fused_norm": true,
-        "cuda_graph": true,
-        "torch_compile": null,
-        "flash_block": null,
-        "smem_kb": 227.0,
-        "overrides": [
-          [
-            "out_proj",
-            "float16"
-          ],
-          [
-            "ffn1",
-            "float16"
-          ],
-          [
-            "ffn2",
-            "float16"
-          ],
-          [
-            "attn",
-            "float16"
-          ]
-        ],
-        "match_score_rounding": false
-      },
-      "utilization": 0.6259856224060059,
-      "speedup": 13.285976926660451,
-      "speedup_vs_compile": 1.8415323798182104,
-      "case": "B4-S128-d128-H4-F128-L4-causal"
-    },
-    {
-      "signature": "B16-S128-d128-H4-F128-L4-causal",
-      "dtype": "float32",
-      "arch": "sm_90",
-      "regime": "gemm",
-      "plan": {
-        "name": "fp16[attn,ffn1,out_proj,ffn2]+graph",
-        "compute_dtype": "auto",
-        "residual_dtype": "float32",
-        "fuse_qkv": true,
-        "attention": "flash",
-        "fused_norm": true,
-        "cuda_graph": true,
-        "torch_compile": null,
-        "flash_block": null,
-        "smem_kb": 227.0,
-        "overrides": [
-          [
-            "attn",
-            "float16"
-          ],
-          [
-            "ffn1",
-            "float16"
-          ],
-          [
-            "out_proj",
-            "float16"
-          ],
-          [
-            "ffn2",
-            "float16"
-          ]
-        ],
-        "match_score_rounding": false
-      },
-      "utilization": 0.4880633056163788,
-      "speedup": 11.14522170189303,
-      "speedup_vs_compile": 1.7549894037184897,
-      "case": "B16-S128-d128-H4-F128-L4-causal"
-    },
-    {
-      "signature": "B128-S128-d128-H4-F128-L4-causal",
+      "signature": "B64-S128-d128-H4-F128-L4-causal",
       "dtype": "float32",
       "arch": "sm_90",
       "regime": "gemm",
@@ -419,59 +337,18 @@
         ],
         "match_score_rounding": false
       },
-      "utilization": 0.6308506727218628,
-      "speedup": 4.6057854478075155,
-      "speedup_vs_compile": 1.791657545714106,
-      "case": "B128-S128-d128-H4-F128-L4-causal"
+      "utilization": 0.6753950715065002,
+      "speedup": 7.313849747065771,
+      "speedup_vs_compile": 1.6611922410339426,
+      "case": "B64-S128-d128-H4-F128-L4-causal"
     },
     {
-      "signature": "B10000-S128-d128-H4-F128-L4-causal",
+      "signature": "B1-S128-d128-H4-F128-L4-causal",
       "dtype": "float32",
       "arch": "sm_90",
-      "regime": "gemm",
+      "regime": "latency",
       "plan": {
-        "name": "fp16[attn,out_proj,ffn1,ffn2]",
-        "compute_dtype": "auto",
-        "residual_dtype": "float32",
-        "fuse_qkv": true,
-        "attention": "flash",
-        "fused_norm": true,
-        "cuda_graph": false,
-        "torch_compile": null,
-        "flash_block": null,
-        "smem_kb": 227.0,
-        "overrides": [
-          [
-            "attn",
-            "float16"
-          ],
-          [
-            "out_proj",
-            "float16"
-          ],
-          [
-            "ffn1",
-            "float16"
-          ],
-          [
-            "ffn2",
-            "float16"
-          ]
-        ],
-        "match_score_rounding": false
-      },
-      "utilization": 0.7674209475517273,
-      "speedup": 4.363227683282367,
-      "speedup_vs_compile": 1.8847487956882902,
-      "case": "B10000-S128-d128-H4-F128-L4-causal"
-    },
-    {
-      "signature": "B64-S128-d32-H4-F32-L4-causal",
-      "dtype": "float32",
-      "arch": "sm_90",
-      "regime": "gemm",
-      "plan": {
-        "name": "fp16[ffn1,ffn2,attn,out_proj]+graph",
+        "name": "fp16[out_proj,ffn2,ffn1,attn]+graph",
         "compute_dtype": "auto",
         "residual_dtype": "float32",
         "fuse_qkv": true,
@@ -483,11 +360,52 @@
         "smem_kb": 227.0,
         "overrides": [
           [
-            "ffn1",
+            "out_proj",
             "float16"
           ],
           [
             "ffn2",
+            "float16"
+          ],
+          [
+            "ffn1",
+            "float16"
+          ],
+          [
+            "attn",
+            "float16"
+          ]
+        ],
+        "match_score_rounding": false
+      },
+      "utilization": 0.4200748801231384,
+      "speedup": 14.320702070565469,
+      "speedup_vs_compile": 1.7434384808703294,
+      "case": "B1-S128-d128-H4-F128-L4-causal"
+    },
+    {
+      "signature": "B4-S128-d128-H4-F128-L4-causal",
+      "dtype": "float32",
+      "arch": "sm_90",
+      "regime": "latency",
+      "plan": {
+        "name": "fp16[ffn2,ffn1,attn,out_proj]+graph",
+        "compute_dtype": "auto",
+        "residual_dtype": "float32",
+        "fuse_qkv": true,
+        "attention": "flash",
+        "fused_norm": true,
+        "cuda_graph": true,
+        "torch_compile": null,
+        "flash_block": null,
+        "smem_kb": 227.0,
+        "overrides": [
+          [
+            "ffn2",
+            "float16"
+          ],
+          [
+            "ffn1",
             "float16"
           ],
           [
@@ -501,13 +419,54 @@
         ],
         "match_score_rounding": false
       },
-      "utilization": 0.5668438673019409,
-      "speedup": 5.881220388908108,
-      "speedup_vs_compile": 1.1131532489103422,
-      "case": "B64-S128-d32-H4-F32-L4-causal"
+      "utilization": 0.4976038932800293,
+      "speedup": 13.199195579647702,
+      "speedup_vs_compile": 1.921209579910407,
+      "case": "B4-S128-d128-H4-F128-L4-causal"
     },
     {
-      "signature": "B64-S128-d128-H1-F128-L4-causal",
+      "signature": "B16-S128-d128-H4-F128-L4-causal",
+      "dtype": "float32",
+      "arch": "sm_90",
+      "regime": "gemm",
+      "plan": {
+        "name": "fp16[attn,ffn2,ffn1,out_proj]+graph",
+        "compute_dtype": "auto",
+        "residual_dtype": "float32",
+        "fuse_qkv": true,
+        "attention": "flash",
+        "fused_norm": true,
+        "cuda_graph": true,
+        "torch_compile": null,
+        "flash_block": null,
+        "smem_kb": 227.0,
+        "overrides": [
+          [
+            "attn",
+            "float16"
+          ],
+          [
+            "ffn2",
+            "float16"
+          ],
+          [
+            "ffn1",
+            "float16"
+          ],
+          [
+            "out_proj",
+            "float16"
+          ]
+        ],
+        "match_score_rounding": false
+      },
+      "utilization": 0.5029812455177307,
+      "speedup": 11.185442142298019,
+      "speedup_vs_compile": 1.7081455645883503,
+      "case": "B16-S128-d128-H4-F128-L4-causal"
+    },
+    {
+      "signature": "B128-S128-d128-H4-F128-L4-causal",
       "dtype": "float32",
       "arch": "sm_90",
       "regime": "gemm",
@@ -542,38 +501,34 @@
         ],
         "match_score_rounding": false
       },
-      "utilization": 0.590461254119873,
-      "speedup": 7.137893122125236,
-      "speedup_vs_compile": 1.277862411559489,
-      "case": "B64-S128-d128-H1-F128-L4-causal"
+      "utilization": 0.6182957291603088,
+      "speedup": 4.46422356223602,
+      "speedup_vs_compile": 1.742215674184425,
+      "case": "B128-S128-d128-H4-F128-L4-causal"
     },
     {
-      "signature": "B64-S128-d128-H2-F128-L4-causal",
+      "signature": "B10000-S128-d128-H4-F128-L4-causal",
       "dtype": "float32",
       "arch": "sm_90",
       "regime": "gemm",
       "plan": {
-        "name": "fp16[ffn2,attn,out_proj,ffn1]+graph",
+        "name": "fp16[attn,ffn2,ffn1]",
         "compute_dtype": "auto",
         "residual_dtype": "float32",
         "fuse_qkv": true,
         "attention": "flash",
         "fused_norm": true,
-        "cuda_graph": true,
+        "cuda_graph": false,
         "torch_compile": null,
         "flash_block": null,
         "smem_kb": 227.0,
         "overrides": [
           [
-            "ffn2",
-            "float16"
-          ],
-          [
             "attn",
             "float16"
           ],
           [
-            "out_proj",
+            "ffn2",
             "float16"
           ],
           [
@@ -583,13 +538,78 @@
         ],
         "match_score_rounding": false
       },
-      "utilization": 0.6072781682014465,
-      "speedup": 8.185462664764444,
-      "speedup_vs_compile": 1.6494807614871396,
-      "case": "B64-S128-d128-H2-F128-L4-causal"
+      "utilization": 0.7665790319442749,
+      "speedup": 3.788210380785418,
+      "speedup_vs_compile": 1.6563238715325546,
+      "case": "B10000-S128-d128-H4-F128-L4-causal"
     },
     {
-      "signature": "B64-S128-d128-H16-F128-L4-causal",
+      "signature": "B64-S128-d32-H4-F32-L4-causal",
+      "dtype": "float32",
+      "arch": "sm_90",
+      "regime": "gemm",
+      "plan": {
+        "name": "exact+compile[ro]",
+        "compute_dtype": "auto",
+        "residual_dtype": "auto",
+        "fuse_qkv": false,
+        "attention": "exact",
+        "fused_norm": false,
+        "cuda_graph": false,
+        "torch_compile": "reduce-overhead",
+        "flash_block": null,
+        "smem_kb": 227.0,
+        "overrides": [],
+        "match_score_rounding": false
+      },
+      "utilization": 0.3125509023666382,
+      "speedup": 5.3158791186983985,
+      "speedup_vs_compile": 1.0158109504873742,
+      "case": "B64-S128-d32-H4-F32-L4-causal"
+    },
+    {
+      "signature": "B64-S128-d1024-H4-F1024-L4-causal",
+      "dtype": "float32",
+      "arch": "sm_90",
+      "regime": "gemm",
+      "plan": {
+        "name": "fp16[ffn2,ffn1,attn,out_proj]",
+        "compute_dtype": "auto",
+        "residual_dtype": "float32",
+        "fuse_qkv": true,
+        "attention": "flash",
+        "fused_norm": true,
+        "cuda_graph": false,
+        "torch_compile": null,
+        "flash_block": null,
+        "smem_kb": 227.0,
+        "overrides": [
+          [
+            "ffn2",
+            "float16"
+          ],
+          [
+            "ffn1",
+            "float16"
+          ],
+          [
+            "attn",
+            "float16"
+          ],
+          [
+            "out_proj",
+            "float16"
+          ]
+        ],
+        "match_score_rounding": false
+      },
+      "utilization": 0.6303488612174988,
+      "speedup": 2.33635098630179,
+      "speedup_vs_compile": 1.6755372339256862,
+      "case": "B64-S128-d1024-H4-F1024-L4-causal"
+    },
+    {
+      "signature": "B64-S128-d128-H1-F128-L4-causal",
       "dtype": "float32",
       "arch": "sm_90",
       "regime": "gemm",
@@ -624,18 +644,18 @@
         ],
         "match_score_rounding": false
       },
-      "utilization": 0.5276268124580383,
-      "speedup": 4.59275146563495,
-      "speedup_vs_compile": 1.6629893445435595,
-      "case": "B64-S128-d128-H16-F128-L4-causal"
+      "utilization": 0.5768646597862244,
+      "speedup": 6.941875038814223,
+      "speedup_vs_compile": 1.2886100137210525,
+      "case": "B64-S128-d128-H1-F128-L4-causal"
     },
     {
-      "signature": "B64-S32-d128-H4-F128-L4-causal",
+      "signature": "B64-S128-d128-H2-F128-L4-causal",
       "dtype": "float32",
       "arch": "sm_90",
       "regime": "gemm",
       "plan": {
-        "name": "fp16[ffn2,attn,out_proj,ffn1]+graph",
+        "name": "fp16[attn,ffn2,ffn1,out_proj]+graph",
         "compute_dtype": "auto",
         "residual_dtype": "float32",
         "fuse_qkv": true,
@@ -647,7 +667,130 @@
         "smem_kb": 227.0,
         "overrides": [
           [
+            "attn",
+            "float16"
+          ],
+          [
             "ffn2",
+            "float16"
+          ],
+          [
+            "ffn1",
+            "float16"
+          ],
+          [
+            "out_proj",
+            "float16"
+          ]
+        ],
+        "match_score_rounding": false
+      },
+      "utilization": 0.6681866645812988,
+      "speedup": 7.868921590068472,
+      "speedup_vs_compile": 1.619746038635935,
+      "case": "B64-S128-d128-H2-F128-L4-causal"
+    },
+    {
+      "signature": "B64-S128-d128-H16-F128-L4-causal",
+      "dtype": "float32",
+      "arch": "sm_90",
+      "regime": "gemm",
+      "plan": {
+        "name": "fp16[out_proj,attn,ffn2,ffn1]+graph",
+        "compute_dtype": "auto",
+        "residual_dtype": "float32",
+        "fuse_qkv": true,
+        "attention": "flash",
+        "fused_norm": true,
+        "cuda_graph": true,
+        "torch_compile": null,
+        "flash_block": null,
+        "smem_kb": 227.0,
+        "overrides": [
+          [
+            "out_proj",
+            "float16"
+          ],
+          [
+            "attn",
+            "float16"
+          ],
+          [
+            "ffn2",
+            "float16"
+          ],
+          [
+            "ffn1",
+            "float16"
+          ]
+        ],
+        "match_score_rounding": false
+      },
+      "utilization": 0.620625913143158,
+      "speedup": 4.491902157421979,
+      "speedup_vs_compile": 1.6309886875577777,
+      "case": "B64-S128-d128-H16-F128-L4-causal"
+    },
+    {
+      "signature": "B64-S32-d128-H4-F128-L4-causal",
+      "dtype": "float32",
+      "arch": "sm_90",
+      "regime": "gemm",
+      "plan": {
+        "name": "fp16[out_proj,attn,ffn1,ffn2]+graph",
+        "compute_dtype": "auto",
+        "residual_dtype": "float32",
+        "fuse_qkv": true,
+        "attention": "flash",
+        "fused_norm": true,
+        "cuda_graph": true,
+        "torch_compile": null,
+        "flash_block": null,
+        "smem_kb": 227.0,
+        "overrides": [
+          [
+            "out_proj",
+            "float16"
+          ],
+          [
+            "attn",
+            "float16"
+          ],
+          [
+            "ffn1",
+            "float16"
+          ],
+          [
+            "ffn2",
+            "float16"
+          ]
+        ],
+        "match_score_rounding": false
+      },
+      "utilization": 0.5746222734451294,
+      "speedup": 12.077804067345772,
+      "speedup_vs_compile": 1.842125056932558,
+      "case": "B64-S32-d128-H4-F128-L4-causal"
+    },
+    {
+      "signature": "B64-S1024-d128-H4-F128-L4-causal",
+      "dtype": "float32",
+      "arch": "sm_90",
+      "regime": "attention",
+      "plan": {
+        "name": "fp16[ffn1,attn,out_proj,ffn2]",
+        "compute_dtype": "auto",
+        "residual_dtype": "float32",
+        "fuse_qkv": true,
+        "attention": "flash",
+        "fused_norm": true,
+        "cuda_graph": false,
+        "torch_compile": null,
+        "flash_block": null,
+        "smem_kb": 227.0,
+        "overrides": [
+          [
+            "ffn1",
             "float16"
           ],
           [
@@ -659,141 +802,16 @@
             "float16"
           ],
           [
-            "ffn1",
+            "ffn2",
             "float16"
           ]
         ],
         "match_score_rounding": false
       },
-      "utilization": 0.560365617275238,
-      "speedup": 12.005709402068925,
-      "speedup_vs_compile": 1.6944938181425466,
-      "case": "B64-S32-d128-H4-F128-L4-causal"
-    },
-    {
-      "signature": "B64-S128-d128-H4-F128-L4-causal",
-      "dtype": "float32",
-      "arch": "sm_90",
-      "regime": "gemm",
-      "plan": {
-        "name": "cuda_graph_fused_f32_v2",
-        "compute_dtype": "float32",
-        "residual_dtype": "float32",
-        "fuse_qkv": true,
-        "attention": "flash",
-        "fused_norm": true,
-        "cuda_graph": true,
-        "torch_compile": null,
-        "flash_block": [
-          128,
-          128,
-          8,
-          3
-        ],
-        "smem_kb": 227.0,
-        "overrides": [],
-        "match_score_rounding": false
-      },
-      "utilization": 0.4753260612487793,
-      "speedup": 3.6068797526386303,
-      "speedup_vs_compile": 0.6837709231936472,
-      "case": "B64-S128-d128-H4-F128-L4-causal"
-    },
-    {
-      "signature": "B1-S128-d128-H4-F128-L4-causal",
-      "dtype": "float32",
-      "arch": "sm_90",
-      "regime": "latency",
-      "plan": {
-        "name": "cuda_graph_fp16_fused",
-        "compute_dtype": "float16",
-        "residual_dtype": "float32",
-        "fuse_qkv": true,
-        "attention": "flash",
-        "fused_norm": true,
-        "cuda_graph": true,
-        "torch_compile": null,
-        "flash_block": [
-          64,
-          64,
-          4,
-          4
-        ],
-        "smem_kb": 227.0,
-        "overrides": [],
-        "match_score_rounding": false
-      },
-      "utilization": 0.3930339515209198,
-      "speedup": 19.378315117470706,
-      "speedup_vs_compile": 1.9505997741072327,
-      "case": "B1-S128-d128-H4-F128-L4-causal"
-    },
-    {
-      "signature": "B64-S1024-d128-H4-F128-L4-causal",
-      "dtype": "float32",
-      "arch": "sm_90",
-      "regime": "attention",
-      "plan": {
-        "name": "float16_flash_fused_graph",
-        "compute_dtype": "float16",
-        "residual_dtype": "float32",
-        "fuse_qkv": true,
-        "attention": "flash",
-        "fused_norm": true,
-        "cuda_graph": true,
-        "torch_compile": null,
-        "flash_block": [
-          128,
-          128,
-          8,
-          3
-        ],
-        "smem_kb": 227.0,
-        "overrides": [],
-        "match_score_rounding": false
-      },
-      "utilization": 0.7111876606941223,
-      "speedup": 11.218406095848154,
-      "speedup_vs_compile": 4.65645063453561,
+      "utilization": 0.5801655054092407,
+      "speedup": 13.202586176816599,
+      "speedup_vs_compile": 4.770866932904434,
       "case": "B64-S1024-d128-H4-F128-L4-causal"
-    },
-    {
-      "signature": "B64-S128-d1024-H4-F1024-L4-causal",
-      "dtype": "float32",
-      "arch": "sm_90",
-      "regime": "gemm",
-      "plan": {
-        "name": "fp16_fused_ffn32",
-        "compute_dtype": "float16",
-        "residual_dtype": "float32",
-        "fuse_qkv": true,
-        "attention": "flash",
-        "fused_norm": true,
-        "cuda_graph": false,
-        "torch_compile": null,
-        "flash_block": [
-          128,
-          32,
-          4,
-          4
-        ],
-        "smem_kb": 227.0,
-        "overrides": [
-          [
-            "ffn1",
-            "float32"
-          ],
-          [
-            "ffn2",
-            "float32"
-          ]
-        ],
-        "match_score_rounding": false
-      },
-      "utilization": 0.5482457876205444,
-      "speedup": 1.9017775843250972,
-      "speedup_vs_compile": 1.392658885620292,
-      "case": "B64-S128-d1024-H4-F1024-L4-causal"
     }
   ]
 }

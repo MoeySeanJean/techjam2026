@@ -1,0 +1,2552 @@
+{
+  "gpu": "Tesla T4 [sm_75] 40 SMs | 14.6 GB | smem/block 64 KB | ~242 GB/s | tensor-cores",
+  "arch": "sm_75",
+  "device": "tesla-t4-15gb_sm_75",
+  "node": "xgpf1",
+  "slurm_job": "779433",
+  "host": "python 3.12.3 | torch 2.13.0+cu126 | platform Linux 6.8.0-138-generic | triton 3.7.1 | cuda 12.6",
+  "elapsed_s": 1859.2728571891785,
+  "records": [
+    {
+      "case": "B64-S128-d128-H4-F128-L4-causal",
+      "label": "B64-S128-d128-H4-F128-L4-causal-float32",
+      "regime": "gemm",
+      "cli": "python torch_transformer_benchmark.py --batch-size 64 --seq-len 128 --d-model 128 --heads 4 --ffn-dim 128 --layers 4 --dtype float32 --causal",
+      "baseline_ms": 9.493631839752197,
+      "compile_ms": 4.986032009124756,
+      "compile_modes": {
+        "torch.compile": 5.002095937728882,
+        "torch.compile[ro]": 4.986032009124756
+      },
+      "compile_passed": {
+        "torch.compile": true,
+        "torch.compile[ro]": true
+      },
+      "compile_envelope": {
+        "torch.compile": 0.00035017725895158947,
+        "torch.compile[ro]": 0.00038184222648851573
+      },
+      "compile_admissible": true,
+      "stage_cost": {
+        "attn": Infinity,
+        "out_proj": 0.3986581862263847,
+        "ffn1": 0.40365567806293257,
+        "ffn2": 0.3501139283471275
+      },
+      "best": {
+        "plan": "fp16[ffn2,out_proj,ffn1]",
+        "describe": "compute=auto residual=float32 attn=flash fused-qkv fused-norm [ffn2=float16,out_proj=float16,ffn1=float16]",
+        "median_ms": 3.9604320526123047,
+        "speedup": 2.3971202418408337,
+        "speedup_vs_compile": 1.2589616342075518,
+        "utilization": 0.6046704649925232,
+        "plan_spec": {
+          "name": "fp16[ffn2,out_proj,ffn1]",
+          "compute_dtype": "auto",
+          "residual_dtype": "float32",
+          "fuse_qkv": true,
+          "attention": "flash",
+          "fused_norm": true,
+          "cuda_graph": false,
+          "torch_compile": null,
+          "flash_block": null,
+          "smem_kb": 64.0,
+          "overrides": [
+            [
+              "ffn2",
+              "float16"
+            ],
+            [
+              "out_proj",
+              "float16"
+            ],
+            [
+              "ffn1",
+              "float16"
+            ]
+          ],
+          "match_score_rounding": false
+        }
+      },
+      "candidates": [
+        {
+          "plan": "safe(exact)",
+          "utilization": 0.0,
+          "passed": true,
+          "median_ms": 9.290159702301025,
+          "speedup": 1.0219018987801443,
+          "error": ""
+        },
+        {
+          "plan": "safe(exact)+graph",
+          "utilization": 0.0,
+          "passed": true,
+          "median_ms": 9.310208320617676,
+          "speedup": 1.0197013335059675,
+          "error": ""
+        },
+        {
+          "plan": "wide(sdpa)",
+          "utilization": 0.00039767471025697887,
+          "passed": true,
+          "median_ms": 5.006304025650024,
+          "speedup": 1.8963354584761825,
+          "error": ""
+        },
+        {
+          "plan": "wide",
+          "utilization": 0.0004405155486892909,
+          "passed": true,
+          "median_ms": 5.0174880027771,
+          "speedup": 1.8921085281116015,
+          "error": ""
+        },
+        {
+          "plan": "wide(torch-norm)",
+          "utilization": 0.0003315508074592799,
+          "passed": true,
+          "median_ms": 5.842064142227173,
+          "speedup": 1.6250475189293172,
+          "error": ""
+        },
+        {
+          "plan": "exact+compile[ma]",
+          "utilization": 0.00039860603283159435,
+          "passed": true,
+          "median_ms": 4.954895973205566,
+          "speedup": 1.916010324150216,
+          "error": ""
+        },
+        {
+          "plan": "compile[ma]",
+          "utilization": 0.00046007332275621593,
+          "passed": true,
+          "median_ms": 5.001728057861328,
+          "speedup": 1.898070372864603,
+          "error": ""
+        },
+        {
+          "plan": "exact+compile[ro]",
+          "utilization": 0.0004488974518608302,
+          "passed": true,
+          "median_ms": 4.974560022354126,
+          "speedup": 1.9084364842500177,
+          "error": ""
+        },
+        {
+          "plan": "compile[ro]",
+          "utilization": 0.00045448538730852306,
+          "passed": true,
+          "median_ms": 4.979151964187622,
+          "speedup": 1.9066764597736352,
+          "error": ""
+        },
+        {
+          "plan": "fp16[ffn2]",
+          "utilization": 0.36433708667755127,
+          "passed": true,
+          "median_ms": 4.772207975387573,
+          "speedup": 1.98935836173007,
+          "error": ""
+        },
+        {
+          "plan": "fp16[ffn2,out_proj]",
+          "utilization": 0.510087788105011,
+          "passed": true,
+          "median_ms": 4.462224006652832,
+          "speedup": 2.1275560853955167,
+          "error": ""
+        },
+        {
+          "plan": "fp16[ffn2,out_proj,ffn1]",
+          "utilization": 0.6046704649925232,
+          "passed": true,
+          "median_ms": 3.9604320526123047,
+          "speedup": 2.3971202418408337,
+          "error": ""
+        },
+        {
+          "plan": "wide(sdpa)+graph",
+          "utilization": 0.00039767471025697887,
+          "passed": true,
+          "median_ms": 5.06494402885437,
+          "speedup": 1.8743804049300705,
+          "error": ""
+        },
+        {
+          "plan": "wide+graph",
+          "utilization": 0.0004405155486892909,
+          "passed": true,
+          "median_ms": 5.0607521533966064,
+          "speedup": 1.875932974386108,
+          "error": ""
+        },
+        {
+          "plan": "wide(torch-norm)+graph",
+          "utilization": 0.0003315508074592799,
+          "passed": true,
+          "median_ms": 5.91049599647522,
+          "speedup": 1.6062326825724633,
+          "error": ""
+        },
+        {
+          "plan": "fp16[ffn2]+graph",
+          "utilization": 0.36433708667755127,
+          "passed": true,
+          "median_ms": 4.813807964324951,
+          "speedup": 1.9721667150225646,
+          "error": ""
+        },
+        {
+          "plan": "fp16[ffn2,out_proj]+graph",
+          "utilization": 0.510087788105011,
+          "passed": true,
+          "median_ms": 4.517296075820923,
+          "speedup": 2.1016182425073677,
+          "error": ""
+        },
+        {
+          "plan": "fp16[ffn2,out_proj,ffn1]+graph",
+          "utilization": 0.6046704649925232,
+          "passed": true,
+          "median_ms": 4.028671979904175,
+          "speedup": 2.356516461779053,
+          "error": ""
+        }
+      ]
+    },
+    {
+      "case": "B1-S128-d128-H4-F128-L4-causal",
+      "label": "B1-S128-d128-H4-F128-L4-causal-float32",
+      "regime": "latency",
+      "cli": "python torch_transformer_benchmark.py --batch-size 1 --seq-len 128 --d-model 128 --heads 4 --ffn-dim 128 --layers 4 --dtype float32 --causal",
+      "baseline_ms": 2.843840003013611,
+      "compile_ms": 0.32972800731658936,
+      "compile_modes": {
+        "torch.compile": 0.32972800731658936,
+        "torch.compile[ro]": 0.33694399893283844
+      },
+      "compile_passed": {
+        "torch.compile": true,
+        "torch.compile[ro]": true
+      },
+      "compile_envelope": {
+        "torch.compile": 0.00016018746828194708,
+        "torch.compile[ro]": 0.00015273690223693848
+      },
+      "compile_admissible": true,
+      "stage_cost": {
+        "attn": Infinity,
+        "out_proj": 0.2304934784915531,
+        "ffn1": 0.34483473749423865,
+        "ffn2": 0.27168076486850623
+      },
+      "best": {
+        "plan": "fp16[out_proj,ffn2,ffn1]+graph",
+        "describe": "compute=auto residual=float32 attn=flash fused-qkv fused-norm cuda-graph [out_proj=float16,ffn2=float16,ffn1=float16]",
+        "median_ms": 0.32763200998306274,
+        "speedup": 8.679982164015739,
+        "speedup_vs_compile": 1.006397413163735,
+        "utilization": 0.44422221183776855,
+        "plan_spec": {
+          "name": "fp16[out_proj,ffn2,ffn1]+graph",
+          "compute_dtype": "auto",
+          "residual_dtype": "float32",
+          "fuse_qkv": true,
+          "attention": "flash",
+          "fused_norm": true,
+          "cuda_graph": true,
+          "torch_compile": null,
+          "flash_block": null,
+          "smem_kb": 64.0,
+          "overrides": [
+            [
+              "out_proj",
+              "float16"
+            ],
+            [
+              "ffn2",
+              "float16"
+            ],
+            [
+              "ffn1",
+              "float16"
+            ]
+          ],
+          "match_score_rounding": false
+        }
+      },
+      "candidates": [
+        {
+          "plan": "safe(exact)",
+          "utilization": 0.0,
+          "passed": true,
+          "median_ms": 2.6280159950256348,
+          "speedup": 1.0821243129404434,
+          "error": ""
+        },
+        {
+          "plan": "safe(exact)+graph",
+          "utilization": 0.0,
+          "passed": true,
+          "median_ms": 0.4444639980792999,
+          "speedup": 6.398358506657319,
+          "error": ""
+        },
+        {
+          "plan": "wide(sdpa)",
+          "utilization": 0.00027939677238464355,
+          "passed": true,
+          "median_ms": 2.1794400215148926,
+          "speedup": 1.3048489405259727,
+          "error": ""
+        },
+        {
+          "plan": "wide",
+          "utilization": 0.0001937150809681043,
+          "passed": true,
+          "median_ms": 2.1833280324935913,
+          "speedup": 1.3025253011411415,
+          "error": ""
+        },
+        {
+          "plan": "wide(torch-norm)",
+          "utilization": 0.00017508862947579473,
+          "passed": true,
+          "median_ms": 2.0295679569244385,
+          "speedup": 1.4012046225459245,
+          "error": ""
+        },
+        {
+          "plan": "exact+compile[ma]",
+          "utilization": 0.00018812714552041143,
+          "passed": true,
+          "median_ms": 0.3399199992418289,
+          "speedup": 8.366203840187763,
+          "error": ""
+        },
+        {
+          "plan": "compile[ma]",
+          "utilization": 0.00023841856454964727,
+          "passed": true,
+          "median_ms": 0.3316799998283386,
+          "speedup": 8.574047288004834,
+          "error": ""
+        },
+        {
+          "plan": "exact+compile[ro]",
+          "utilization": 0.00017881391977425665,
+          "passed": true,
+          "median_ms": 0.33345599472522736,
+          "speedup": 8.528381699531229,
+          "error": ""
+        },
+        {
+          "plan": "compile[ro]",
+          "utilization": 0.00020880690135527402,
+          "passed": true,
+          "median_ms": 0.33792001008987427,
+          "speedup": 8.415719454604817,
+          "error": ""
+        },
+        {
+          "plan": "fp16[out_proj]",
+          "utilization": 0.29292142391204834,
+          "passed": true,
+          "median_ms": 2.336416006088257,
+          "speedup": 1.2171805002204672,
+          "error": ""
+        },
+        {
+          "plan": "fp16[out_proj,ffn2]",
+          "utilization": 0.4003392457962036,
+          "passed": true,
+          "median_ms": 2.438528060913086,
+          "speedup": 1.1662117195193396,
+          "error": ""
+        },
+        {
+          "plan": "fp16[out_proj,ffn2,ffn1]",
+          "utilization": 0.44422221183776855,
+          "passed": true,
+          "median_ms": 2.3515679836273193,
+          "speedup": 1.2093377792237827,
+          "error": ""
+        },
+        {
+          "plan": "wide(sdpa)+graph",
+          "utilization": 0.00027939677238464355,
+          "passed": true,
+          "median_ms": 0.36639998853206635,
+          "speedup": 7.761572303555696,
+          "error": ""
+        },
+        {
+          "plan": "wide+graph",
+          "utilization": 0.0001937150809681043,
+          "passed": true,
+          "median_ms": 0.36452800035476685,
+          "speedup": 7.801430892128785,
+          "error": ""
+        },
+        {
+          "plan": "wide(torch-norm)+graph",
+          "utilization": 0.00017508862947579473,
+          "passed": true,
+          "median_ms": 0.41420799493789673,
+          "speedup": 6.865729386609245,
+          "error": ""
+        },
+        {
+          "plan": "fp16[out_proj]+graph",
+          "utilization": 0.29292142391204834,
+          "passed": true,
+          "median_ms": 0.3561920076608658,
+          "speedup": 7.9840084613051205,
+          "error": ""
+        },
+        {
+          "plan": "fp16[out_proj,ffn2]+graph",
+          "utilization": 0.4003392457962036,
+          "passed": true,
+          "median_ms": 0.3481760025024414,
+          "speedup": 8.16782311984201,
+          "error": ""
+        },
+        {
+          "plan": "fp16[out_proj,ffn2,ffn1]+graph",
+          "utilization": 0.44422221183776855,
+          "passed": true,
+          "median_ms": 0.32763200998306274,
+          "speedup": 8.679982164015739,
+          "error": ""
+        }
+      ]
+    },
+    {
+      "case": "B4-S128-d128-H4-F128-L4-causal",
+      "label": "B4-S128-d128-H4-F128-L4-causal-float32",
+      "regime": "latency",
+      "cli": "python torch_transformer_benchmark.py --batch-size 4 --seq-len 128 --d-model 128 --heads 4 --ffn-dim 128 --layers 4 --dtype float32 --causal",
+      "baseline_ms": 2.925968050956726,
+      "compile_ms": 0.45473599433898926,
+      "compile_modes": {
+        "torch.compile": 0.45473599433898926,
+        "torch.compile[ro]": 0.46160000562667847
+      },
+      "compile_passed": {
+        "torch.compile": true,
+        "torch.compile[ro]": true
+      },
+      "compile_envelope": {
+        "torch.compile": 0.00018626450037118047,
+        "torch.compile[ro]": 0.00018626450037118047
+      },
+      "compile_admissible": true,
+      "stage_cost": {
+        "attn": Infinity,
+        "out_proj": 0.26697292923927307,
+        "ffn1": 0.37893277406692505,
+        "ffn2": 0.340929239988327
+      },
+      "best": {
+        "plan": "exact+compile[ma]",
+        "describe": "compute=auto residual=auto attn=exact torch.compile[max-autotune]",
+        "median_ms": 0.4423680007457733,
+        "speedup": 6.6143302545028915,
+        "speedup_vs_compile": 1.0279586081551224,
+        "utilization": 0.00024586915969848633,
+        "plan_spec": {
+          "name": "exact+compile[ma]",
+          "compute_dtype": "auto",
+          "residual_dtype": "auto",
+          "fuse_qkv": false,
+          "attention": "exact",
+          "fused_norm": false,
+          "cuda_graph": false,
+          "torch_compile": "max-autotune",
+          "flash_block": null,
+          "smem_kb": 64.0,
+          "overrides": [],
+          "match_score_rounding": false
+        }
+      },
+      "candidates": [
+        {
+          "plan": "safe(exact)",
+          "utilization": 0.0,
+          "passed": true,
+          "median_ms": 2.8525760173797607,
+          "speedup": 1.025728335767325,
+          "error": ""
+        },
+        {
+          "plan": "safe(exact)+graph",
+          "utilization": 0.0,
+          "passed": true,
+          "median_ms": 0.7212959825992584,
+          "speedup": 4.056542836149902,
+          "error": ""
+        },
+        {
+          "plan": "wide(sdpa)",
+          "utilization": 0.00025704503059387207,
+          "passed": true,
+          "median_ms": 2.2483359575271606,
+          "speedup": 1.301392721653067,
+          "error": ""
+        },
+        {
+          "plan": "wide",
+          "utilization": 0.00027567148208618164,
+          "passed": true,
+          "median_ms": 2.2487999200820923,
+          "speedup": 1.3011242240038472,
+          "error": ""
+        },
+        {
+          "plan": "wide(torch-norm)",
+          "utilization": 0.00028312206268310547,
+          "passed": true,
+          "median_ms": 2.1096479892730713,
+          "speedup": 1.3869460999343957,
+          "error": ""
+        },
+        {
+          "plan": "exact+compile[ma]",
+          "utilization": 0.00024586915969848633,
+          "passed": true,
+          "median_ms": 0.4423680007457733,
+          "speedup": 6.6143302545028915,
+          "error": ""
+        },
+        {
+          "plan": "compile[ma]",
+          "utilization": 0.00020861624216195196,
+          "passed": true,
+          "median_ms": 0.4607999920845032,
+          "speedup": 6.349757164102016,
+          "error": ""
+        },
+        {
+          "plan": "exact+compile[ro]",
+          "utilization": 0.00026263296604156494,
+          "passed": true,
+          "median_ms": 0.454352006316185,
+          "speedup": 6.4398704314745245,
+          "error": ""
+        },
+        {
+          "plan": "compile[ro]",
+          "utilization": 0.00022165475820656866,
+          "passed": true,
+          "median_ms": 0.46694400906562805,
+          "speedup": 6.266207498435829,
+          "error": ""
+        },
+        {
+          "plan": "fp16[out_proj]",
+          "utilization": 0.35339948534965515,
+          "passed": true,
+          "median_ms": 2.3481600284576416,
+          "speedup": 1.2460684176106218,
+          "error": ""
+        },
+        {
+          "plan": "fp16[out_proj,ffn2]",
+          "utilization": 0.38798338174819946,
+          "passed": true,
+          "median_ms": 2.44270396232605,
+          "speedup": 1.1978398103429984,
+          "error": ""
+        },
+        {
+          "plan": "fp16[out_proj,ffn2,ffn1]",
+          "utilization": 0.46847060322761536,
+          "passed": true,
+          "median_ms": 2.3548799753189087,
+          "speedup": 1.2425126043039532,
+          "error": ""
+        },
+        {
+          "plan": "wide(sdpa)+graph",
+          "utilization": 0.00025704503059387207,
+          "passed": true,
+          "median_ms": 0.5291360020637512,
+          "speedup": 5.529708883056119,
+          "error": ""
+        },
+        {
+          "plan": "wide+graph",
+          "utilization": 0.00027567148208618164,
+          "passed": true,
+          "median_ms": 0.5248960256576538,
+          "speedup": 5.574376463016111,
+          "error": ""
+        },
+        {
+          "plan": "wide(torch-norm)+graph",
+          "utilization": 0.00028312206268310547,
+          "passed": true,
+          "median_ms": 0.5925600230693817,
+          "speedup": 4.937842475097463,
+          "error": ""
+        },
+        {
+          "plan": "fp16[out_proj]+graph",
+          "utilization": 0.35339948534965515,
+          "passed": true,
+          "median_ms": 0.5113599896430969,
+          "speedup": 5.72193388262328,
+          "error": ""
+        },
+        {
+          "plan": "fp16[out_proj,ffn2]+graph",
+          "utilization": 0.38798338174819946,
+          "passed": true,
+          "median_ms": 0.4978879988193512,
+          "speedup": 5.876759548121496,
+          "error": ""
+        },
+        {
+          "plan": "fp16[out_proj,ffn2,ffn1]+graph",
+          "utilization": 0.46847060322761536,
+          "passed": true,
+          "median_ms": 0.47308799624443054,
+          "speedup": 6.184828349449317,
+          "error": ""
+        }
+      ]
+    },
+    {
+      "case": "B16-S128-d128-H4-F128-L4-causal",
+      "label": "B16-S128-d128-H4-F128-L4-causal-float32",
+      "regime": "gemm",
+      "cli": "python torch_transformer_benchmark.py --batch-size 16 --seq-len 128 --d-model 128 --heads 4 --ffn-dim 128 --layers 4 --dtype float32 --causal",
+      "baseline_ms": 2.9506560564041138,
+      "compile_ms": 1.1519200205802917,
+      "compile_modes": {
+        "torch.compile": 1.1519200205802917,
+        "torch.compile[ro]": 1.218559980392456
+      },
+      "compile_passed": {
+        "torch.compile": true,
+        "torch.compile[ro]": true
+      },
+      "compile_envelope": {
+        "torch.compile": 0.0002980232238769531,
+        "torch.compile[ro]": 0.0003129243559669703
+      },
+      "compile_admissible": true,
+      "stage_cost": {
+        "attn": Infinity,
+        "out_proj": 0.42671591791440733,
+        "ffn1": 0.35590396079351194,
+        "ffn2": 0.3000648990564514
+      },
+      "best": {
+        "plan": "exact+compile[ma]",
+        "describe": "compute=auto residual=auto attn=exact torch.compile[max-autotune]",
+        "median_ms": 1.1138880252838135,
+        "speedup": 2.6489700844501853,
+        "speedup_vs_compile": 1.0341434636455382,
+        "utilization": 0.00034798539127223194,
+        "plan_spec": {
+          "name": "exact+compile[ma]",
+          "compute_dtype": "auto",
+          "residual_dtype": "auto",
+          "fuse_qkv": false,
+          "attention": "exact",
+          "fused_norm": false,
+          "cuda_graph": false,
+          "torch_compile": "max-autotune",
+          "flash_block": null,
+          "smem_kb": 64.0,
+          "overrides": [],
+          "match_score_rounding": false
+        }
+      },
+      "candidates": [
+        {
+          "plan": "safe(exact)",
+          "utilization": 0.0,
+          "passed": true,
+          "median_ms": 2.850816011428833,
+          "speedup": 1.0350215673600207,
+          "error": ""
+        },
+        {
+          "plan": "safe(exact)+graph",
+          "utilization": 0.0,
+          "passed": true,
+          "median_ms": 2.398959994316101,
+          "speedup": 1.2299730147210275,
+          "error": ""
+        },
+        {
+          "plan": "wide(sdpa)",
+          "utilization": 0.00031664964626543224,
+          "passed": true,
+          "median_ms": 2.2757279872894287,
+          "speedup": 1.2965767758204607,
+          "error": ""
+        },
+        {
+          "plan": "wide",
+          "utilization": 0.00035576519439928234,
+          "passed": true,
+          "median_ms": 2.274896025657654,
+          "speedup": 1.2970509522742268,
+          "error": ""
+        },
+        {
+          "plan": "wide(torch-norm)",
+          "utilization": 0.00037252900074236095,
+          "passed": true,
+          "median_ms": 2.1238240003585815,
+          "speedup": 1.389312888405975,
+          "error": ""
+        },
+        {
+          "plan": "exact+compile[ma]",
+          "utilization": 0.00034798539127223194,
+          "passed": true,
+          "median_ms": 1.1138880252838135,
+          "speedup": 2.6489700844501853,
+          "error": ""
+        },
+        {
+          "plan": "compile[ma]",
+          "utilization": 0.0003799795813392848,
+          "passed": true,
+          "median_ms": 1.2364799976348877,
+          "speedup": 2.38633545390792,
+          "error": ""
+        },
+        {
+          "plan": "exact+compile[ro]",
+          "utilization": 0.00045448538730852306,
+          "passed": true,
+          "median_ms": 1.2387999892234802,
+          "speedup": 2.3818663884988247,
+          "error": ""
+        },
+        {
+          "plan": "compile[ro]",
+          "utilization": 0.00035110858152620494,
+          "passed": true,
+          "median_ms": 1.230735957622528,
+          "speedup": 2.3974728601446227,
+          "error": ""
+        },
+        {
+          "plan": "fp16[ffn2]",
+          "utilization": 0.3940388262271881,
+          "passed": true,
+          "median_ms": 2.402240037918091,
+          "speedup": 1.2282935967386963,
+          "error": ""
+        },
+        {
+          "plan": "fp16[ffn2,ffn1]",
+          "utilization": 0.47695261240005493,
+          "passed": true,
+          "median_ms": 2.330672025680542,
+          "speedup": 1.2660108431783919,
+          "error": ""
+        },
+        {
+          "plan": "fp16[ffn2,ffn1,out_proj]",
+          "utilization": 0.49508360028266907,
+          "passed": true,
+          "median_ms": 2.3836801052093506,
+          "speedup": 1.2378573995544455,
+          "error": ""
+        },
+        {
+          "plan": "wide(sdpa)+graph",
+          "utilization": 0.00031664964626543224,
+          "passed": true,
+          "median_ms": 1.3241600394248962,
+          "speedup": 2.228322837536791,
+          "error": ""
+        },
+        {
+          "plan": "wide+graph",
+          "utilization": 0.00035576519439928234,
+          "passed": true,
+          "median_ms": 1.4451200366020203,
+          "speedup": 2.0418068960846547,
+          "error": ""
+        },
+        {
+          "plan": "wide(torch-norm)+graph",
+          "utilization": 0.00037252900074236095,
+          "passed": true,
+          "median_ms": 1.612928032875061,
+          "speedup": 1.8293786184275926,
+          "error": ""
+        },
+        {
+          "plan": "fp16[ffn2]+graph",
+          "utilization": 0.3940388262271881,
+          "passed": true,
+          "median_ms": 1.3596799969673157,
+          "speedup": 2.1701106605858542,
+          "error": ""
+        },
+        {
+          "plan": "fp16[ffn2,ffn1]+graph",
+          "utilization": 0.47695261240005493,
+          "passed": true,
+          "median_ms": 1.2800480127334595,
+          "speedup": 2.3051135793751825,
+          "error": ""
+        },
+        {
+          "plan": "fp16[ffn2,ffn1,out_proj]+graph",
+          "utilization": 0.49508360028266907,
+          "passed": true,
+          "median_ms": 1.206928014755249,
+          "speedup": 2.444765570382814,
+          "error": ""
+        }
+      ]
+    },
+    {
+      "case": "B128-S128-d128-H4-F128-L4-causal",
+      "label": "B128-S128-d128-H4-F128-L4-causal-float32",
+      "regime": "gemm",
+      "cli": "python torch_transformer_benchmark.py --batch-size 128 --seq-len 128 --d-model 128 --heads 4 --ffn-dim 128 --layers 4 --dtype float32 --causal",
+      "baseline_ms": 18.627680778503418,
+      "compile_ms": 9.893792152404785,
+      "compile_modes": {
+        "torch.compile": 9.946671962738037,
+        "torch.compile[ro]": 9.893792152404785
+      },
+      "compile_passed": {
+        "torch.compile": true,
+        "torch.compile[ro]": true
+      },
+      "compile_envelope": {
+        "torch.compile": 0.00039488074253313243,
+        "torch.compile[ro]": 0.00036880371044389904
+      },
+      "compile_admissible": true,
+      "stage_cost": {
+        "attn": Infinity,
+        "out_proj": 0.41459889788529836,
+        "ffn1": 0.3923738159646746,
+        "ffn2": 0.39773915786645375
+      },
+      "best": {
+        "plan": "fp16[ffn1,ffn2,out_proj]",
+        "describe": "compute=auto residual=float32 attn=flash fused-qkv fused-norm [ffn1=float16,ffn2=float16,out_proj=float16]",
+        "median_ms": 7.9792799949646,
+        "speedup": 2.3345064705410254,
+        "speedup_vs_compile": 1.239935452653417,
+        "utilization": 0.5969339609146118,
+        "plan_spec": {
+          "name": "fp16[ffn1,ffn2,out_proj]",
+          "compute_dtype": "auto",
+          "residual_dtype": "float32",
+          "fuse_qkv": true,
+          "attention": "flash",
+          "fused_norm": true,
+          "cuda_graph": false,
+          "torch_compile": null,
+          "flash_block": null,
+          "smem_kb": 64.0,
+          "overrides": [
+            [
+              "ffn1",
+              "float16"
+            ],
+            [
+              "ffn2",
+              "float16"
+            ],
+            [
+              "out_proj",
+              "float16"
+            ]
+          ],
+          "match_score_rounding": false
+        }
+      },
+      "candidates": [
+        {
+          "plan": "safe(exact)",
+          "utilization": 0.0,
+          "passed": true,
+          "median_ms": 18.22310447692871,
+          "speedup": 1.0222012831066694,
+          "error": ""
+        },
+        {
+          "plan": "safe(exact)+graph",
+          "utilization": 0.0,
+          "passed": true,
+          "median_ms": 18.250672340393066,
+          "speedup": 1.0206572355844634,
+          "error": ""
+        },
+        {
+          "plan": "wide(sdpa)",
+          "utilization": 0.00042468306492082775,
+          "passed": true,
+          "median_ms": 9.840543746948242,
+          "speedup": 1.8929523873393936,
+          "error": ""
+        },
+        {
+          "plan": "wide",
+          "utilization": 0.0005162202287465334,
+          "passed": true,
+          "median_ms": 9.850624084472656,
+          "speedup": 1.8910152919007297,
+          "error": ""
+        },
+        {
+          "plan": "wide(torch-norm)",
+          "utilization": 0.0003650784201454371,
+          "passed": true,
+          "median_ms": 11.530287742614746,
+          "speedup": 1.6155434447362007,
+          "error": ""
+        },
+        {
+          "plan": "exact+compile[ma]",
+          "utilization": 0.0004693865485023707,
+          "passed": true,
+          "median_ms": 9.91862440109253,
+          "speedup": 1.8780508289487796,
+          "error": ""
+        },
+        {
+          "plan": "compile[ma]",
+          "utilization": 0.0004395842261146754,
+          "passed": true,
+          "median_ms": 9.941440105438232,
+          "speedup": 1.8737406835367425,
+          "error": ""
+        },
+        {
+          "plan": "exact+compile[ro]",
+          "utilization": 0.0004041939682792872,
+          "passed": true,
+          "median_ms": 9.874768257141113,
+          "speedup": 1.8863916897525652,
+          "error": ""
+        },
+        {
+          "plan": "compile[ro]",
+          "utilization": 0.00047683712909929454,
+          "passed": true,
+          "median_ms": 9.888895988464355,
+          "speedup": 1.8836967038821193,
+          "error": ""
+        },
+        {
+          "plan": "fp16[ffn1]",
+          "utilization": 0.45576316118240356,
+          "passed": true,
+          "median_ms": 9.356287956237793,
+          "speedup": 1.9909264085960963,
+          "error": ""
+        },
+        {
+          "plan": "fp16[ffn1,ffn2]",
+          "utilization": 0.5503333806991577,
+          "passed": true,
+          "median_ms": 8.4028639793396,
+          "speedup": 2.216825218675908,
+          "error": ""
+        },
+        {
+          "plan": "fp16[ffn1,ffn2,out_proj]",
+          "utilization": 0.5969339609146118,
+          "passed": true,
+          "median_ms": 7.9792799949646,
+          "speedup": 2.3345064705410254,
+          "error": ""
+        },
+        {
+          "plan": "wide(sdpa)+graph",
+          "utilization": 0.00042468306492082775,
+          "passed": true,
+          "median_ms": 10.014576435089111,
+          "speedup": 1.8600567781614485,
+          "error": ""
+        },
+        {
+          "plan": "wide+graph",
+          "utilization": 0.0005162202287465334,
+          "passed": true,
+          "median_ms": 10.007423877716064,
+          "speedup": 1.8613862074916632,
+          "error": ""
+        },
+        {
+          "plan": "wide(torch-norm)+graph",
+          "utilization": 0.0003650784201454371,
+          "passed": true,
+          "median_ms": 11.691504001617432,
+          "speedup": 1.5932664245700483,
+          "error": ""
+        },
+        {
+          "plan": "fp16[ffn1]+graph",
+          "utilization": 0.45576316118240356,
+          "passed": true,
+          "median_ms": 9.419456005096436,
+          "speedup": 1.977575007349133,
+          "error": ""
+        },
+        {
+          "plan": "fp16[ffn1,ffn2]+graph",
+          "utilization": 0.5503333806991577,
+          "passed": true,
+          "median_ms": 8.55019235610962,
+          "speedup": 2.178627100148552,
+          "error": ""
+        },
+        {
+          "plan": "fp16[ffn1,ffn2,out_proj]+graph",
+          "utilization": 0.5969339609146118,
+          "passed": true,
+          "median_ms": 8.139328002929688,
+          "speedup": 2.2886018073971868,
+          "error": ""
+        }
+      ]
+    },
+    {
+      "case": "B64-S128-d32-H4-F32-L4-causal",
+      "label": "B64-S128-d32-H4-F32-L4-causal-float32",
+      "regime": "gemm",
+      "cli": "python torch_transformer_benchmark.py --batch-size 64 --seq-len 128 --d-model 32 --heads 4 --ffn-dim 32 --layers 4 --dtype float32 --causal",
+      "baseline_ms": 6.116111993789673,
+      "compile_ms": 2.0282880067825317,
+      "compile_modes": {
+        "torch.compile": 2.0282880067825317,
+        "torch.compile[ro]": 2.048527956008911
+      },
+      "compile_passed": {
+        "torch.compile": true,
+        "torch.compile[ro]": true
+      },
+      "compile_envelope": {
+        "torch.compile": 0.00021234153246041387,
+        "torch.compile[ro]": 0.00022351740335579962
+      },
+      "compile_admissible": true,
+      "stage_cost": {
+        "attn": Infinity,
+        "out_proj": 0.39822969780652784,
+        "ffn1": 0.5058272574970033,
+        "ffn2": 0.3809350524970796
+      },
+      "best": {
+        "plan": "exact+compile[ma]",
+        "describe": "compute=auto residual=auto attn=exact torch.compile[max-autotune]",
+        "median_ms": 2.007040023803711,
+        "speedup": 3.0473293612742776,
+        "speedup_vs_compile": 1.0105867260875805,
+        "utilization": 0.0002644956111907959,
+        "plan_spec": {
+          "name": "exact+compile[ma]",
+          "compute_dtype": "auto",
+          "residual_dtype": "auto",
+          "fuse_qkv": false,
+          "attention": "exact",
+          "fused_norm": false,
+          "cuda_graph": false,
+          "torch_compile": "max-autotune",
+          "flash_block": null,
+          "smem_kb": 64.0,
+          "overrides": [],
+          "match_score_rounding": false
+        }
+      },
+      "candidates": [
+        {
+          "plan": "safe(exact)",
+          "utilization": 0.0,
+          "passed": true,
+          "median_ms": 6.175487995147705,
+          "speedup": 0.9903852130544686,
+          "error": ""
+        },
+        {
+          "plan": "safe(exact)+graph",
+          "utilization": 0.0,
+          "passed": true,
+          "median_ms": 6.160239934921265,
+          "speedup": 0.992836652208717,
+          "error": ""
+        },
+        {
+          "plan": "wide(sdpa)",
+          "utilization": 0.0003138556785415858,
+          "passed": true,
+          "median_ms": 2.2874720096588135,
+          "speedup": 2.6737428777115038,
+          "error": ""
+        },
+        {
+          "plan": "wide",
+          "utilization": 0.0003129243559669703,
+          "passed": true,
+          "median_ms": 2.2806239128112793,
+          "speedup": 2.6817714044971424,
+          "error": ""
+        },
+        {
+          "plan": "wide(torch-norm)",
+          "utilization": 0.00027104667969979346,
+          "passed": true,
+          "median_ms": 2.7382400035858154,
+          "speedup": 2.233592375314225,
+          "error": ""
+        },
+        {
+          "plan": "exact+compile[ma]",
+          "utilization": 0.0002644956111907959,
+          "passed": true,
+          "median_ms": 2.007040023803711,
+          "speedup": 3.0473293612742776,
+          "error": ""
+        },
+        {
+          "plan": "compile[ma]",
+          "utilization": 0.0002822416718117893,
+          "passed": true,
+          "median_ms": 2.085536003112793,
+          "speedup": 2.9326331382728434,
+          "error": ""
+        },
+        {
+          "plan": "exact+compile[ro]",
+          "utilization": 0.00029243528842926025,
+          "passed": true,
+          "median_ms": 2.069535970687866,
+          "speedup": 2.9553059625036706,
+          "error": ""
+        },
+        {
+          "plan": "compile[ro]",
+          "utilization": 0.000303611159324646,
+          "passed": true,
+          "median_ms": 2.062399983406067,
+          "speedup": 2.965531440554453,
+          "error": ""
+        },
+        {
+          "plan": "fp16[ffn2]",
+          "utilization": 0.39084625244140625,
+          "passed": true,
+          "median_ms": 2.4544479846954346,
+          "speedup": 2.4918482819462167,
+          "error": ""
+        },
+        {
+          "plan": "fp16[ffn2,out_proj]",
+          "utilization": 0.47823411226272583,
+          "passed": true,
+          "median_ms": 2.5372159481048584,
+          "speedup": 2.4105602829581874,
+          "error": ""
+        },
+        {
+          "plan": "fp16[ffn2,out_proj,ffn1]",
+          "utilization": 0.7059797048568726,
+          "passed": true,
+          "median_ms": 2.448896050453186,
+          "speedup": 2.497497593929249,
+          "error": ""
+        },
+        {
+          "plan": "wide(sdpa)+graph",
+          "utilization": 0.0003138556785415858,
+          "passed": true,
+          "median_ms": 2.2488479614257812,
+          "speedup": 2.719664512096241,
+          "error": ""
+        },
+        {
+          "plan": "wide+graph",
+          "utilization": 0.0003129243559669703,
+          "passed": true,
+          "median_ms": 2.2900959253311157,
+          "speedup": 2.6706793921330476,
+          "error": ""
+        },
+        {
+          "plan": "wide(torch-norm)+graph",
+          "utilization": 0.00027104667969979346,
+          "passed": true,
+          "median_ms": 2.7607200145721436,
+          "speedup": 2.2154046630974813,
+          "error": ""
+        },
+        {
+          "plan": "fp16[ffn2]+graph",
+          "utilization": 0.39084625244140625,
+          "passed": true,
+          "median_ms": 2.20740807056427,
+          "speedup": 2.770721043991761,
+          "error": ""
+        },
+        {
+          "plan": "fp16[ffn2,out_proj]+graph",
+          "utilization": 0.47823411226272583,
+          "passed": true,
+          "median_ms": 2.1808639764785767,
+          "speedup": 2.804444504450621,
+          "error": ""
+        },
+        {
+          "plan": "fp16[ffn2,out_proj,ffn1]+graph",
+          "utilization": 0.7059797048568726,
+          "passed": true,
+          "median_ms": 2.0421119928359985,
+          "speedup": 2.99499342604412,
+          "error": ""
+        }
+      ]
+    },
+    {
+      "case": "B64-S128-d1024-H4-F1024-L4-causal",
+      "label": "B64-S128-d1024-H4-F1024-L4-causal-float32",
+      "regime": "gemm",
+      "cli": "python torch_transformer_benchmark.py --batch-size 64 --seq-len 128 --d-model 1024 --heads 4 --ffn-dim 1024 --layers 4 --dtype float32 --causal",
+      "baseline_ms": 124.73088073730469,
+      "compile_ms": 112.1618537902832,
+      "compile_modes": {
+        "torch.compile": 112.1618537902832,
+        "torch.compile[ro]": 112.31867218017578
+      },
+      "compile_passed": {
+        "torch.compile": true,
+        "torch.compile[ro]": true
+      },
+      "compile_envelope": {
+        "torch.compile": 0.001266598585061729,
+        "torch.compile[ro]": 0.0014463438419625163
+      },
+      "compile_admissible": true,
+      "stage_cost": {
+        "attn": 0.4008859097957611,
+        "out_proj": 0.40664324164390564,
+        "ffn1": 0.4279613196849823,
+        "ffn2": 0.3500012457370758
+      },
+      "best": {
+        "plan": "fp16[ffn2,attn,out_proj,ffn1]",
+        "describe": "compute=auto residual=float32 attn=flash fused-qkv fused-norm [ffn2=float16,attn=float16,out_proj=float16,ffn1=float16]",
+        "median_ms": 34.25195121765137,
+        "speedup": 3.6415700800433815,
+        "speedup_vs_compile": 3.2746120966236174,
+        "utilization": 0.7676221132278442,
+        "plan_spec": {
+          "name": "fp16[ffn2,attn,out_proj,ffn1]",
+          "compute_dtype": "auto",
+          "residual_dtype": "float32",
+          "fuse_qkv": true,
+          "attention": "flash",
+          "fused_norm": true,
+          "cuda_graph": false,
+          "torch_compile": null,
+          "flash_block": null,
+          "smem_kb": 64.0,
+          "overrides": [
+            [
+              "ffn2",
+              "float16"
+            ],
+            [
+              "attn",
+              "float16"
+            ],
+            [
+              "out_proj",
+              "float16"
+            ],
+            [
+              "ffn1",
+              "float16"
+            ]
+          ],
+          "match_score_rounding": false
+        }
+      },
+      "candidates": [
+        {
+          "plan": "safe(exact)",
+          "utilization": 0.0,
+          "passed": true,
+          "median_ms": 123.51806259155273,
+          "speedup": 1.0098189537651872,
+          "error": ""
+        },
+        {
+          "plan": "safe(exact)+graph",
+          "utilization": 0.0,
+          "passed": true,
+          "median_ms": 124.16672134399414,
+          "speedup": 1.0045435635829312,
+          "error": ""
+        },
+        {
+          "plan": "wide(sdpa)",
+          "utilization": 0.0010747462511062622,
+          "passed": true,
+          "median_ms": 116.17720031738281,
+          "speedup": 1.073626153811197,
+          "error": ""
+        },
+        {
+          "plan": "wide",
+          "utilization": 0.001044943928718567,
+          "passed": true,
+          "median_ms": 116.17073822021484,
+          "speedup": 1.0736858751888374,
+          "error": ""
+        },
+        {
+          "plan": "wide(torch-norm)",
+          "utilization": 0.001169741153717041,
+          "passed": true,
+          "median_ms": 119.74639892578125,
+          "speedup": 1.0416253169718517,
+          "error": ""
+        },
+        {
+          "plan": "exact+compile[ma]",
+          "utilization": 0.0015944241313263774,
+          "passed": true,
+          "median_ms": 111.83205032348633,
+          "speedup": 1.1153410885028674,
+          "error": ""
+        },
+        {
+          "plan": "compile[ma]",
+          "utilization": 0.001405831309966743,
+          "passed": true,
+          "median_ms": 112.28243255615234,
+          "speedup": 1.110867282599412,
+          "error": ""
+        },
+        {
+          "plan": "exact+compile[ro]",
+          "utilization": 0.0013943332014605403,
+          "passed": true,
+          "median_ms": 112.02982330322266,
+          "speedup": 1.1133721098506515,
+          "error": ""
+        },
+        {
+          "plan": "compile[ro]",
+          "utilization": 0.0012377275852486491,
+          "passed": true,
+          "median_ms": 112.33148574829102,
+          "speedup": 1.110382186315935,
+          "error": ""
+        },
+        {
+          "plan": "fp16[ffn2]",
+          "utilization": 0.3583877980709076,
+          "passed": true,
+          "median_ms": 102.94278335571289,
+          "speedup": 1.2116524992947226,
+          "error": ""
+        },
+        {
+          "plan": "fp16[ffn2,attn]",
+          "utilization": 0.5232095718383789,
+          "passed": true,
+          "median_ms": 64.55699157714844,
+          "speedup": 1.9321049152088479,
+          "error": ""
+        },
+        {
+          "plan": "fp16[ffn2,attn,out_proj]",
+          "utilization": 0.6275586485862732,
+          "passed": true,
+          "median_ms": 50.00542449951172,
+          "speedup": 2.49434700306409,
+          "error": ""
+        },
+        {
+          "plan": "fp16[ffn2,attn,out_proj,ffn1]",
+          "utilization": 0.7676221132278442,
+          "passed": true,
+          "median_ms": 34.25195121765137,
+          "speedup": 3.6415700800433815,
+          "error": ""
+        },
+        {
+          "plan": "wide(sdpa)+graph",
+          "utilization": 0.0010747462511062622,
+          "passed": true,
+          "median_ms": 116.8753433227539,
+          "speedup": 1.0672129569096327,
+          "error": ""
+        },
+        {
+          "plan": "wide+graph",
+          "utilization": 0.001044943928718567,
+          "passed": true,
+          "median_ms": 116.81249618530273,
+          "speedup": 1.0677871358851951,
+          "error": ""
+        },
+        {
+          "plan": "wide(torch-norm)+graph",
+          "utilization": 0.001169741153717041,
+          "passed": true,
+          "median_ms": 120.51475524902344,
+          "speedup": 1.0349843094280806,
+          "error": ""
+        },
+        {
+          "plan": "fp16[ffn2]+graph",
+          "utilization": 0.3583877980709076,
+          "passed": true,
+          "median_ms": 103.49388885498047,
+          "speedup": 1.205200443400888,
+          "error": ""
+        },
+        {
+          "plan": "fp16[ffn2,attn]+graph",
+          "utilization": 0.5232095718383789,
+          "passed": true,
+          "median_ms": 65.1332778930664,
+          "speedup": 1.91501003438033,
+          "error": ""
+        },
+        {
+          "plan": "fp16[ffn2,attn,out_proj]+graph",
+          "utilization": 0.6275586485862732,
+          "passed": true,
+          "median_ms": 50.54937553405762,
+          "speedup": 2.4675058676692716,
+          "error": ""
+        },
+        {
+          "plan": "fp16[ffn2,attn,out_proj,ffn1]+graph",
+          "utilization": 0.7676221132278442,
+          "passed": true,
+          "median_ms": 34.406463623046875,
+          "speedup": 3.625216532098195,
+          "error": ""
+        }
+      ]
+    },
+    {
+      "case": "B64-S128-d128-H1-F128-L4-causal",
+      "label": "B64-S128-d128-H1-F128-L4-causal-float32",
+      "regime": "gemm",
+      "cli": "python torch_transformer_benchmark.py --batch-size 64 --seq-len 128 --d-model 128 --heads 1 --ffn-dim 128 --layers 4 --dtype float32 --causal",
+      "baseline_ms": 6.031327962875366,
+      "compile_ms": 3.8827680349349976,
+      "compile_modes": {
+        "torch.compile": 3.8827680349349976,
+        "torch.compile[ro]": 3.894463896751404
+      },
+      "compile_passed": {
+        "torch.compile": true,
+        "torch.compile[ro]": true
+      },
+      "compile_envelope": {
+        "torch.compile": 0.0003222375817131251,
+        "torch.compile[ro]": 0.000325962872011587
+      },
+      "compile_admissible": true,
+      "stage_cost": {
+        "attn": 0.3996821940236259,
+        "out_proj": 0.40500235560466535,
+        "ffn1": 0.4175863862328697,
+        "ffn2": 0.36799159648944624
+      },
+      "best": {
+        "plan": "fp16[ffn2,attn,out_proj,ffn1]",
+        "describe": "compute=auto residual=float32 attn=flash fused-qkv fused-norm [ffn2=float16,attn=float16,out_proj=float16,ffn1=float16]",
+        "median_ms": 3.1733919382095337,
+        "speedup": 1.9005934597156362,
+        "speedup_vs_compile": 1.2235387593269373,
+        "utilization": 0.6867088079452515,
+        "plan_spec": {
+          "name": "fp16[ffn2,attn,out_proj,ffn1]",
+          "compute_dtype": "auto",
+          "residual_dtype": "float32",
+          "fuse_qkv": true,
+          "attention": "flash",
+          "fused_norm": true,
+          "cuda_graph": false,
+          "torch_compile": null,
+          "flash_block": null,
+          "smem_kb": 64.0,
+          "overrides": [
+            [
+              "ffn2",
+              "float16"
+            ],
+            [
+              "attn",
+              "float16"
+            ],
+            [
+              "out_proj",
+              "float16"
+            ],
+            [
+              "ffn1",
+              "float16"
+            ]
+          ],
+          "match_score_rounding": false
+        }
+      },
+      "candidates": [
+        {
+          "plan": "safe(exact)",
+          "utilization": 0.0,
+          "passed": true,
+          "median_ms": 5.832704067230225,
+          "speedup": 1.0340534841740157,
+          "error": ""
+        },
+        {
+          "plan": "safe(exact)+graph",
+          "utilization": 0.0,
+          "passed": true,
+          "median_ms": 5.825792074203491,
+          "speedup": 1.0352803337389922,
+          "error": ""
+        },
+        {
+          "plan": "wide(sdpa)",
+          "utilization": 0.00043839606223627925,
+          "passed": true,
+          "median_ms": 4.570368051528931,
+          "speedup": 1.319659137923848,
+          "error": ""
+        },
+        {
+          "plan": "wide",
+          "utilization": 0.0003874301619362086,
+          "passed": true,
+          "median_ms": 4.580287933349609,
+          "speedup": 1.3168010506415035,
+          "error": ""
+        },
+        {
+          "plan": "wide(torch-norm)",
+          "utilization": 0.0003579770855139941,
+          "passed": true,
+          "median_ms": 5.467983961105347,
+          "speedup": 1.1030259060335905,
+          "error": ""
+        },
+        {
+          "plan": "exact+compile[ma]",
+          "utilization": 0.00039488074253313243,
+          "passed": true,
+          "median_ms": 3.897328019142151,
+          "speedup": 1.5475546151752797,
+          "error": ""
+        },
+        {
+          "plan": "compile[ma]",
+          "utilization": 0.0004060566134285182,
+          "passed": true,
+          "median_ms": 3.893936038017273,
+          "speedup": 1.5489026794457614,
+          "error": ""
+        },
+        {
+          "plan": "exact+compile[ro]",
+          "utilization": 0.0004647299356292933,
+          "passed": true,
+          "median_ms": 3.8910720348358154,
+          "speedup": 1.550042741146492,
+          "error": ""
+        },
+        {
+          "plan": "compile[ro]",
+          "utilization": 0.00040233132313005626,
+          "passed": true,
+          "median_ms": 3.8948320150375366,
+          "speedup": 1.5485463659508403,
+          "error": ""
+        },
+        {
+          "plan": "fp16[ffn2]",
+          "utilization": 0.3647506833076477,
+          "passed": true,
+          "median_ms": 4.320063829421997,
+          "speedup": 1.3961201040129834,
+          "error": ""
+        },
+        {
+          "plan": "fp16[ffn2,attn]",
+          "utilization": 0.4952526390552521,
+          "passed": true,
+          "median_ms": 4.174847841262817,
+          "speedup": 1.4446821039233364,
+          "error": ""
+        },
+        {
+          "plan": "fp16[ffn2,attn,out_proj]",
+          "utilization": 0.5972347855567932,
+          "passed": true,
+          "median_ms": 3.687008023262024,
+          "speedup": 1.6358326113809867,
+          "error": ""
+        },
+        {
+          "plan": "fp16[ffn2,attn,out_proj,ffn1]",
+          "utilization": 0.6867088079452515,
+          "passed": true,
+          "median_ms": 3.1733919382095337,
+          "speedup": 1.9005934597156362,
+          "error": ""
+        },
+        {
+          "plan": "wide(sdpa)+graph",
+          "utilization": 0.00043839606223627925,
+          "passed": true,
+          "median_ms": 4.634351968765259,
+          "speedup": 1.301439338989677,
+          "error": ""
+        },
+        {
+          "plan": "wide+graph",
+          "utilization": 0.0003874301619362086,
+          "passed": true,
+          "median_ms": 4.630000114440918,
+          "speedup": 1.3026625947726702,
+          "error": ""
+        },
+        {
+          "plan": "wide(torch-norm)+graph",
+          "utilization": 0.0003579770855139941,
+          "passed": true,
+          "median_ms": 5.509056091308594,
+          "speedup": 1.0948024240288166,
+          "error": ""
+        },
+        {
+          "plan": "fp16[ffn2]+graph",
+          "utilization": 0.3647506833076477,
+          "passed": true,
+          "median_ms": 4.368207931518555,
+          "speedup": 1.380732798765522,
+          "error": ""
+        },
+        {
+          "plan": "fp16[ffn2,attn]+graph",
+          "utilization": 0.4952526390552521,
+          "passed": true,
+          "median_ms": 4.258879899978638,
+          "speedup": 1.4161770476095414,
+          "error": ""
+        },
+        {
+          "plan": "fp16[ffn2,attn,out_proj]+graph",
+          "utilization": 0.5972347855567932,
+          "passed": true,
+          "median_ms": 3.728879928588867,
+          "speedup": 1.6174637098486093,
+          "error": ""
+        },
+        {
+          "plan": "fp16[ffn2,attn,out_proj,ffn1]+graph",
+          "utilization": 0.6867088079452515,
+          "passed": true,
+          "median_ms": 3.2358720302581787,
+          "speedup": 1.8638956999774023,
+          "error": ""
+        }
+      ]
+    },
+    {
+      "case": "B64-S128-d128-H2-F128-L4-causal",
+      "label": "B64-S128-d128-H2-F128-L4-causal-float32",
+      "regime": "gemm",
+      "cli": "python torch_transformer_benchmark.py --batch-size 64 --seq-len 128 --d-model 128 --heads 2 --ffn-dim 128 --layers 4 --dtype float32 --causal",
+      "baseline_ms": 7.568079948425293,
+      "compile_ms": 4.3895039558410645,
+      "compile_modes": {
+        "torch.compile": 4.417184114456177,
+        "torch.compile[ro]": 4.3895039558410645
+      },
+      "compile_passed": {
+        "torch.compile": true,
+        "torch.compile[ro]": true
+      },
+      "compile_envelope": {
+        "torch.compile": 0.00037066635559313,
+        "torch.compile[ro]": 0.00035949048469774425
+      },
+      "compile_admissible": true,
+      "stage_cost": {
+        "attn": 0.3501027524762321,
+        "out_proj": 0.45040893557597883,
+        "ffn1": 0.437460809975164,
+        "ffn2": 0.4159565866284538
+      },
+      "best": {
+        "plan": "exact+compile[ro]",
+        "describe": "compute=auto residual=auto attn=exact torch.compile[reduce-overhead]",
+        "median_ms": 4.357247829437256,
+        "speedup": 1.7368945363391737,
+        "speedup_vs_compile": 1.007402867054265,
+        "utilization": 0.0004922039806842804,
+        "plan_spec": {
+          "name": "exact+compile[ro]",
+          "compute_dtype": "auto",
+          "residual_dtype": "auto",
+          "fuse_qkv": false,
+          "attention": "exact",
+          "fused_norm": false,
+          "cuda_graph": false,
+          "torch_compile": "reduce-overhead",
+          "flash_block": null,
+          "smem_kb": 64.0,
+          "overrides": [],
+          "match_score_rounding": false
+        }
+      },
+      "candidates": [
+        {
+          "plan": "safe(exact)",
+          "utilization": 0.0,
+          "passed": true,
+          "median_ms": 7.347872018814087,
+          "speedup": 1.029968939176862,
+          "error": ""
+        },
+        {
+          "plan": "safe(exact)+graph",
+          "utilization": 0.0,
+          "passed": true,
+          "median_ms": 7.3893280029296875,
+          "speedup": 1.024190555003748,
+          "error": ""
+        },
+        {
+          "plan": "wide(sdpa)",
+          "utilization": 0.00037252900074236095,
+          "passed": true,
+          "median_ms": 4.685375928878784,
+          "speedup": 1.6152556514790357,
+          "error": ""
+        },
+        {
+          "plan": "wide",
+          "utilization": 0.00044703480671159923,
+          "passed": true,
+          "median_ms": 4.681983947753906,
+          "speedup": 1.6164258640946296,
+          "error": ""
+        },
+        {
+          "plan": "wide(torch-norm)",
+          "utilization": 0.000327825517160818,
+          "passed": true,
+          "median_ms": 5.565135955810547,
+          "speedup": 1.3599092652037506,
+          "error": ""
+        },
+        {
+          "plan": "exact+compile[ma]",
+          "utilization": 0.0003725872084032744,
+          "passed": true,
+          "median_ms": 4.367311954498291,
+          "speedup": 1.732892000222297,
+          "error": ""
+        },
+        {
+          "plan": "compile[ma]",
+          "utilization": 0.0003576278395485133,
+          "passed": true,
+          "median_ms": 4.419248104095459,
+          "speedup": 1.7125266041098055,
+          "error": ""
+        },
+        {
+          "plan": "exact+compile[ro]",
+          "utilization": 0.0004922039806842804,
+          "passed": true,
+          "median_ms": 4.357247829437256,
+          "speedup": 1.7368945363391737,
+          "error": ""
+        },
+        {
+          "plan": "compile[ro]",
+          "utilization": 0.00045448538730852306,
+          "passed": true,
+          "median_ms": 4.384176015853882,
+          "speedup": 1.7262263013751968,
+          "error": ""
+        },
+        {
+          "plan": "fp16[attn]",
+          "utilization": 0.48878973722457886,
+          "passed": true,
+          "median_ms": 8.517951965332031,
+          "speedup": 0.8884858683433874,
+          "error": ""
+        },
+        {
+          "plan": "fp16[attn,ffn2]",
+          "utilization": 0.4934593737125397,
+          "passed": true,
+          "median_ms": 8.257664203643799,
+          "speedup": 0.9164916084969623,
+          "error": ""
+        },
+        {
+          "plan": "fp16[attn,ffn2,ffn1]",
+          "utilization": 0.591780960559845,
+          "passed": true,
+          "median_ms": 7.772336006164551,
+          "speedup": 0.973720119977153,
+          "error": ""
+        },
+        {
+          "plan": "fp16[attn,ffn2,ffn1,out_proj]",
+          "utilization": 0.6925165057182312,
+          "passed": true,
+          "median_ms": 7.340304136276245,
+          "speedup": 1.0310308412186036,
+          "error": ""
+        },
+        {
+          "plan": "wide(sdpa)+graph",
+          "utilization": 0.00037252900074236095,
+          "passed": true,
+          "median_ms": 4.913087844848633,
+          "speedup": 1.5403917429158969,
+          "error": ""
+        },
+        {
+          "plan": "wide+graph",
+          "utilization": 0.00044703480671159923,
+          "passed": true,
+          "median_ms": 4.742239952087402,
+          "speedup": 1.5958871809289268,
+          "error": ""
+        },
+        {
+          "plan": "wide(torch-norm)+graph",
+          "utilization": 0.000327825517160818,
+          "passed": true,
+          "median_ms": 5.642944097518921,
+          "speedup": 1.3411580582116367,
+          "error": ""
+        },
+        {
+          "plan": "fp16[attn]+graph",
+          "utilization": 0.48878973722457886,
+          "passed": true,
+          "median_ms": 8.588383674621582,
+          "speedup": 0.8811995638700614,
+          "error": ""
+        },
+        {
+          "plan": "fp16[attn,ffn2]+graph",
+          "utilization": 0.4934593737125397,
+          "passed": true,
+          "median_ms": 8.343167781829834,
+          "speedup": 0.9070990954907361,
+          "error": ""
+        },
+        {
+          "plan": "fp16[attn,ffn2,ffn1]+graph",
+          "utilization": 0.591780960559845,
+          "passed": true,
+          "median_ms": 7.843584060668945,
+          "speedup": 0.9648752266677236,
+          "error": ""
+        },
+        {
+          "plan": "fp16[attn,ffn2,ffn1,out_proj]+graph",
+          "utilization": 0.6925165057182312,
+          "passed": true,
+          "median_ms": 7.422159910202026,
+          "speedup": 1.0196600504420141,
+          "error": ""
+        }
+      ]
+    },
+    {
+      "case": "B64-S128-d128-H16-F128-L4-causal",
+      "label": "B64-S128-d128-H16-F128-L4-causal-float32",
+      "regime": "gemm",
+      "cli": "python torch_transformer_benchmark.py --batch-size 64 --seq-len 128 --d-model 128 --heads 16 --ffn-dim 128 --layers 4 --dtype float32 --causal",
+      "baseline_ms": 21.893519401550293,
+      "compile_ms": 9.214047908782959,
+      "compile_modes": {
+        "torch.compile": 9.256880283355713,
+        "torch.compile[ro]": 9.214047908782959
+      },
+      "compile_passed": {
+        "torch.compile": true,
+        "torch.compile[ro]": true
+      },
+      "compile_envelope": {
+        "torch.compile": 0.0003738232480827719,
+        "torch.compile[ro]": 0.0003029126673936844
+      },
+      "compile_admissible": true,
+      "stage_cost": {
+        "attn": Infinity,
+        "out_proj": 0.36665049198199995,
+        "ffn1": 0.4010313153557945,
+        "ffn2": 0.40550062063266523
+      },
+      "best": {
+        "plan": "fp16[out_proj,ffn1,ffn2]",
+        "describe": "compute=auto residual=float32 attn=flash fused-qkv fused-norm [out_proj=float16,ffn1=float16,ffn2=float16]",
+        "median_ms": 6.5268800258636475,
+        "speedup": 3.354362163054055,
+        "speedup_vs_compile": 1.4117078714900602,
+        "utilization": 0.5694310665130615,
+        "plan_spec": {
+          "name": "fp16[out_proj,ffn1,ffn2]",
+          "compute_dtype": "auto",
+          "residual_dtype": "float32",
+          "fuse_qkv": true,
+          "attention": "flash",
+          "fused_norm": true,
+          "cuda_graph": false,
+          "torch_compile": null,
+          "flash_block": null,
+          "smem_kb": 64.0,
+          "overrides": [
+            [
+              "out_proj",
+              "float16"
+            ],
+            [
+              "ffn1",
+              "float16"
+            ],
+            [
+              "ffn2",
+              "float16"
+            ]
+          ],
+          "match_score_rounding": false
+        }
+      },
+      "candidates": [
+        {
+          "plan": "safe(exact)",
+          "utilization": 0.0,
+          "passed": true,
+          "median_ms": 21.694560050964355,
+          "speedup": 1.00917093271855,
+          "error": ""
+        },
+        {
+          "plan": "safe(exact)+graph",
+          "utilization": 0.0,
+          "passed": true,
+          "median_ms": 21.747360229492188,
+          "speedup": 1.0067207776261458,
+          "error": ""
+        },
+        {
+          "plan": "wide(sdpa)",
+          "utilization": 0.00048715443699620664,
+          "passed": true,
+          "median_ms": 7.555679798126221,
+          "speedup": 2.897624037347348,
+          "error": ""
+        },
+        {
+          "plan": "wide",
+          "utilization": 0.0005669426172971725,
+          "passed": true,
+          "median_ms": 7.553327798843384,
+          "speedup": 2.898526316427413,
+          "error": ""
+        },
+        {
+          "plan": "wide(torch-norm)",
+          "utilization": 0.00034645196865312755,
+          "passed": true,
+          "median_ms": 8.438223838806152,
+          "speedup": 2.5945649013084022,
+          "error": ""
+        },
+        {
+          "plan": "exact+compile[ma]",
+          "utilization": 0.00037625429104082286,
+          "passed": true,
+          "median_ms": 9.2292160987854,
+          "speedup": 2.372197071475178,
+          "error": ""
+        },
+        {
+          "plan": "compile[ma]",
+          "utilization": 0.0003837048716377467,
+          "passed": true,
+          "median_ms": 9.223536014556885,
+          "speedup": 2.373657929778474,
+          "error": ""
+        },
+        {
+          "plan": "exact+compile[ro]",
+          "utilization": 0.0004321336455177516,
+          "passed": true,
+          "median_ms": 9.245440006256104,
+          "speedup": 2.368034337655712,
+          "error": ""
+        },
+        {
+          "plan": "compile[ro]",
+          "utilization": 0.00040233132313005626,
+          "passed": true,
+          "median_ms": 9.21724796295166,
+          "speedup": 2.375277250818289,
+          "error": ""
+        },
+        {
+          "plan": "fp16[out_proj]",
+          "utilization": 0.3857053518295288,
+          "passed": true,
+          "median_ms": 7.331967830657959,
+          "speedup": 2.986035932946204,
+          "error": ""
+        },
+        {
+          "plan": "fp16[out_proj,ffn1]",
+          "utilization": 0.5281195044517517,
+          "passed": true,
+          "median_ms": 6.94870400428772,
+          "speedup": 3.150734207132845,
+          "error": ""
+        },
+        {
+          "plan": "fp16[out_proj,ffn1,ffn2]",
+          "utilization": 0.5694310665130615,
+          "passed": true,
+          "median_ms": 6.5268800258636475,
+          "speedup": 3.354362163054055,
+          "error": ""
+        },
+        {
+          "plan": "wide(sdpa)+graph",
+          "utilization": 0.00048715443699620664,
+          "passed": true,
+          "median_ms": 7.612127780914307,
+          "speedup": 2.8761366114272744,
+          "error": ""
+        },
+        {
+          "plan": "wide+graph",
+          "utilization": 0.0005669426172971725,
+          "passed": true,
+          "median_ms": 7.613039970397949,
+          "speedup": 2.8757919946144552,
+          "error": ""
+        },
+        {
+          "plan": "wide(torch-norm)+graph",
+          "utilization": 0.00034645196865312755,
+          "passed": true,
+          "median_ms": 8.501696109771729,
+          "speedup": 2.575194304626602,
+          "error": ""
+        },
+        {
+          "plan": "fp16[out_proj]+graph",
+          "utilization": 0.3857053518295288,
+          "passed": true,
+          "median_ms": 7.366304159164429,
+          "speedup": 2.9721172148875414,
+          "error": ""
+        },
+        {
+          "plan": "fp16[out_proj,ffn1]+graph",
+          "utilization": 0.5281195044517517,
+          "passed": true,
+          "median_ms": 7.060688018798828,
+          "speedup": 3.1007628921232016,
+          "error": ""
+        },
+        {
+          "plan": "fp16[out_proj,ffn1,ffn2]+graph",
+          "utilization": 0.5694310665130615,
+          "passed": true,
+          "median_ms": 6.6586081981658936,
+          "speedup": 3.288002349737418,
+          "error": ""
+        }
+      ]
+    },
+    {
+      "case": "B64-S32-d128-H4-F128-L4-causal",
+      "label": "B64-S32-d128-H4-F128-L4-causal-float32",
+      "regime": "gemm",
+      "cli": "python torch_transformer_benchmark.py --batch-size 64 --seq-len 32 --d-model 128 --heads 4 --ffn-dim 128 --layers 4 --dtype float32 --causal",
+      "baseline_ms": 2.874943971633911,
+      "compile_ms": 0.8928959965705872,
+      "compile_modes": {
+        "torch.compile": 0.8928959965705872,
+        "torch.compile[ro]": 1.0084960460662842
+      },
+      "compile_passed": {
+        "torch.compile": true,
+        "torch.compile[ro]": true
+      },
+      "compile_envelope": {
+        "torch.compile": 0.00035110858152620494,
+        "torch.compile[ro]": 0.0004395842261146754
+      },
+      "compile_admissible": true,
+      "stage_cost": {
+        "attn": 0.3858599514060188,
+        "out_proj": 0.3835353702597786,
+        "ffn1": 0.4614367932372261,
+        "ffn2": 0.3148112148337532
+      },
+      "best": {
+        "plan": "fp16[ffn2,out_proj,attn,ffn1]+graph",
+        "describe": "compute=auto residual=float32 attn=flash fused-qkv fused-norm cuda-graph [ffn2=float16,out_proj=float16,attn=float16,ffn1=float16]",
+        "median_ms": 0.5392000079154968,
+        "speedup": 5.331869305321804,
+        "speedup_vs_compile": 1.6559643610215253,
+        "utilization": 0.6992369294166565,
+        "plan_spec": {
+          "name": "fp16[ffn2,out_proj,attn,ffn1]+graph",
+          "compute_dtype": "auto",
+          "residual_dtype": "float32",
+          "fuse_qkv": true,
+          "attention": "flash",
+          "fused_norm": true,
+          "cuda_graph": true,
+          "torch_compile": null,
+          "flash_block": null,
+          "smem_kb": 64.0,
+          "overrides": [
+            [
+              "ffn2",
+              "float16"
+            ],
+            [
+              "out_proj",
+              "float16"
+            ],
+            [
+              "attn",
+              "float16"
+            ],
+            [
+              "ffn1",
+              "float16"
+            ]
+          ],
+          "match_score_rounding": false
+        }
+      },
+      "candidates": [
+        {
+          "plan": "safe(exact)",
+          "utilization": 0.0,
+          "passed": true,
+          "median_ms": 2.7973920106887817,
+          "speedup": 1.0277229507515588,
+          "error": ""
+        },
+        {
+          "plan": "safe(exact)+graph",
+          "utilization": 0.0,
+          "passed": true,
+          "median_ms": 1.5389119982719421,
+          "speedup": 1.8681665844845001,
+          "error": ""
+        },
+        {
+          "plan": "wide(sdpa)",
+          "utilization": 0.00037625429104082286,
+          "passed": true,
+          "median_ms": 2.213871955871582,
+          "speedup": 1.2986044491006123,
+          "error": ""
+        },
+        {
+          "plan": "wide",
+          "utilization": 0.0004433095164131373,
+          "passed": true,
+          "median_ms": 2.213935971260071,
+          "speedup": 1.2985669002873759,
+          "error": ""
+        },
+        {
+          "plan": "wide(torch-norm)",
+          "utilization": 0.0003613531298469752,
+          "passed": true,
+          "median_ms": 2.0664479732513428,
+          "speedup": 1.3912491429002605,
+          "error": ""
+        },
+        {
+          "plan": "exact+compile[ma]",
+          "utilization": 0.0003781169361900538,
+          "passed": true,
+          "median_ms": 0.8676960170269012,
+          "speedup": 3.3133077889244005,
+          "error": ""
+        },
+        {
+          "plan": "compile[ma]",
+          "utilization": 0.0003613531298469752,
+          "passed": true,
+          "median_ms": 0.9748799800872803,
+          "speedup": 2.949023500694434,
+          "error": ""
+        },
+        {
+          "plan": "exact+compile[ro]",
+          "utilization": 0.0004880129999946803,
+          "passed": true,
+          "median_ms": 0.9955840110778809,
+          "speedup": 2.887696005203337,
+          "error": ""
+        },
+        {
+          "plan": "compile[ro]",
+          "utilization": 0.0004172324843239039,
+          "passed": true,
+          "median_ms": 1.0231520533561707,
+          "speedup": 2.8098892654356145,
+          "error": ""
+        },
+        {
+          "plan": "fp16[ffn2]",
+          "utilization": 0.34652090072631836,
+          "passed": true,
+          "median_ms": 2.3573919534683228,
+          "speedup": 1.2195443220225375,
+          "error": ""
+        },
+        {
+          "plan": "fp16[ffn2,out_proj]",
+          "utilization": 0.5139298439025879,
+          "passed": true,
+          "median_ms": 2.424768090248108,
+          "speedup": 1.1856572936588505,
+          "error": ""
+        },
+        {
+          "plan": "fp16[ffn2,out_proj,attn]",
+          "utilization": 0.6031132936477661,
+          "passed": true,
+          "median_ms": 1.9130879640579224,
+          "speedup": 1.5027766760581986,
+          "error": ""
+        },
+        {
+          "plan": "fp16[ffn2,out_proj,attn,ffn1]",
+          "utilization": 0.6992369294166565,
+          "passed": true,
+          "median_ms": 1.7816799879074097,
+          "speedup": 1.613614112044074,
+          "error": ""
+        },
+        {
+          "plan": "wide(sdpa)+graph",
+          "utilization": 0.00037625429104082286,
+          "passed": true,
+          "median_ms": 1.2396640181541443,
+          "speedup": 2.3191315788246345,
+          "error": ""
+        },
+        {
+          "plan": "wide+graph",
+          "utilization": 0.0004433095164131373,
+          "passed": true,
+          "median_ms": 1.3557759523391724,
+          "speedup": 2.1205155370056974,
+          "error": ""
+        },
+        {
+          "plan": "wide(torch-norm)+graph",
+          "utilization": 0.0003613531298469752,
+          "passed": true,
+          "median_ms": 1.5334240198135376,
+          "speedup": 1.8748525746867462,
+          "error": ""
+        },
+        {
+          "plan": "fp16[ffn2]+graph",
+          "utilization": 0.34652090072631836,
+          "passed": true,
+          "median_ms": 1.2677119970321655,
+          "speedup": 2.2678210653243234,
+          "error": ""
+        },
+        {
+          "plan": "fp16[ffn2,out_proj]+graph",
+          "utilization": 0.5139298439025879,
+          "passed": true,
+          "median_ms": 1.2114239931106567,
+          "speedup": 2.3731938511897224,
+          "error": ""
+        },
+        {
+          "plan": "fp16[ffn2,out_proj,attn]+graph",
+          "utilization": 0.6031132936477661,
+          "passed": true,
+          "median_ms": 0.6574079990386963,
+          "speedup": 4.3731502747728,
+          "error": ""
+        },
+        {
+          "plan": "fp16[ffn2,out_proj,attn,ffn1]+graph",
+          "utilization": 0.6992369294166565,
+          "passed": true,
+          "median_ms": 0.5392000079154968,
+          "speedup": 5.331869305321804,
+          "error": ""
+        }
+      ]
+    },
+    {
+      "case": "B64-S1024-d128-H4-F128-L4-causal",
+      "label": "B64-S1024-d128-H4-F128-L4-causal-float32",
+      "regime": "attention",
+      "cli": "python torch_transformer_benchmark.py --batch-size 64 --seq-len 1024 --d-model 128 --heads 4 --ffn-dim 128 --layers 4 --dtype float32 --causal",
+      "baseline_ms": 314.4320526123047,
+      "compile_ms": 138.1407470703125,
+      "compile_modes": {
+        "torch.compile": 138.8676300048828,
+        "torch.compile[ro]": 138.1407470703125
+      },
+      "compile_passed": {
+        "torch.compile": true,
+        "torch.compile[ro]": true
+      },
+      "compile_envelope": {
+        "torch.compile": 0.0003934837586712092,
+        "torch.compile[ro]": 0.00034645196865312755
+      },
+      "compile_admissible": true,
+      "stage_cost": {
+        "attn": 0.47856473925639875,
+        "out_proj": 0.3798678219609428,
+        "ffn1": 0.4554000795178581,
+        "ffn2": 0.4024440348439384
+      },
+      "best": {
+        "plan": "fp16[out_proj,ffn2,ffn1,attn]",
+        "describe": "compute=auto residual=float32 attn=flash fused-qkv fused-norm [out_proj=float16,ffn2=float16,ffn1=float16,attn=float16]",
+        "median_ms": 62.86763381958008,
+        "speedup": 5.001493352122552,
+        "speedup_vs_compile": 2.1973269658399115,
+        "utilization": 0.6888261437416077,
+        "plan_spec": {
+          "name": "fp16[out_proj,ffn2,ffn1,attn]",
+          "compute_dtype": "auto",
+          "residual_dtype": "float32",
+          "fuse_qkv": true,
+          "attention": "flash",
+          "fused_norm": true,
+          "cuda_graph": false,
+          "torch_compile": null,
+          "flash_block": null,
+          "smem_kb": 64.0,
+          "overrides": [
+            [
+              "out_proj",
+              "float16"
+            ],
+            [
+              "ffn2",
+              "float16"
+            ],
+            [
+              "ffn1",
+              "float16"
+            ],
+            [
+              "attn",
+              "float16"
+            ]
+          ],
+          "match_score_rounding": false
+        }
+      },
+      "candidates": [
+        {
+          "plan": "safe(exact)",
+          "utilization": 0.0,
+          "passed": true,
+          "median_ms": 311.2378845214844,
+          "speedup": 1.0102627869217502,
+          "error": ""
+        },
+        {
+          "plan": "safe(exact)+graph",
+          "utilization": 0.0,
+          "passed": true,
+          "median_ms": 308.7124938964844,
+          "speedup": 1.0185271371547993,
+          "error": ""
+        },
+        {
+          "plan": "wide(sdpa)",
+          "utilization": 0.0004693865485023707,
+          "passed": true,
+          "median_ms": 117.20908737182617,
+          "speedup": 2.682659336940503,
+          "error": ""
+        },
+        {
+          "plan": "wide",
+          "utilization": 0.0004302710003685206,
+          "passed": true,
+          "median_ms": 116.9969596862793,
+          "speedup": 2.687523278001722,
+          "error": ""
+        },
+        {
+          "plan": "wide(torch-norm)",
+          "utilization": 0.0003781169361900538,
+          "passed": true,
+          "median_ms": 123.12051010131836,
+          "speedup": 2.5538559932342078,
+          "error": ""
+        },
+        {
+          "plan": "exact+compile[ma]",
+          "utilization": 0.00037252900074236095,
+          "passed": true,
+          "median_ms": 143.81572723388672,
+          "speedup": 2.1863537365488934,
+          "error": ""
+        },
+        {
+          "plan": "compile[ma]",
+          "utilization": 0.0003930180973839015,
+          "passed": true,
+          "median_ms": 138.85626983642578,
+          "speedup": 2.2644425994066317,
+          "error": ""
+        },
+        {
+          "plan": "exact+compile[ro]",
+          "utilization": 0.0004265457100700587,
+          "passed": true,
+          "median_ms": 137.38484954833984,
+          "speedup": 2.2886952502114837,
+          "error": ""
+        },
+        {
+          "plan": "compile[ro]",
+          "utilization": 0.00047124919365160167,
+          "passed": true,
+          "median_ms": 138.63347625732422,
+          "speedup": 2.2680817151888504,
+          "error": ""
+        },
+        {
+          "plan": "fp16[out_proj]",
+          "utilization": 0.5622338056564331,
+          "passed": true,
+          "median_ms": 114.91574096679688,
+          "speedup": 2.7361965381501125,
+          "error": ""
+        },
+        {
+          "plan": "fp16[out_proj,ffn2]",
+          "utilization": 0.5194246768951416,
+          "passed": true,
+          "median_ms": 113.03513717651367,
+          "speedup": 2.781719564964062,
+          "error": ""
+        },
+        {
+          "plan": "fp16[out_proj,ffn2,ffn1]",
+          "utilization": 0.5497596859931946,
+          "passed": true,
+          "median_ms": 108.91809463500977,
+          "speedup": 2.8868669954793367,
+          "error": ""
+        },
+        {
+          "plan": "fp16[out_proj,ffn2,ffn1,attn]",
+          "utilization": 0.6888261437416077,
+          "passed": true,
+          "median_ms": 62.86763381958008,
+          "speedup": 5.001493352122552,
+          "error": ""
+        },
+        {
+          "plan": "wide(sdpa)+graph",
+          "utilization": 0.0004693865485023707,
+          "passed": true,
+          "median_ms": 118.21139144897461,
+          "speedup": 2.6599133024166104,
+          "error": ""
+        },
+        {
+          "plan": "wide+graph",
+          "utilization": 0.0004302710003685206,
+          "passed": true,
+          "median_ms": 118.00590515136719,
+          "speedup": 2.664545068392806,
+          "error": ""
+        },
+        {
+          "plan": "wide(torch-norm)+graph",
+          "utilization": 0.0003781169361900538,
+          "passed": true,
+          "median_ms": 123.77729797363281,
+          "speedup": 2.5403047065972095,
+          "error": ""
+        },
+        {
+          "plan": "fp16[out_proj]+graph",
+          "utilization": 0.5622338056564331,
+          "passed": true,
+          "median_ms": 115.54591751098633,
+          "speedup": 2.721273580110763,
+          "error": ""
+        },
+        {
+          "plan": "fp16[out_proj,ffn2]+graph",
+          "utilization": 0.5194246768951416,
+          "passed": true,
+          "median_ms": 113.7416000366211,
+          "speedup": 2.7644419676799674,
+          "error": ""
+        },
+        {
+          "plan": "fp16[out_proj,ffn2,ffn1]+graph",
+          "utilization": 0.5497596859931946,
+          "passed": true,
+          "median_ms": 109.58197021484375,
+          "speedup": 2.869377617466056,
+          "error": ""
+        },
+        {
+          "plan": "fp16[out_proj,ffn2,ffn1,attn]+graph",
+          "utilization": 0.6888261437416077,
+          "passed": true,
+          "median_ms": 63.42417526245117,
+          "speedup": 4.957605697057554,
+          "error": ""
+        }
+      ]
+    }
+  ],
+  "scope": "Official shapes only (Appendix 3.7). Non-official regime and dtype variants were removed from the reported results."
+}

@@ -37,10 +37,9 @@ shapes; taking that path costs 45.9 GB peak instead of 84.6 GB.
 
 Both are required. Fused attention alone will not run shape 14.
 
-Measured:
-
-    A100-80 PCIe   77.7 s   peak 45.9 GB   batch sliced 1 at a time
-    H100 NVL 93GB  54.5 s   peak 45.9 GB   batch sliced 2 at a time
+Measured: **20.9 s** on an A100-80 PCIe, **9.6 s** on an H100 NVL, ~46 GB peak.
+The attention stage runs in fp16 so the flash kernel can take it; left in fp32 it
+falls through to SDPA and costs 77.2 s and 54.5 s instead.
 
 What this script does, and what it deliberately does not claim:
 
@@ -58,8 +57,10 @@ What this script does, and what it deliberately does not claim:
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import sys
+import time
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
@@ -117,10 +118,321 @@ def run_one(case, device, spec, table, verbose=True):
             "plan": plan.name, "source": source}
 
 
+CHUNK = 4096
+
+
+def _ref_attention(q, k, v, chunk=None):
+    """Causal attention streamed over key blocks: O(S) memory, exact result.
+
+    The organizer's reference materializes `[B,H,S,S]` -- 18.6 TB for this shape.
+    The *memory* is the obstacle, not the arithmetic: chunking the query rows and
+    masking against the key index computes the same thing in O(S). This uses a
+    plain two-pass `torch.softmax` rather than the online rescaling the kernel
+    under test uses, so it differs in algorithm as well as in precision.
+    """
+    H, S, Dh = q.shape
+    out = torch.empty_like(q)
+    scale = Dh ** -0.5
+    step = chunk or CHUNK
+    for lo in range(0, S, step):
+        hi = min(lo + step, S)
+        s = torch.matmul(q[:, lo:hi], k[:, :hi].transpose(-2, -1)) * scale
+        rows = torch.arange(lo, hi, device=q.device)[:, None]
+        s = s.masked_fill(rows < torch.arange(hi, device=q.device)[None, :],
+                          float("-inf"))
+        out[:, lo:hi] = torch.matmul(torch.softmax(s, dim=-1), v[:, :hi])
+        del s
+    return out
+
+
+def _ref_model(model, x, num_heads, chunk=None):
+    """`BaselineTransformer.forward`, with the attention streamed."""
+    h = x
+    for layer in model.layers:
+        a = layer.attention
+        n = layer.norm1(h)
+        M, d = n.shape
+        Dh = d // num_heads
+        q, k, v = (proj(n).view(M, num_heads, Dh).permute(1, 0, 2).contiguous()
+                   for proj in (a.q_proj, a.k_proj, a.v_proj))
+        ctx = _ref_attention(q, k, v, chunk).permute(1, 0, 2).reshape(M, d)
+        del q, k, v
+        h = h + a.out_proj(ctx)
+        del ctx
+        n2 = layer.norm2(h)
+        h = h + layer.ffn_out(torch.nn.functional.gelu(layer.ffn_in(n2),
+                                                       approximate="none"))
+        del n2
+    return model.final_norm(h)
+
+
+def _time(fn, repeats):
+    """Wall time of `fn`, best of `repeats`, with the GPU synchronized."""
+    best = float("inf")
+    for _ in range(repeats):
+        torch.cuda.synchronize()
+        t0 = time.perf_counter()
+        fn()
+        torch.cuda.synchronize()
+        best = min(best, time.perf_counter() - t0)
+    return best
+
+
+def race(device, spec, table, chunks=(1024, 2048, 4096, 8192), repeats=2):
+    """Time shape 14 against a reference that can actually run it.
+
+    The organizer's baseline cannot execute this shape -- it forms an 18.6 TB
+    score matrix -- so the headline result has always been "we run it, they
+    cannot", with no ratio attached. That is honest but incomplete: it says
+    nothing about whether our implementation is *fast*, only that it exists.
+
+    This closes that. The opponent is the organizer's own `BaselineTransformer`
+    with exactly one change: the attention is chunked over query rows so its
+    memory is O(S) instead of O(S^2). Same modules, same weights, same
+    two-pass softmax, same fp32, and -- unlike the correctness gate, which
+    deliberately runs stricter than the organizer does -- the organizer's own
+    numerics policy, TF32 on at `matmul_precision="high"`. It is the minimum
+    edit that makes the reference runnable, which makes it the fair opponent.
+
+    Its chunk size is swept and the *best* time is taken, and it is timed
+    *first*, on an unfragmented allocator, so that the large chunks get their
+    best chance to fit. Racing a strawman would be easy and worthless.
+    """
+    import dataclasses as _dc
+
+    case = shapes.resolve([SHAPE])[0]
+    cfg = case.to_config()
+    plan, source = table.lookup(spec.arch, case.torch_dtype, cfg,
+                                spec.shared_mem_per_block_kb)
+
+    # The organizer's defaults, for both sides.
+    torch.backends.cuda.matmul.allow_tf32 = True
+    torch.backends.cudnn.allow_tf32 = True
+    torch.set_float32_matmul_precision("high")
+
+    print(f"  shape            {SHAPE}")
+    print(f"  our plan         {plan.name} [{source}]")
+    print("  opponent         the organizer's model, attention chunked to O(S)")
+    print("  numerics         fp32, TF32 on, matmul_precision=high (both sides)")
+    print()
+
+    model = B.BaselineTransformer(cfg).to(device, torch.float32).eval()
+    x, mask = B.generate_random_case(cfg, device, torch.float32, 1234, 0.0, 1.0)
+
+    # The reference goes first, on a clean allocator: its wide chunks are the
+    # configurations most likely to be denied by fragmentation, and denying the
+    # opponent its best setting is not a fair race.
+    best_s, best_chunk, per_chunk = float("inf"), None, {}
+    for chunk in chunks:
+        try:
+            torch.cuda.reset_peak_memory_stats()
+            secs = _time(lambda: _run_ref(model, x, cfg, chunk), repeats)
+            peak = torch.cuda.max_memory_allocated() / 2 ** 30
+            per_chunk[chunk] = round(secs, 2)
+            print(f"  reference c={chunk:<5} {secs:8.2f} s   peak {peak:5.1f} GB",
+                  flush=True)
+            if secs < best_s:
+                best_s, best_chunk = secs, chunk
+        except torch.cuda.OutOfMemoryError:
+            print(f"  reference c={chunk:<5}      OOM", flush=True)
+        finally:
+            torch.cuda.empty_cache()
+
+    # The independent opponent: PyTorch's own fused attention, substituted for
+    # the one line the organizer's baseline cannot execute.
+    try:
+        torch.cuda.reset_peak_memory_stats()
+        sdpa_s = _time(lambda: _run_sdpa(model, x, cfg), repeats)
+        peak = torch.cuda.max_memory_allocated() / 2 ** 30
+        print(f"  reference SDPA   {sdpa_s:8.2f} s   peak {peak:5.1f} GB",
+              flush=True)
+    except torch.cuda.OutOfMemoryError:
+        sdpa_s = None
+        print("  reference SDPA        OOM", flush=True)
+    finally:
+        torch.cuda.empty_cache()
+
+    torch.cuda.reset_peak_memory_stats()
+    ours_s = _time(lambda: _run_ours(cfg, plan, model, x, mask), repeats)
+    ours_peak = torch.cuda.max_memory_allocated() / 2 ** 30
+    print(f"  kernelforge      {ours_s:8.2f} s   peak {ours_peak:5.1f} GB",
+          flush=True)
+    torch.cuda.empty_cache()
+
+    if best_chunk is None:
+        print("\n  the chunked reference did not fit either; no ratio to report")
+        return False
+
+    print()
+    print(f"  speedup vs chunked reference   {best_s / ours_s:5.2f}x  "
+          f"(its best chunk, {best_chunk})")
+    if sdpa_s:
+        print(f"  speedup vs PyTorch SDPA        {sdpa_s / ours_s:5.2f}x  "
+              f"(independently written)")
+    print()
+    print("  Note: the chunked reference is our own code, so that ratio is a")
+    print("  weak independence check. The SDPA one is not ours -- it is "
+          "PyTorch's")
+    print("  own fused attention substituted into the organizer's model, and it "
+          "is")
+    print("  the number to prefer. Neither is the organizer's unmodified "
+          "baseline,")
+    print("  which cannot run this shape at all.")
+    print()
+
+    out = {"shape": SHAPE, "gpu": spec.name, "arch": spec.arch,
+           "plan": plan.name, "ours_s": round(ours_s, 2),
+           "ours_peak_gib": round(ours_peak, 1),
+           "reference_s": round(best_s, 2), "reference_chunk": best_chunk,
+           "reference_by_chunk_s": per_chunk,
+           "speedup": round(best_s / ours_s, 2),
+           "sdpa_reference_s": round(sdpa_s, 2) if sdpa_s else None,
+           "speedup_vs_sdpa": round(sdpa_s / ours_s, 2) if sdpa_s else None,
+           "note": ("The organizer's BaselineTransformer cannot run this shape: "
+                    "it materializes an 18.6 TB score matrix. The opponent here "
+                    "is that same model with the attention chunked to O(S) "
+                    "memory and nothing else changed, run under the organizer's "
+                    "own numerics (TF32 on, matmul_precision=high). Its chunk "
+                    "size is swept and its best time taken. `speedup_vs_sdpa` "
+                    "is against a second, independently written opponent: the "
+                    "same model with its attention replaced by PyTorch's "
+                    "scaled_dot_product_attention, which is not our code and "
+                    "does run this shape.")}
+    path = os.path.join(ROOT, "results", f"shape14_race_{spec.arch}.json")
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(out, f, indent=2)
+    print(f"  wrote {path}")
+    return True
+
+
+def _run_ours(cfg, plan, model, x, mask):
+    with torch.inference_mode():
+        build_shared(cfg, plan, model)(x, mask)
+
+
+def _run_ref(model, x, cfg, chunk):
+    """One batch element at a time: batch elements do not interact."""
+    with torch.inference_mode():
+        for b in range(cfg.batch_size):
+            _ref_model(model, x[b], cfg.num_heads, chunk)
+
+
+def _sdpa_attention(q, k, v):
+    """PyTorch's own fused attention. Not our code -- that is the point."""
+    return torch.nn.functional.scaled_dot_product_attention(
+        q.unsqueeze(0), k.unsqueeze(0), v.unsqueeze(0), is_causal=True).squeeze(0)
+
+
+def _ref_model_sdpa(model, x, num_heads):
+    """The organizer's model with its attention replaced by PyTorch's SDPA.
+
+    The chunked reference is ours, which makes it a weak independence check: the
+    same person wrote both sides of that ratio. `scaled_dot_product_attention`
+    is not ours. It is a fused, O(S)-memory attention written by the PyTorch
+    team, it runs this shape, and substituting it for the one line the organizer's
+    baseline cannot execute leaves the rest of their model untouched.
+
+    It is a stronger opponent than the chunked reference in every sense that
+    matters, so it is the number we would rather be judged on.
+    """
+    h = x
+    for layer in model.layers:
+        a = layer.attention
+        n = layer.norm1(h)
+        M, d = n.shape
+        Dh = d // num_heads
+        q, k, v = (proj(n).view(M, num_heads, Dh).permute(1, 0, 2).contiguous()
+                   for proj in (a.q_proj, a.k_proj, a.v_proj))
+        ctx = _sdpa_attention(q, k, v).permute(1, 0, 2).reshape(M, d)
+        del q, k, v
+        h = h + a.out_proj(ctx)
+        del ctx
+        n2 = layer.norm2(h)
+        h = h + layer.ffn_out(torch.nn.functional.gelu(layer.ffn_in(n2),
+                                                       approximate="none"))
+        del n2
+    return model.final_norm(h)
+
+
+def _run_sdpa(model, x, cfg):
+    with torch.inference_mode():
+        for b in range(cfg.batch_size):
+            _ref_model_sdpa(model, x[b], cfg.num_heads)
+
+
+def gate(device, spec, table, batch=1):
+    """Gate the whole output at full sequence length.
+
+    The reference runs in fp32 with TF32 disabled, which makes it strictly more
+    precise than the organizer's own -- that one leaves TF32 on. Its score block
+    is chunked, so peak memory is O(S) rather than the 18.6 TB the materialized
+    `[B,H,S,S]` would need.
+
+    `--batch N` raises how much of the batch is checked. Batch elements are
+    independent in this model (`tests/test_streaming.py`), so one element is
+    sufficient in principle; the full 32 is what removes the "in principle".
+    """
+    import dataclasses as _dc
+    from kernelforge.numerics import ATOL, RTOL
+
+    case = _dc.replace(shapes.resolve([SHAPE])[0], batch_size=batch)
+    cfg = case.to_config()
+    plan, source = table.lookup(spec.arch, case.torch_dtype, cfg,
+                                spec.shared_mem_per_block_kb)
+    print(f"  plan under test  {plan.name} [{source}]")
+    print("  reference        streamed fp32, TF32 off, two-pass softmax")
+    print()
+
+    torch.backends.cuda.matmul.allow_tf32 = False
+    torch.set_float32_matmul_precision("highest")
+    model = B.BaselineTransformer(cfg).to(device, torch.float32).eval()
+    x, mask = B.generate_random_case(cfg, device, torch.float32, 1234, 0.0, 1.0)
+
+    torch.backends.cuda.matmul.allow_tf32 = True
+    torch.set_float32_matmul_precision("high")
+    with torch.inference_mode():
+        ours = build_shared(cfg, plan, model)(x, mask)
+
+    # One batch element at a time: the reference's peak is a chunk of scores for
+    # a single element, so checking 32 of them costs time, not memory.
+    env, failed, max_err, n = 0.0, 0, 0.0, 0
+    for b in range(cfg.batch_size):
+        torch.backends.cuda.matmul.allow_tf32 = False
+        torch.set_float32_matmul_precision("highest")
+        with torch.inference_mode():
+            ref_b = _ref_model(model, x[b], cfg.num_heads)
+        err = (ours[b].float() - ref_b).abs()
+        allow = torch.clamp(ref_b.abs() * RTOL, min=ATOL)
+        env = max(env, (err / allow).max().item())
+        failed += int((err > allow).sum().item())
+        max_err = max(max_err, err.max().item())
+        n += ref_b.numel()
+        del ref_b, err, allow
+        torch.cuda.empty_cache()
+    print(f"  batch elements   {cfg.batch_size}")
+    print(f"  elements         {n:,}")
+    print(f"  max abs error    {max_err:.3e}")
+    print(f"  envelope         {env:.4f}   (limit 1.0)")
+    print(f"  failed           {failed}/{n:,}")
+    print(f"  verdict          {'PASS' if env < 1.0 else 'FAIL'}")
+    print()
+    return env < 1.0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--scan", action="store_true",
                     help="sweep sequence length upward to find this GPU's limit")
+    ap.add_argument("--batch", type=int, default=1,
+                    help="how many batch elements --gate checks (default 1; "
+                         "the shape has 32)")
+    ap.add_argument("--gate", action="store_true",
+                    help="check the whole output at full sequence length "
+                         "against a streamed exact reference")
+    ap.add_argument("--race", action="store_true",
+                    help="time it against the organizer's model with the "
+                         "attention chunked -- the minimum edit that makes the "
+                         "reference runnable, and so the fair opponent")
     args = ap.parse_args()
     if not torch.cuda.is_available():
         print("needs a CUDA GPU")
@@ -142,6 +454,11 @@ def main() -> int:
           f"machine")
     print("  our attention memory    O(S), not O(S^2) -- the score matrix is "
           f"never formed\n")
+
+    if args.gate:
+        return 0 if gate(device, spec, table, args.batch) else 1
+    if args.race:
+        return 0 if race(device, spec, table) else 1
 
     targets = ([1024, 4096, 16384, 65536, 100000] if args.scan
                else [case.seq_len])

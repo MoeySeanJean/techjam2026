@@ -1,0 +1,63 @@
+{
+  "question": "The causal path costs 0.62-0.72 of the non-causal time where the halved FLOPs say 0.50. We attributed the gap to load imbalance, and the standard remedy is a persistent-tile kernel. Does it actually help?",
+  "method": "The shipped kernel launches one program per m-block, so causal work grows with the m-block index. The persistent variant is built by source transformation on the shipped kernel -- the per-block arithmetic is unchanged -- launching a fixed number of programs, each walking m-blocks in a strided loop. Striding balances the triangular work without shrinking the tile, so a large tile and an even distribution should be available at once. Swept over four tiles and three program counts (1x, 2x and 4x the 108 SMs) on an A100. Reproduce with scripts/persistent_tile.py.",
+  "gpu": "NVIDIA A100 80GB PCIe",
+  "arch": "sm_80",
+  "sm_count": 108,
+  "slurm_job": "779055",
+  "shapes": [
+    {
+      "shape": "B2-H8-S2048-d64",
+      "non_causal_ms": 0.155,
+      "shipped_ms": 0.11,
+      "best_persistent_ms": 0.147,
+      "best_persistent_tile": "128x128",
+      "best_persistent_programs": 108,
+      "shipped_ratio_to_non_causal": 0.71,
+      "persistent_over_shipped": 1.346
+    },
+    {
+      "shape": "B8-H8-S2048-d64",
+      "non_causal_ms": 0.512,
+      "shipped_ms": 0.354,
+      "best_persistent_ms": 0.45,
+      "best_persistent_tile": "256x64",
+      "best_persistent_programs": 108,
+      "shipped_ratio_to_non_causal": 0.69,
+      "persistent_over_shipped": 1.27
+    },
+    {
+      "shape": "B4-H16-S8192-d64",
+      "non_causal_ms": 8.161,
+      "shipped_ms": 5.211,
+      "best_persistent_ms": 5.357,
+      "best_persistent_tile": "256x64",
+      "best_persistent_programs": 108,
+      "shipped_ratio_to_non_causal": 0.64,
+      "persistent_over_shipped": 1.028
+    },
+    {
+      "shape": "B64-H4-S1024-d32",
+      "non_causal_ms": 0.384,
+      "shipped_ms": 0.247,
+      "best_persistent_ms": 0.379,
+      "best_persistent_tile": "128x64",
+      "best_persistent_programs": 108,
+      "shipped_ratio_to_non_causal": 0.64,
+      "persistent_over_shipped": 1.535
+    },
+    {
+      "shape": "B2-H8-S4096-d64",
+      "non_causal_ms": 0.499,
+      "shipped_ms": 0.357,
+      "best_persistent_ms": 0.455,
+      "best_persistent_tile": "128x128",
+      "best_persistent_programs": 108,
+      "shipped_ratio_to_non_causal": 0.72,
+      "persistent_over_shipped": 1.272
+    }
+  ],
+  "finding": "The persistent kernel is slower on every shape measured -- 1.03x to 1.54x of the shipped time, never faster. Load imbalance is therefore not what the residual gap is made of. These grids are already large (batch x heads x m-blocks is thousands of programs), so there is no wave quantization left to recover, and pinning the grid to a multiple of the SM count only removes parallelism the scheduler was using. The 0.62-0.72 is the cost of the causal path itself -- the masking work, and the lower arithmetic intensity of the smaller tile that causal masking prefers -- not of an uneven distribution of it.",
+  "bit_exactness_note": "Bit-exactness against the shipped kernel holds whenever BLOCK_N matches, because query rows are independent and only the key-block grouping affects the running softmax; BLOCK_M merely groups independent rows. The two rows where the fastest persistent config used a different BLOCK_N differ in the last bits for that reason, not because the transformation changes the computation.",
+  "verdict": "measured and rejected; not shipped"
+}

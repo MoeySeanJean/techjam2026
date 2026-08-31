@@ -117,7 +117,7 @@ def act2_the_gate(args):
     say("Nothing in the code special-cases this. The gate just measures, and "
         "rejects. Watch it.")
     out = run([sys.executable, "-m", "kernelforge.cli", "verify",
-               "--cases", "default,default_float16,default_bfloat16,long_causal",
+               "--shapes-file", "official_shapes.txt",
                "--trials", "3"],
               "Verifying the shipped plans against the exact tolerance rule...")
     tail(out, 12)

@@ -16,8 +16,8 @@ Each degrades to something correct if a dependency is missing, and says so.
 
 ## What is not here
 
-The Slurm job files and the SSH driver that produced our A100 and H100 numbers
-are not in the repository. They only run on one specific university cluster, so
+The Slurm job files and the SSH driver that produced our cluster numbers are not
+in the repository. They only run on one specific university cluster, so
 they are provenance rather than instructions, and every result they produced is
 committed as JSON in `results/`.
 
@@ -30,7 +30,8 @@ Each has a portable equivalent that does the same work on your hardware:
 | the full cross-architecture sweep | `python -m kernelforge.cli sweep` |
 | the proposer head-to-head | `cli agent --provider heuristic --tag heuristic`, then `--provider llm --tag llm` |
 | the kernel codegen and model bake-off | `python -m kernelforge.cli codegen` |
-| shape 14 | `python scripts/shape14.py` |
+| shape 14, and its full-batch correctness gate | `python scripts/shape14.py`, `python scripts/shape14.py --gate --batch 32` |
+| the untuned-fallback portability check | `cli verify --shapes-file official_shapes.txt --untuned --json results/portability_<arch>.json` |
 
 Credentials are never stored in this repository and never passed on a command
 line; see `.env.example`.

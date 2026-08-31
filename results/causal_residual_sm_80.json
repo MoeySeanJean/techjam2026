@@ -1,0 +1,71 @@
+{
+  "question": "Causal costs 0.62-0.72 of non-causal where the halved FLOPs say 0.50. Load imbalance was ruled out by the persistent-tile probe. What is the residual actually made of, and is any of it recoverable?",
+  "gpu": "NVIDIA A100 80GB PCIe",
+  "arch": "sm_80",
+  "step_1_decomposition": {
+    "slurm_job": "779214",
+    "method": "Three arms at one tile: `full` (non-causal, all key blocks), `half` (causal work volume, mask NOT applied -- a timing probe, not a correct result) and `causal` (shipped). half/full isolates what the reduced work buys; causal/half isolates what applying the mask costs.",
+    "half_over_full": "0.50-0.65",
+    "mask_cost": "1.16x-1.34x",
+    "finding": "The work reduction is nearly fully realised -- 0.50 at S=8192 -- so the volume was never the problem. Applying the mask is, and it costs 1.16x-1.34x. The kernel built the causal predicate on every key block, though only the diagonal block can be affected by it."
+  },
+  "step_2_fix": {
+    "slurm_job": "779380",
+    "change": "Split the key loop: an unmasked range over [0, start_m*BLOCK_M) and a masked range over the diagonal block. Every candidate tiling has BLOCK_N dividing BLOCK_M, so the boundary falls on a block edge and the first range holds only fully-visible blocks.",
+    "shapes": [
+      {
+        "shape": "B2-H8-S2048-d64",
+        "non_causal_ms": 0.155,
+        "shipped_ms": 0.11,
+        "split_ms": 0.1,
+        "gain": 1.1,
+        "split_ratio_to_non_causal": 0.65
+      },
+      {
+        "shape": "B8-H8-S2048-d64",
+        "non_causal_ms": 0.546,
+        "shipped_ms": 0.353,
+        "split_ms": 0.328,
+        "gain": 1.08,
+        "split_ratio_to_non_causal": 0.6
+      },
+      {
+        "shape": "B4-H16-S8192-d64",
+        "non_causal_ms": 8.248,
+        "shipped_ms": 5.256,
+        "split_ms": 4.536,
+        "gain": 1.16,
+        "split_ratio_to_non_causal": 0.55
+      },
+      {
+        "shape": "B64-H4-S1024-d32",
+        "non_causal_ms": 0.385,
+        "shipped_ms": 0.248,
+        "split_ms": 0.206,
+        "gain": 1.2,
+        "split_ratio_to_non_causal": 0.54
+      },
+      {
+        "shape": "B2-H8-S4096-d64",
+        "non_causal_ms": 0.531,
+        "shipped_ms": 0.381,
+        "split_ms": 0.328,
+        "gain": 1.16,
+        "split_ratio_to_non_causal": 0.62
+      },
+      {
+        "shape": "B32-H8-S512-d64",
+        "non_causal_ms": 0.17,
+        "shipped_ms": 0.122,
+        "split_ms": 0.123,
+        "gain": 0.99,
+        "split_ratio_to_non_causal": 0.72
+      }
+    ],
+    "gain": "1.08x-1.21x on five of six shapes; 0.99x on S=512",
+    "causal_ratio_after": "0.53-0.72, from 0.62-0.72",
+    "bit_exact": true,
+    "bit_exact_note": "Dropping a `where` whose predicate is uniformly true removes no arithmetic that affects a result. Verified bit-identical on every shape, and under key padding with causal both on and off."
+  },
+  "verdict": "shipped; pinned by tests/test_kernels.py"
+}

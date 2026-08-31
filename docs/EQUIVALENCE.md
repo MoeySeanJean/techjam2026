@@ -76,7 +76,7 @@ together, and `--input-scale 64`.
 Reproduce:
 
 ```bash
-python -m kernelforge.cli verify --cases default_causal_pad,long_seq_pad,bert_base_pad
+python -m kernelforge.cli verify --shapes-file official_shapes.txt
 ```
 
 ## Degenerate case

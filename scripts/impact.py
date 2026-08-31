@@ -20,8 +20,12 @@ RESULTS = os.path.join(ROOT, "results")
 
 # Board power (W). Datasheet TDP, used only to convert latency into energy;
 # every derived number scales linearly with these, so they are stated openly.
+# Keyed on device, not architecture: our two sm_75 cards differ 4x in power.
 TDP = {"a100-80gb-79gb_sm_80": 300,        # A100 80GB PCIe
-       "h100-nvl-93gb_sm_90": 400}         # H100 NVL, per card
+       "h100-nvl-93gb_sm_90": 400,         # H100 NVL, per card
+       "titan-23gb_sm_75": 280,            # TITAN RTX
+       "titan-v-12gb_sm_70": 250,          # TITAN V
+       "tesla-t4-15gb_sm_75": 70}          # Tesla T4
 
 # Assumptions for the fleet illustration. Deliberately conservative.
 GRID_KWH_PER_USD = 0.12      # USD per kWh, commercial rate
@@ -113,9 +117,10 @@ def main() -> int:
             "the saving accrues on every inference thereafter, on hardware that "
             "is already bought and already running.", "",
             "The same reasoning is why the dispatch table is per-architecture. "
-            "A fleet is heterogeneous, and **4 of the 13 official shapes "
-            "chose a different plan on an A100 than on an H100** — so a single "
-            "hand-tuned kernel set "
+            "A fleet is heterogeneous, and **10 of the 11 official shapes that "
+            "all five GPUs can run chose a different plan on at least one of "
+            "them**, including 6 of 12 between two cards of the same "
+            "architecture -- so a single hand-tuned kernel set "
             "leaves money on the table on every card it was not tuned for, "
             "while re-tuning for a new card here is one command and no code "
             "changes.", ""]

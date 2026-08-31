@@ -13,7 +13,8 @@ import torch.nn.functional as F
 
 from conftest import requires_triton
 from kernelforge.numerics import check
-from kernelforge.ops.flash import (flash_attention, legal_blocks, smem_bytes)
+from kernelforge.ops.flash import (flash_attention, legal_blocks, pick_block,
+                                   smem_bytes)
 from kernelforge.ops.layernorm import add_mask_layernorm
 
 
@@ -145,11 +146,14 @@ def test_flash_accepts_strided_views_without_copying():
 
 # ---------------------------------------------------- shared-memory legality
 
-@pytest.mark.parametrize("smem,expect_big", [(99.0, False), (164.0, True),
-                                             (228.0, True)])
+@pytest.mark.parametrize("smem,expect_big", [(64.0, False), (96.0, False),
+                                             (163.0, True), (227.0, True)])
 def test_tile_legality_tracks_shared_memory(smem, expect_big):
     """The check that catches the classic LLM failure: a config sized for an
-    A100 will not launch on sm_86's 99 KB budget."""
+    A100 will not launch on a Turing card's 64 KB budget.
+
+    The four budgets are the ones we actually measure on: 64 KB on the T4 and
+    TITAN RTX, 96 KB on the TITAN V, 163 KB on the A100, 227 KB on the H100."""
     blocks = legal_blocks(2048, 64, smem)
     assert blocks, "there must always be a fallback configuration"
     for bm, bn, _, stages in blocks:
@@ -161,3 +165,156 @@ def test_tile_legality_tracks_shared_memory(smem, expect_big):
 def test_short_sequences_do_not_get_oversized_tiles():
     for bm, _, _, _ in legal_blocks(16, 64, 228.0):
         assert bm <= 16
+
+
+@requires_triton
+@pytest.mark.parametrize("shape", [(2, 8, 512, 64), (4, 4, 1023, 64), (2, 2, 128, 8)])
+@pytest.mark.parametrize("causal", [True, False])
+def test_causal_block_interleave_is_a_pure_permutation(shape, causal):
+    """The causal m-block interleave must not change a single bit of output.
+
+    Causal work grows with the m-block index, so the kernel interleaves block
+    order to balance scheduling waves. That is a permutation of which program
+    handles which block -- every block still performs the same reads, the same
+    accumulation and the same store -- so it is a scheduling change, not a
+    numerical one, and the output must be bit-identical to the un-permuted
+    order. This test rebuilds the kernel without the interleave and compares.
+
+    If this ever fails, the interleave has stopped being free and the speedup it
+    buys is not worth having.
+    """
+    import importlib.util
+    import os
+    import tempfile
+
+    from kernelforge.ops import flash as F
+
+    src = open(F.__file__, encoding="utf-8").read()
+    marker = "            start_m = tl.where(_p % 2 == 0, _p // 2, _n - 1 - _p // 2)"
+    assert marker in src, "interleave line not found -- update this test"
+    plain_src = src.replace(marker, "            start_m = _p")
+    path = os.path.join(tempfile.mkdtemp(), "_flash_plain.py")
+    with open(path, "w", encoding="utf-8") as fh:
+        fh.write(plain_src)
+    spec = importlib.util.spec_from_file_location("_flash_plain", path)
+    plain = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(plain)
+
+    B, H, S, Dh = shape
+    dev = torch.device("cuda")
+    torch.manual_seed(3)
+    q, k, v = (torch.randn(B, H, S, Dh, device=dev, dtype=torch.float16)
+               for _ in range(3))
+    keep = (torch.rand(B, S, device=dev) > 0.3).to(torch.uint8)
+    for mask in (None, keep):
+        a = F.flash_attention(q, k, v, keep=mask, causal=causal, smem_kb=99.0)
+        b = plain.flash_attention(q, k, v, keep=mask, causal=causal, smem_kb=99.0)
+        assert torch.equal(a, b), (
+            f"interleave changed the output: max |diff| "
+            f"{(a.float() - b.float()).abs().max().item():.3e}")
+
+
+def test_causal_default_targets_the_measured_tile():
+    """The causal default is a measured choice, not the richest legal tile.
+
+    Causal work grows with the m-block index and wastes a wide `BLOCK_N` on the
+    half-masked diagonal block, so the best tile is smaller than the non-causal
+    optimum. Swept across every legal configuration on an A100, that optimum is
+    `64x64` up to `head_dim` 64 and `128x32` above it. Pinning it here because
+    the failure is silent: a wrong default still computes the right answer, just
+    up to 1.29x slower, and only on shapes nobody tuned.
+    """
+    smem = 163.0
+    for head_dim in (32, 64):
+        bm, bn, _, _ = pick_block(2048, head_dim, smem, causal=True)
+        assert (bm, bn) == (64, 64), f"head_dim {head_dim} -> {(bm, bn)}"
+    bm, bn, _, _ = pick_block(2048, 128, smem, causal=True)
+    assert (bm, bn) == (128, 32)
+
+    # head_dim 256 cannot fit a 128x32 tile in 163 KB, so the target is not
+    # available and the rule must fall back to a legal, m-capped tiling rather
+    # than name one that will not launch.
+    block = pick_block(2048, 256, smem, causal=True)
+    assert block in legal_blocks(2048, 256, smem) and block[0] <= 128
+
+    # Non-causal is unchanged: uniform work, so the richest legal tile wins.
+    assert pick_block(2048, 64, smem) == legal_blocks(2048, 64, smem)[0]
+
+    # A short sequence spans one block, so there is no imbalance to correct.
+    assert pick_block(128, 64, smem, causal=True) == legal_blocks(128, 64, smem)[0]
+
+
+def test_causal_default_stays_legal_on_a_small_shared_memory_budget():
+    """The target tile must never be returned if it does not fit.
+
+    Turing cards have 64 KB per block against the A100's 163 KB. The rule picks
+    a target by head_dim, so it has to fall back rather than name a tiling that
+    will not launch.
+    """
+    for smem in (64.0, 96.0, 163.0, 227.0):
+        for head_dim in (32, 64, 128):
+            block = pick_block(4096, head_dim, smem, causal=True)
+            assert block in legal_blocks(4096, head_dim, smem), (
+                f"smem {smem} head_dim {head_dim}: {block} is not legal")
+
+
+@pytest.mark.parametrize("seq_len", [128, 512, 1024, 777])
+@pytest.mark.parametrize("padded", [False, True])
+def test_causal_loop_split_is_bit_identical_to_the_unsplit_form(seq_len, padded):
+    """The split key loop must change speed and nothing else.
+
+    The inner loop applies the causal mask only over the diagonal block, because
+    every block below it is entirely visible. That is a claim about a predicate
+    being uniformly true, and if it is ever wrong the result is silently wrong
+    rather than slow -- so it is checked against an exact reference here, at a
+    sequence length that is not a multiple of any candidate tile (777) and with
+    key padding on, which is the case where the two mask terms interact.
+    """
+    torch.manual_seed(seq_len)
+    dev = torch.device("cuda")
+    B, H, Dh = 2, 4, 64
+    q, k, v = (torch.randn(B, H, seq_len, Dh, device=dev, dtype=torch.float16)
+               for _ in range(3))
+    keep = None
+    if padded:
+        keep = (torch.rand(B, seq_len, device=dev) > 0.3).to(torch.int32)
+        keep[:, 0] = 1                      # never mask every key of a row
+
+    from kernelforge.hw import probe
+    smem = probe(measure=False).shared_mem_per_block_kb
+    got = flash_attention(q, k, v, keep=keep, causal=True, smem_kb=smem).float()
+
+    scores = (q.float() @ k.float().transpose(-2, -1)) * (Dh ** -0.5)
+    idx = torch.arange(seq_len, device=dev)
+    valid = idx[:, None] >= idx[None, :]
+    if keep is not None:
+        valid = valid[None, None] & (keep[:, None, None, :] != 0)
+    scores = scores.masked_fill(~valid.expand_as(scores), float("-inf"))
+    want = torch.softmax(scores, dim=-1) @ v.float()
+
+    assert torch.allclose(got, want, atol=2e-2, rtol=2e-2), (
+        f"split causal loop diverges at S={seq_len}, padded={padded}: "
+        f"max |diff| {(got - want).abs().max().item():.3e}")
+
+
+def test_only_power_of_two_tilings_are_offered():
+    """A non-power-of-two block size cannot reach the compiler.
+
+    `tl.arange(0, BLOCK)` requires a power of two. When that is violated Triton
+    fails during compilation with the location pointing at whatever line happens
+    to use the offsets, which is not where the mistake is -- a `192x128`
+    candidate reported the error against an unrelated `tl.where`. The filter
+    exists so a hand-added or model-proposed tiling is rejected in Python, with
+    a message about the real cause.
+    """
+    for smem in (64.0, 96.0, 163.0, 227.0):
+        for head_dim in (32, 64, 128):
+            for bm, bn, _, _ in legal_blocks(4096, head_dim, smem):
+                assert bm & (bm - 1) == 0, f"BLOCK_M {bm} is not a power of two"
+                assert bn & (bn - 1) == 0, f"BLOCK_N {bn} is not a power of two"
+
+    # And the shipped candidate list must not contain one in the first place.
+    from kernelforge.ops.flash import CANDIDATE_BLOCKS
+    for bm, bn, _, _ in CANDIDATE_BLOCKS:
+        assert bm & (bm - 1) == 0 and bn & (bn - 1) == 0, (
+            f"candidate {bm}x{bn} is not a power of two and would never launch")

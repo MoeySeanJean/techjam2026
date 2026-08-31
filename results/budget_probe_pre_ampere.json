@@ -1,0 +1,48 @@
+{
+  "question": "Is the thin pre-Ampere margin over torch.compile a real property of the hardware, or just a search that ran out of budget?",
+  "method": "Same shapes, same kernel, same cards; only the search budget changed -- 300s per shape and default trials, against 600s and 5 trials. Both arms predate the causal tiling change, so the kernel is identical across them and the budget is the only variable.",
+  "arms": {
+    "sm_70": {
+      "budget_300": {
+        "gpu": "NVIDIA TITAN V",
+        "arch": "sm_70",
+        "node": "xgpd7",
+        "slurm_job": "777789",
+        "shapes": 11,
+        "median_vs_reference": 2.82,
+        "median_vs_torch_compile": 1.01
+      },
+      "budget_600_trials_5": {
+        "gpu": "NVIDIA TITAN V",
+        "arch": "sm_70",
+        "node": "xgpd6",
+        "slurm_job": "778282",
+        "shapes": 11,
+        "median_vs_reference": 3.32,
+        "median_vs_torch_compile": 1.02
+      }
+    },
+    "sm_75_t4": {
+      "budget_300": {
+        "gpu": "Tesla T4",
+        "arch": "sm_75",
+        "node": "xgpf1",
+        "slurm_job": "777888",
+        "shapes": 12,
+        "median_vs_reference": 3.02,
+        "median_vs_torch_compile": 1.26
+      },
+      "budget_600_trials_5": {
+        "gpu": "Tesla T4",
+        "arch": "sm_75",
+        "node": "xgpf1",
+        "slurm_job": "778283",
+        "shapes": 12,
+        "median_vs_reference": 3.35,
+        "median_vs_torch_compile": 1.24
+      }
+    }
+  },
+  "finding": "Doubling the budget moved the margin over the naive reference (sm_70 2.82x -> 3.32x, T4 3.02x -> 3.35x) and left the margin over torch.compile flat (sm_70 1.01x -> 1.02x, T4 1.26x -> 1.24x). The search was not budget-starved; the ceiling is the hardware. Most of our margin is bought by spending a measured precision budget, and cards without TF32 have none to spend.",
+  "provenance_note": "`slurm_job` names the tuning run that produced each arm's official-shape records. A sweep file's own `slurm_job` field names the last job to write the file, which is not the same thing once a later run appends cases to it."
+}

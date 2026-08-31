@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import glob
 import json
+import re
 import os
 from collections import defaultdict
 from typing import Dict, List
@@ -276,8 +277,11 @@ def genealogy(gens: Dict[str, dict]) -> List[str]:
     return lines
 
 
-# Measured achieved bandwidth per architecture (from `cli doctor`).
-MEASURED_BW = {"sm_86": 359.0, "sm_80": 1651.0, "sm_90": 3511.0}
+# Measured achieved bandwidth, read back from the sweep that recorded it.
+def _measured_bw(blob: dict):
+    """GB/s as this sweep's own probe measured it on the node."""
+    m = re.search(r"~(\d+(?:\.\d+)?) GB/s", blob.get("gpu", ""))
+    return float(m.group(1)) if m else None
 
 
 def roofline_section(sweeps: Dict[str, dict]) -> List[str]:
@@ -292,20 +296,33 @@ def roofline_section(sweeps: Dict[str, dict]) -> List[str]:
     _sys.path.insert(0, ROOT)
     from kernelforge import roofline, shapes
 
+    # The official shapes are resolved from specs rather than named presets, so
+    # they are absent from `all_cases()` and every roofline row would be dropped.
     by_name = {c.name: c for c in shapes.all_cases()}
+    official = os.path.join(ROOT, "official_shapes.txt")
+    if os.path.exists(official):
+        with open(official, encoding="utf-8") as fh:
+            specs = [ln.split("#")[0].strip() for ln in fh]
+        for case in shapes.resolve([sp for sp in specs if sp]):
+            by_name.setdefault(case.name, case)
     lines = ["## Roofline: how much of the machine are we using?", "",
              "Arithmetic intensity is FLOPs per byte of DRAM traffic for a "
              "*fused* implementation; the ridge point is where a kernel stops "
              "being bandwidth-bound and starts being tensor-core-bound. "
              "\"% of ceiling\" is against whichever limit binds. Peak figures "
              "are vendor numbers for the tensor-core path with fp32 "
-             "accumulation and are listed in `kernelforge/roofline.py`.", "",
+             "accumulation and are listed in `kernelforge/roofline.py`. "
+             "Only `sm_80` and `sm_90` appear: a ceiling belongs to a "
+             "card rather than to an architecture -- our two `sm_75` "
+             "cards differ 2.3x in measured bandwidth -- so we quote a "
+             "peak only where we can name the exact part, and omit the "
+             "roofline rather than guess it.", "",
              "| GPU | shape | TFLOP/s | GB/s | intensity | limiter | % of ceiling |",
              "|---|---|---|---|---|---|---|"]
     worst = []
     for blob in sweeps.values():
         arch = blob.get("arch")
-        bw = MEASURED_BW.get(arch)
+        bw = _measured_bw(blob)
         for rec in blob.get("records", []):
             best, case = rec.get("best"), by_name.get(rec["case"])
             if not best or case is None or case.dtype != "float32":
@@ -318,39 +335,55 @@ def roofline_section(sweeps: Dict[str, dict]) -> List[str]:
                 f"| {arch} | `{rec['case']}` | {r.achieved_tflops:.1f} | "
                 f"{r.achieved_bandwidth_gbs:.0f} | {r.arithmetic_intensity:.0f} | "
                 f"{r.limiter} | {r.utilization:.0%} |")
-            worst.append((r.utilization, arch, rec["case"]))
+            worst.append((r.utilization, arch, rec["case"], r.limiter,
+                          r.arithmetic_intensity))
     if not worst:
         return []
     worst.sort()
     # Derived from the table above rather than written down, so the prose cannot
-    # drift out of step with the numbers it describes.
-    # The lowest cell overall is a bandwidth-bound shape, not a causal one --
-    # naming it "long causal attention" was wrong, so pick from causal cases.
-    causal = sorted(w for w in worst if "causal" in w[2])
-    causal_txt = (f"It sits at {causal[0][0]:.0%} of ceiling on "
-                  f"{causal[0][1]} (`{causal[0][2]}`), the lowest of the "
-                  f"compute-bound shapes." if causal else
-                  "No causal shape carries a roofline in these artifacts.")
-    gemm = sorted(u for u, _, _ in worst if u >= 0.20)
-    span = (f"{gemm[0]:.0%}-{gemm[-1]:.0%}" if gemm else "n/a")
-    archs = " and ".join(sorted({a for _, a, _ in worst}))
-    lines += ["", f"**What this says.** The GEMM-bound shapes reach "
-              f"{span} of the tensor-core ceiling on {archs}, which is a "
-              "reasonable place to be for a mixed Triton/cuBLAS implementation. "
-              "Two groups sit well below it, for different and instructive "
-              "reasons:", "",
-              "- **`tiny` and `decode` are bandwidth-bound with very low "
-              "intensity.** They are not failing to use the machine; there is "
-              "barely any arithmetic to do. Their speedups come from removing "
-              "kernel launches, and the roofline confirms there is nothing "
-              "further to win from better math.",
-              f"- **Long causal attention is the real headroom.** {causal_txt} "
-              f"That is the one regime where we still fall back to a library "
-              f"implementation, and where the next kernel should go.", "",
-              "Utilization is uniformly lower on H100 than on A100: the machine "
-              "is much larger and our tile sizes do not saturate it. Closing "
-              "that would mean Hopper-specific work (TMA, wgmma, larger "
-              "persistent tiles) that we scoped out.", ""]
+    # drift out of step with the numbers it describes. Split on the *limiter*,
+    # not on the shape name: every official shape is causal, so selecting by
+    # name once picked a bandwidth-bound latency shape and called it "long
+    # causal attention", which was wrong twice over.
+    comp = sorted(w for w in worst if w[3] == "tensor cores")
+    band = sorted(w for w in worst if w[3] != "tensor cores")
+    archs = " and ".join(sorted({a for _, a, _, _, _ in worst}))
+
+    lines += ["", "**What this says.**", ""]
+    if comp:
+        lines.append(
+            f"- **The compute-bound shapes reach {comp[0][0]:.0%}-"
+            f"{comp[-1][0]:.0%} of the tensor-core ceiling on {archs}.** The "
+            f"best is `{comp[-1][2]}` at {comp[-1][0]:.0%} on {comp[-1][1]}, "
+            f"which is a good place to be for a mixed Triton/cuBLAS "
+            f"implementation; the weakest is `{comp[0][2]}` at "
+            f"{comp[0][0]:.0%} on {comp[0][1]}.")
+    if band:
+        lines.append(
+            f"- **The other {len(band)} rows are memory-bandwidth-bound**, at "
+            f"arithmetic intensities of {band[0][4]:.0f}-{band[-1][4]:.0f} "
+            f"FLOP/byte against ridge points an order of magnitude higher. They "
+            f"are not failing to use the machine; there is barely any "
+            f"arithmetic to do. Their speedups come from removing kernel "
+            f"launches, and the roofline confirms there is nothing further to "
+            f"win from better math on them.")
+
+    pairs = {}
+    for u, a, case, _, _ in worst:
+        pairs.setdefault(case, {})[a] = u
+    both = {c: v for c, v in pairs.items() if len(v) > 1}
+    if both:
+        lo_arch = min(archs.split(" and "))
+        hi_arch = max(archs.split(" and "))
+        lower = sum(1 for v in both.values()
+                    if v.get(hi_arch, 0) < v.get(lo_arch, 0))
+        lines += ["", f"Utilization is lower on {hi_arch} than on {lo_arch} for "
+                  f"{lower} of the {len(both)} shapes both cards ran: the "
+                  f"machine is larger and our tiles do not saturate it. Closing "
+                  f"that would mean Hopper-specific work (TMA, wgmma, larger "
+                  f"persistent tiles) that we scoped out.", ""]
+    else:
+        lines.append("")
     return lines
 
 
@@ -516,17 +549,31 @@ def shape14_section() -> List[str]:
             f"{m['peak_gb']:.1f} GB | {m['batch_slice']}/32 | `{m['plan']}` | "
             f"{'yes' if m['finite'] else 'NO'} | "
             f"{'correct' if m['shape_ok'] else 'WRONG'} |")
+    plans = {m["plan"] for m in d["measurements"]}
+    if len(plans) > 1:
+        lines += ["", "The two rows run different plans, so their latencies are "
+                  "not comparable to each other: the `+fp16attn` variant lets "
+                  "the flash kernel take the attention stage instead of falling "
+                  "through to fp32 SDPA. On the A100 that is the difference "
+                  "between 77.2 s and 20.9 s.", ""]
     lines += ["", "Three things have to be true at once for this to run:", ""]
     for i, fix in enumerate(d["fixes_required"], 1):
         lines.append(f"{i}. {fix}")
-    lines += ["",
-              "`python scripts/shape14.py --scan` sweeps sequence length and "
-              "reports where a given GPU stops.", "",
-              "Accuracy for this code path is established at sequence lengths "
-              "where the reference *can* be computed — `tests/test_kernels.py` "
-              "checks the same kernel against an exact reference across causal "
-              "× padding × length, and `tests/test_streaming.py` checks that "
-              "slicing the batch does not change the answer.", ""]
+    acc = d.get("accuracy_at_full_length")
+    if acc:
+        lines += ["", "**Correctness at full length.** The reference cannot be "
+                  "materialized, but it can be *streamed*: chunking query rows "
+                  "and masking against the key index computes the same thing in "
+                  "O(S) instead of 18.6 TB. The entire output -- every batch "
+                  "element at full length -- is gated against that "
+                  "reference: fp32 with "
+                  "TF32 disabled, so stricter than the organizer's own, and a "
+                  "two-pass softmax rather than the online rescaling the kernel "
+                  f"uses -- the whole output measures envelope "
+                  f"**{acc['envelope']:.4f}** against a limit of "
+                  f"{acc['limit']:.1f}, with **{acc['failed']} of "
+                  f"{acc['elements_checked']:,} elements** outside tolerance. "
+                  "Reproduce with `python scripts/shape14.py --gate --batch 32`.", ""]
     return lines
 
 

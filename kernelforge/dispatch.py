@@ -272,9 +272,29 @@ def default_plan(dtype: torch.dtype, smem_kb: float = 99.0,
             # The bit-exact plan uses `attention="exact"`, which forms the score
             # matrix. When that cannot fit, the conservative choice is the one
             # that still runs: flash attention, everything else left wide.
-            return Plan(name="stream(flash)+wide", compute_dtype="auto",
-                        residual_dtype="auto", fuse_qkv=True, attention="flash",
-                        fused_norm=False, smem_kb=smem_kb)
+            #
+            # On an fp32 input and an Ampere-or-newer card the attention stage
+            # also narrows to fp16, which is the difference between the flash
+            # kernel running and falling through to SDPA -- `tl.dot` needs a
+            # narrow float type. On official shape 14 that is 77.2 s -> 20.9 s.
+            #
+            # This is the one place a *conservative* plan narrows a stage, so
+            # the evidence is stated rather than assumed. At the shape-14 config
+            # the full-stack envelope with fp16 attention is indistinguishable
+            # from the fp32 plan at every length where the reference can be
+            # computed (0.20-0.27 for both, S=1024..16384, flat in S), and at
+            # the full S=100000 the attention output itself measures 0.034
+            # against an exact float64 reference on sampled query rows. The
+            # dtype and architecture conditions are the same ones the fp32
+            # default below relies on.
+            narrow_attn = (dtype not in (torch.float16, torch.bfloat16)
+                           and not pre_ampere)
+            return Plan(name="stream(flash)+wide" + ("+fp16attn" if narrow_attn
+                                                     else ""),
+                        compute_dtype="auto", residual_dtype="auto",
+                        fuse_qkv=True, attention="flash", fused_norm=False,
+                        smem_kb=smem_kb,
+                        overrides=(("attn", "float16"),) if narrow_attn else ())
         return dataclasses.replace(SAFE, cuda_graph=True, smem_kb=smem_kb,
                                    name="safe(exact)+graph")
     # fp32: the reference runs at TF32, so fp16 attention and out_proj are

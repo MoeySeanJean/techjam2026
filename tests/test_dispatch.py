@@ -137,3 +137,63 @@ def test_float32_default_is_the_measured_choice():
     plan = default_plan(torch.float32)
     assert dict(plan.overrides) == {"attn": "float16", "out_proj": "float16"}
     assert plan.residual_dtype == "float32", "residual must stay wide"
+
+
+def test_streaming_plan_narrows_attention_only_where_measured():
+    """The streaming plan's fp16 attention is conditional, and the conditions matter.
+
+    A shape whose score matrix cannot be allocated gets `stream(flash)+wide`.
+    On fp32 input and Ampere-or-newer that plan also narrows the attention stage
+    to fp16, because `tl.dot` needs a narrow float type and without it the flash
+    kernel falls through to SDPA -- 97.7% of shape 14's runtime.
+
+    It must NOT narrow on a narrow input dtype (no reassociating optimization
+    passes the gate there) or on a pre-Ampere card (no TF32, so the equivalence
+    argument for fp16 does not hold). This is the only place a conservative plan
+    narrows anything, so both exclusions are pinned.
+    """
+    import torch as _t
+    from kernelforge.dispatch import default_plan
+
+    narrowed = default_plan(_t.float32, 163.0, conservative=True, arch="sm_80",
+                            must_stream=True)
+    assert ("attn", "float16") in narrowed.overrides
+    assert narrowed.attention == "flash"
+
+    for dtype, arch in ((_t.float16, "sm_80"), (_t.bfloat16, "sm_90"),
+                        (_t.float32, "sm_75"), (_t.float32, "sm_70")):
+        plan = default_plan(dtype, 163.0, conservative=True, arch=arch,
+                            must_stream=True)
+        assert plan.overrides == (), (
+            f"{dtype} on {arch} narrowed attention: {plan.overrides}")
+        assert plan.attention == "flash", "must still stream, whatever the dtype"
+
+
+def test_untuned_pre_ampere_default_is_bit_exact():
+    """What `verify --untuned` measures on a Volta or Turing card.
+
+    Without a table, every lookup falls through to `default_plan`. On a card
+    with no TF32 the fp32 default's argument -- that the reference is itself
+    computing at 10 mantissa bits, so fp16 costs nothing real -- does not hold,
+    so the default must decline the precision trade entirely. That is what makes
+    the untuned portability artifact come back at `max_abs = 0` rather than
+    merely "within tolerance", and it is the claim `docs/TECH_REPORT.md` makes
+    about hardware we never tuned.
+    """
+    import torch_transformer_benchmark as B
+    cfg = B.TransformerConfig(8, 128, 512, 8, 2048, 6, False)
+    empty = DispatchTable()
+
+    for arch in ("sm_70", "sm_75"):
+        plan, source = empty.lookup(arch, torch.float32, cfg)
+        assert source == "default", f"{arch} should have nothing to look up"
+        assert not plan.overrides, (
+            f"{arch} has no TF32, so the fp32 default must not spend a "
+            f"precision budget it cannot justify -- got {plan.overrides}")
+        assert plan.cuda_graph, (
+            f"{arch} should still take the launch-overhead win, which changes "
+            f"no arithmetic")
+
+    # The contrast: on Ampere+ the same lookup does spend the budget.
+    plan, _ = empty.lookup("sm_80", torch.float32, cfg)
+    assert dict(plan.overrides) == {"attn": "float16", "out_proj": "float16"}

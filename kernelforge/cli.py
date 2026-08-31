@@ -23,6 +23,7 @@ from . import bench, budget, search, shapes
 from .dispatch import DispatchTable, Entry, shape_signature, summarize
 from . import env as envmod
 from .hw import device_slug, host_summary, probe
+from .numerics import ADMISSION_MARGIN, DEMOTION_MARGIN, ENVELOPE_SPREAD
 
 RESULTS = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                        "results")
@@ -163,8 +164,14 @@ def cmd_verify(args):
     """
     dev = _setup()
     spec = probe(measure=False)
-    table = DispatchTable.load(spec.arch)
-    failures, demoted = [], []
+    untuned = getattr(args, "untuned", False)
+    # An empty table makes every lookup fall through to the architecture
+    # default -- exactly what a card with no entries of its own would run.
+    table = DispatchTable() if untuned else DispatchTable.load(spec.arch)
+    failures, demoted, records = [], [], []
+    if untuned:
+        print(f"dispatch table ignored: checking the fallback path on "
+              f"{spec.name} [{spec.arch}]")
     print(f"{'case':<26} {'plan':<32} {'envelope':>9} verdict")
     print("-" * 78)
     for case in _cases(args):
@@ -179,6 +186,12 @@ def cmd_verify(args):
                 ok = f"PASS but > margin {args.margin}"
             print(f"{case.name:<26} {plan.name:<32} {r.envelope_utilization:9.3f} "
                   f"{ok} ({source})")
+            records.append({"case": case.name, "plan": plan.name,
+                            "source": source, "passed": bool(r.passed),
+                            "envelope": r.envelope_utilization,
+                            "max_abs": r.max_abs_error,
+                            "failed_elements": r.failed_elements,
+                            "total_elements": r.total_elements})
             if (not r.passed or over) and args.demote:
                 import dataclasses as _dc
                 from .search import SAFE
@@ -197,8 +210,16 @@ def cmd_verify(args):
             print(f"{case.name:<26} {plan.name:<32} {'ERR':>9} "
                   f"{type(e).__name__}: {str(e)[:60]}")
             failures.append((case.name, plan.name, f"{type(e).__name__}: {e}"))
+            records.append({"case": case.name, "plan": plan.name,
+                            "source": source, "passed": False,
+                            "error": f"{type(e).__name__}: {str(e)[:160]}"})
         torch.cuda.empty_cache()
     print()
+    if getattr(args, "json_out", None):
+        with open(args.json_out, "w", encoding="utf-8") as f:
+            json.dump({"gpu": spec.name, "arch": spec.arch,
+                       "untuned": untuned, "records": records}, f, indent=2)
+        print(f"wrote {args.json_out}")
     if demoted:
         table.save(spec.arch)
         print(f"demoted {len(demoted)} entr(y/ies) to the bit-exact plan:")
@@ -564,12 +585,20 @@ def main(argv=None) -> int:
     sub.add_parser("doctor").set_defaults(func=cmd_doctor)
     common(sub.add_parser("budget")).set_defaults(func=cmd_budget)
     sp = common(sub.add_parser("verify"))
-    sp.add_argument("--margin", type=float, default=0.90,
-                    help="demotion threshold; deliberately looser than the "
-                         "sweep's 0.80 admission margin (see cmd_verify)")
+    sp.add_argument("--margin", type=float, default=DEMOTION_MARGIN,
+                    help=f"demotion threshold (default {DEMOTION_MARGIN}); it is "
+                         f"the {ADMISSION_MARGIN} admission margin plus the "
+                         f"measured {ENVELOPE_SPREAD} run-to-run spread, so a "
+                         f"legitimately-admitted entry cannot be demoted by "
+                         f"noise alone (see kernelforge/numerics.py)")
     sp.add_argument("--demote", action="store_true",
                     help="replace any entry that re-measures above the "
                          "demotion threshold with the bit-exact plan")
+    sp.add_argument("--untuned", action="store_true",
+                    help="ignore the dispatch table and check the fallback "
+                         "path -- what a GPU we never tuned would actually run")
+    sp.add_argument("--json", dest="json_out", metavar="PATH",
+                    help="write the per-case verdicts to PATH")
     sp.set_defaults(func=cmd_verify)
 
     sp = common(sub.add_parser("sweep"))

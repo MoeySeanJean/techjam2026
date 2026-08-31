@@ -27,10 +27,12 @@ from typing import Optional
 # Dense tensor-core throughput, TFLOP/s, fp16 inputs with fp32 accumulate.
 #
 # Only the architectures we report are listed. A ceiling is a property of the
-# specific card, not of the architecture -- consumer Ampere parts alone span
-# more than 3x -- so quoting one figure for a whole family would produce a
-# confidently wrong "percent of peak". `analyse` returns None for an
-# architecture that is not here, and the roofline is simply not reported.
+# specific card, not of the architecture, so quoting one figure for a whole
+# family would produce a confidently wrong "percent of peak". Our own `sm_75`
+# pair is the demonstration: a Tesla T4 and a TITAN RTX are the same
+# architecture at 2.3x apart in measured bandwidth and 4x in board power, and
+# one ceiling cannot describe both. `analyse` returns None for an architecture
+# that is not here, and the roofline is simply not reported for it.
 PEAK_TFLOPS = {
     "sm_80": 312.0,     # A100, fp16/fp32-acc dense
     "sm_90": 835.0,     # H100 NVL, fp16/fp32-acc dense

@@ -55,6 +55,26 @@ if HAS_TRITON:
         ROUND_SCORES: tl.constexpr,   # 0 none, 1 fp16, 2 bf16
     ):
         start_m = tl.program_id(0)
+        if CAUSAL:
+            # Causal work grows linearly with the m-block index: program 0 reads
+            # one key block, the last reads all of them. Launched in order, a
+            # scheduling wave is either all-heavy or all-light and the tail is
+            # the heaviest blocks -- causal ends up costing more than the 0.50
+            # of non-causal time that the halved FLOPs would suggest.
+            #
+            # Interleaving the block order so consecutive program ids alternate
+            # heaviest/lightest gives every wave a mix. This is a permutation of
+            # which program handles which block: each block still performs
+            # exactly the same reads, the same accumulation and the same store,
+            # so the output is bit-identical (pinned in test_kernels.py).
+            #
+            # It is a small win and honestly reported as one: measured on an
+            # A100 at its real 163 KB budget it is worth 1.00-1.03x, the gain
+            # confined to the smallest grid. It survives because it costs three
+            # integer instructions and cannot change a result.
+            _n = tl.num_programs(0)
+            _p = start_m
+            start_m = tl.where(_p % 2 == 0, _p // 2, _n - 1 - _p // 2)
         off_hz = tl.program_id(1)
         off_z = off_hz // H
         off_h = off_hz % H
@@ -85,7 +105,86 @@ if HAS_TRITON:
         else:
             hi = N_CTX
 
-        for start_n in range(0, hi, BLOCK_N):
+        # The key range splits in two, and the split is worth 1.08x-1.21x.
+        #
+        # A program reads `start_m + 1` key blocks, but the causal mask can only
+        # change the answer in the last one. Every block strictly below the
+        # diagonal is entirely visible, so `offs_m >= n_idx` there is arithmetic
+        # whose result is uniformly true -- computed, broadcast and applied
+        # through a `tl.where`, once per block, for nothing.
+        #
+        # Splitting the loop so the mask is built only for the diagonal block
+        # measured 1.08x-1.21x on five of six shapes (neutral on the sixth, at
+        # S=512 where there is barely a below-diagonal range to save). It is
+        # bit-identical, including under key padding: dropping a `where` whose
+        # predicate is uniformly true removes no arithmetic that affects a
+        # result. `tests/test_kernels.py` pins that.
+        #
+        # This is what the causal residual was actually made of. Decomposing it
+        # showed the work reduction was nearly fully realised already -- 0.50 of
+        # non-causal at S=8192 -- while masking added 1.16x-1.34x on top. The
+        # earlier suspect, load imbalance, was tested with a persistent-tile
+        # kernel and was not the cause.
+        #
+        # Every candidate tiling has BLOCK_N dividing BLOCK_M, so `_diag_lo`
+        # falls on a block boundary and the first loop contains only whole,
+        # fully-visible blocks.
+        if CAUSAL:
+            _diag_lo = start_m * BLOCK_M
+        else:
+            _diag_lo = 0
+        for start_n in range(0, _diag_lo, BLOCK_N):
+            n_idx = start_n + offs_n
+            in_range = n_idx < N_CTX
+
+            k = tl.load(
+                k_base + n_idx[:, None] * stride_kn + offs_d[None, :] * stride_kd,
+                mask=in_range[:, None], other=0.0,
+            )
+            qk = tl.dot(q, tl.trans(k))
+            if ROUND_SCORES == 0:
+                qk = qk * qk_scale
+            else:
+                # Reproduce the reference's rounding, do not improve on it. The
+                # baseline evaluates `matmul(q, k^T) * scale` entirely in the
+                # narrow dtype and only then calls .float() for the softmax, so
+                # a kernel that keeps full fp32 precision here lands ~0.4% away
+                # from the reference and fails the tolerance by being too good.
+                if ROUND_SCORES == 1:
+                    qk = (qk.to(tl.float16) * sm_scale).to(tl.float16).to(tl.float32)
+                else:
+                    qk = (qk.to(tl.bfloat16) * sm_scale).to(tl.bfloat16).to(tl.float32)
+                qk = qk * _LOG2E
+
+            valid = in_range[None, :]
+            if HAS_MASK:
+                km = tl.load(KEEP + off_z * N_CTX + n_idx, mask=in_range, other=0)
+                valid = valid & (km[None, :] != 0)
+
+            qk = tl.where(valid, qk, _NEG_INF)
+
+            m_ij = tl.maximum(m_i, tl.max(qk, 1))
+            # A tile can be entirely masked, leaving m_ij = -inf. Subtracting that
+            # would give inf - inf = NaN, so rescale against 0 in that case; the
+            # corresponding probabilities are zero anyway.
+            m_safe = tl.where(m_ij == _NEG_INF, 0.0, m_ij)
+
+            p = tl.exp2(qk - m_safe[:, None])
+            p = tl.where(valid, p, 0.0)
+
+            alpha = tl.exp2(m_i - m_safe)  # exp2(-inf) = 0 on the first iteration
+
+            l_i = l_i * alpha + tl.sum(p, 1)
+            acc = acc * alpha[:, None]
+
+            v = tl.load(
+                v_base + n_idx[:, None] * stride_vn + offs_d[None, :] * stride_vd,
+                mask=in_range[:, None], other=0.0,
+            )
+            acc = tl.dot(p.to(v.dtype), v, acc)
+
+            m_i = m_ij
+        for start_n in range(_diag_lo, hi, BLOCK_N):
             n_idx = start_n + offs_n
             in_range = n_idx < N_CTX
 
@@ -199,14 +298,23 @@ def smem_bytes(bm: int, bn: int, head_dim: int, stages: int) -> int:
 def legal_blocks(seq_len: int, head_dim: int, smem_kb: float):
     """Configurations that actually fit this GPU.
 
-    Shared memory differs by 2.3x across our targets (99 KB on sm_86 vs 228 KB on
-    sm_90), so this is derived rather than hardcoded. It is also the check that
-    catches the most common LLM failure mode: models trained on A100 kernels
-    happily emit 164 KB tilings that will not launch on sm_86.
+    Shared memory differs by 3.5x across the cards we measured -- 64 KB on the
+    Turing parts, 96 KB on Volta, 163 KB on the A100, 227 KB on the H100 -- so
+    this is derived from the measured budget rather than hardcoded. It is also
+    the check that catches the most common LLM failure mode: models trained on
+    A100 kernels happily emit 164 KB tilings that will not launch on a card with
+    64 KB.
     """
     budget = smem_kb * 1024 * 0.9
     out = []
     for bm, bn, warps, stages in CANDIDATE_BLOCKS:
+        # `tl.arange(0, BLOCK)` requires a power of two. A tiling that violates
+        # it fails deep inside compilation with an error pointing at whatever
+        # line happens to use the offsets -- we lost time to exactly that on a
+        # 192x128 candidate, where the reported location was an unrelated
+        # `tl.where`. Reject it here, where the message can be about the cause.
+        if bm & (bm - 1) or bn & (bn - 1):
+            continue
         if bm > max(16, _next_pow2(seq_len)):
             continue
         if smem_bytes(bm, bn, head_dim, stages) <= budget:
@@ -215,7 +323,41 @@ def legal_blocks(seq_len: int, head_dim: int, smem_kb: float):
 
 
 def pick_block(seq_len: int, head_dim: int, smem_kb: float, causal: bool = False):
-    return legal_blocks(seq_len, head_dim, smem_kb)[0]
+    """The default tiling: richest legal configuration, except under causal.
+
+    Non-causal work is uniform, so the richest legal tile wins and `blocks[0]`
+    is right. Causal work is not uniform, and the same tile is measurably wrong
+    there for two compounding reasons:
+
+      * a program reads key blocks `0..start_m`, so work grows with the m-block
+        index and a coarse `BLOCK_M` coarsens the imbalance;
+      * roughly half the scores in the diagonal block are masked away, and a
+        wide `BLOCK_N` throws away proportionally more of that block.
+
+    Both push toward a smaller tile than the non-causal optimum, and the point
+    they stop paying is where the tile gets too small to keep the tensor cores
+    fed. Swept over every legal configuration on an A100 across seven causal
+    shapes, that optimum sits at `64x64` for `head_dim <= 64` and at `128x32`
+    for wider heads -- where the K/V tile is already large in the `Dh`
+    direction, so the narrowing has to come from `BLOCK_N`. Targeting those
+    brings every shape measured to within 1.06x of its own best configuration,
+    against 1.29x for the richest-legal tile.
+
+    This only decides the *default*. A tuned entry carries its own
+    `flash_block`, found by the per-shape search, and is unaffected.
+    """
+    blocks = legal_blocks(seq_len, head_dim, smem_kb)
+    if causal and seq_len > 128:
+        target = (64, 64) if head_dim <= 64 else (128, 32)
+        for b in blocks:
+            if (b[0], b[1]) == target:
+                return b
+        # The target is not legal on this card -- fall back to merely avoiding
+        # the coarsest m-tiles, which is still better than the richest legal.
+        finer = [b for b in blocks if b[0] <= 128]
+        if finer:
+            return finer[0]
+    return blocks[0]
 
 
 def flash_attention(

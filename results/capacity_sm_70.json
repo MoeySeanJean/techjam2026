@@ -1,0 +1,43 @@
+{
+  "gpu": "NVIDIA TITAN V",
+  "arch": "sm_70",
+  "total_gib": 11.8,
+  "cases": [
+    {
+      "case": "B10000-S128-d128-H4-F128-L4-causal",
+      "plan": "safe(exact)+graph",
+      "source": "nearest",
+      "attempts": [
+        {
+          "label": "organizer baseline",
+          "ran": true,
+          "peak_gib": 10.4
+        },
+        {
+          "label": "kernelforge",
+          "ran": true,
+          "peak_gib": 4.03
+        }
+      ],
+      "verdict": "both run alone -- reference 10.4 GB, ours 4.0 GB (2.6x) of 11.8 GB. The sweep OOMs because its interleaved timing run holds the baseline, both compiled variants and every passing candidate resident at once."
+    },
+    {
+      "case": "B64-S1024-d128-H4-F128-L4-causal",
+      "plan": "safe(exact)+graph",
+      "source": "nearest",
+      "attempts": [
+        {
+          "label": "organizer baseline",
+          "ran": true,
+          "peak_gib": 2.29
+        },
+        {
+          "label": "kernelforge",
+          "ran": true,
+          "peak_gib": 2.37
+        }
+      ],
+      "verdict": "both run alone -- reference 2.3 GB, ours 2.4 GB (1.0x) of 11.8 GB. The sweep OOMs because its interleaved timing run holds the baseline, both compiled variants and every passing candidate resident at once."
+    }
+  ]
+}

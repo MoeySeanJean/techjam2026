@@ -290,6 +290,26 @@ class FusedTransformer(BaselineTransformer):
     # fragmentation. Chunking is a fallback, so it may be pessimistic.
     MEM_HEADROOM = 0.55
 
+    # An explicit ceiling on the working set, in bytes, or None to use whatever
+    # the device reports free. Set it when the memory is there but you want it
+    # for something else -- another model resident on the same card, a serving
+    # process with its own arena. Smaller values buy a smaller footprint with
+    # more batch slices, which costs time and changes no result: slicing the
+    # batch is an execution-order change, not an approximation.
+    memory_budget_bytes = None
+
+    def set_memory_budget(self, budget_bytes):
+        """Cap the working set at `budget_bytes`, or `None` to track free memory.
+
+        The estimator otherwise sizes its batch slice against everything
+        `mem_get_info` reports free, which is the right default when the card is
+        ours alone and the wrong one when it is not.
+        """
+        if budget_bytes is not None and budget_bytes <= 0:
+            raise ValueError("memory budget must be positive, or None")
+        self.memory_budget_bytes = budget_bytes
+        return self
+
     def _activation_bytes(self, B, S, dtype) -> int:
         """Peak working set of `_eager_forward` for a batch of `B`, in bytes."""
         width = max(self.config.d_model, self.config.ffn_dim)
@@ -333,13 +353,15 @@ class FusedTransformer(BaselineTransformer):
         B, S, _ = x.shape
         if B <= 1 or not x.is_cuda:
             return B
-        if self._activation_bytes(B, S, x.dtype) < 8 * 2**30:
+        budget = self.memory_budget_bytes
+        if budget is None and self._activation_bytes(B, S, x.dtype) < 8 * 2**30:
             return B                    # small shapes: never chunk, never probe
-        try:
-            free, _total = torch.cuda.mem_get_info(x.device)
-        except Exception:               # pragma: no cover - non-CUDA builds
-            return B
-        return self._chunk_for_budget(B, S, x.dtype, free)
+        if budget is None:
+            try:
+                budget, _total = torch.cuda.mem_get_info(x.device)
+            except Exception:           # pragma: no cover - non-CUDA builds
+                return B
+        return self._chunk_for_budget(B, S, x.dtype, budget)
 
     def _chunked_forward(self, x, valid_token_mask, chunk):
         """Run the batch in slices, writing into one preallocated output.

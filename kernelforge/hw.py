@@ -4,7 +4,8 @@ The optimizer needs a machine-readable description of the target GPU: the agent
 feeds it to the LLM, and the dispatch table keys off it. Shared-memory capacity in
 particular decides which Triton tile configurations are even legal, and it is the
 single most common reason an LLM-generated kernel fails to compile (models trained
-on A100 FlashAttention emit 164 KB configs that do not fit sm_86's 99 KB).
+on A100 FlashAttention emit 164 KB configs that do not fit the 64 KB of a
+Turing card).
 """
 from __future__ import annotations
 
@@ -19,7 +20,7 @@ import torch
 @dataclasses.dataclass(frozen=True)
 class GPUSpec:
     name: str
-    arch: str               # "sm_86"
+    arch: str               # "sm_80"
     major: int
     minor: int
     sm_count: int

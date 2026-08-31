@@ -1,0 +1,18 @@
+{
+  "question": "`CANDIDATE_BLOCKS` tops out at (128,128,8,4) = 144 KB of shared memory at head_dim 64. The A100 has 163 KB per block and the H100 227 KB, so the richest legal tiling is identical on both and the H100's extra capacity is never used. Is the search being denied tilings that would win?",
+  "method": "Six tilings absent from the candidate list, timed against the current richest legal tile on six shapes, causal and dense, on an H100 NVL. A tiling counts as a win only if it beats the current one by more than 2%, because adding it changes the default for every unmeasured shape.",
+  "gpu": "NVIDIA H100 NVL",
+  "arch": "sm_90",
+  "slurm_job": "779997",
+  "candidates_tried": [
+    "256x128w8s3",
+    "256x128w8s2",
+    "192x128w8s3",
+    "128x128w8s5",
+    "256x64w8s4",
+    "128x256w8s2"
+  ],
+  "finding": "One win: (256,128,8,2) by 1.024x on a single dense arm (B8-H16-S4096-d128). Nothing else beat the current tile on any arm, and on the causal arms the current tile was equal or better. A 2.4% gain on one shape does not justify changing the default for every unmeasured shape, so nothing was added.",
+  "side_finding": "(192,128,8,3) and other non-power-of-two tilings fail during Triton compilation with the error located at an unrelated line. `legal_blocks` now rejects them in Python, pinned by tests/test_kernels.py.",
+  "verdict": "measured and rejected; candidate list unchanged"
+}

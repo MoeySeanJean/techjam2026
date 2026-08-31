@@ -39,7 +39,7 @@ Four claims, and where each is evidenced:
 |---|---|
 | **AI and heuristics together optimize the kernel code.** Two proposers see the same spec sheet, profile and error budget, and are held to the same gate; the model also writes complete Triton source, all of it gated. | `results/genealogy_*.json`, `results/codegen*.json`, `results/generated/*.py`, [docs/CODEGEN.md](CODEGEN.md) |
 | **It is worth something to a real workload.** A ranking traffic mix, measured end to end, untuned then tuned. | [docs/USE_CASE.md](USE_CASE.md), `scripts/usecase.py` |
-| **The code performs.** 26 of 26 official-shape measurements beat both the naive baseline and `torch.compile`; zero demoted on re-verification. | [RESULTS.md](RESULTS.md), `results/sweep_*.json` |
+| **The code performs.** 60 of 62 official-shape measurements across five GPUs and four architectures beat both the naive baseline and `torch.compile`; zero demoted on re-verification anywhere. | [RESULTS.md](RESULTS.md), `results/sweep_*.json` |
 | **It generalizes.** Any CUDA GPU, any OpenAI-compatible LLM endpoint, or neither. Every path degrades to a correct one. | [README.md](../README.md#setup-and-installation), `cli doctor` |
 
 ### What we actually wrote
@@ -59,34 +59,56 @@ Four claims, and where each is evidenced:
 
 ### Results
 
-Measured on the A100-80 and H100 cluster nodes. We report only hardware that
-holds a stable clock — on a throttling GPU the measured ratios come out *higher*,
-because a weaker card spends proportionally more time on the launch overhead we
-remove, so such a machine would flatter us for the wrong reason.
+Measured on five cluster GPUs spanning four architectures. We report only
+hardware that holds a stable clock — on a throttling GPU the measured ratios come
+out *higher*, because a weaker card spends proportionally more time on the launch
+overhead we remove, so such a machine would flatter us for the wrong reason.
 
-| | A100-80 PCIe (sm_80) | H100 NVL (sm_90) |
-|---|---|---|
-| official shapes measured | 13 of 14 | 13 of 14 |
-| median vs the reference | 5.39x | **7.35x** |
-| range vs the reference | 2.32x – 15.25x | 2.34x – 13.29x |
-| median vs `torch.compile` | 1.53x | 1.69x |
-| **faster than both references** | **13 of 13** | **13 of 13** |
-| passed the accuracy gate | all | all |
-| demoted on re-verification | 0 | 0 |
+| GPU | arch | shapes | vs reference | vs `torch.compile` | faster than both |
+|---|---|---|---|---|---|
+| H100 NVL | `sm_90` | 13 of 14 | **7.31x** (2.34 – 14.32) | 1.68x | **13 of 13** |
+| A100-80 PCIe | `sm_80` | 13 of 14 | 5.31x (2.30 – 16.24) | 1.59x | **13 of 13** |
+| TITAN RTX | `sm_75` | 13 of 14 | 3.31x (1.81 – 11.12) | 1.07x | 12 of 13 |
+| Tesla T4 | `sm_75` | 12 of 14 | 3.35x (1.74 – 8.68) | 1.24x | **12 of 12** |
+| TITAN V | `sm_70` | 11 of 14 | 3.31x (1.68 – 10.47) | 1.01x | 10 of 11 |
 
-**Every officially specified shape that can be run beats both the naive baseline
-and `torch.compile(max-autotune)`, on both cluster GPUs — 26 of 26.** The
-narrowest margins are 2.32x over the reference and 1.02x over `torch.compile`;
-that last one is parity rather than a win and we say so in the report.
+Medians over the official shapes; every entry passed the accuracy gate and
+nothing was demoted on re-verification.
+
+**60 of 62 measurements beat both the naive baseline and
+`torch.compile(max-autotune)`.** The two exceptions record 0.9975x and 0.9999x,
+and on both the plan the search shipped *is* `torch.compile` — one code path
+timed against itself. A pipeline allowed to conclude "the existing compiler
+already wins here" is more useful than one that always substitutes.
+
+The margin over `torch.compile` is large where TF32 and tensor-core bf16 exist
+(1.59x, 1.68x) and near parity on pre-Ampere, which is the design's honest
+consequence: most of our win is bought by spending a *measured* precision budget,
+and Volta and Turing have none to spend. We tested that against the obvious
+alternative — that the pre-Ampere search was budget-starved — by doubling the
+budget on both cards. The margin over the reference moved; the margin over
+`torch.compile` did not.
 
 **Official shape 14** (`B32-S100000-d1024-H16-F1024-L2`) is the one the reference
 cannot run at all: it would have to allocate an 18.6 TB attention score matrix.
-We run it in **77.7 s on an A100-80** and **54.5 s on an H100 NVL**. We quote no
-speedup, because a ratio against something that cannot run is not a measurement.
+Rather than quote no number, we raced two opponents that can run it. The one that
+counts is the organizer's model with its attention replaced by PyTorch's
+`scaled_dot_product_attention` — a fused O(S) attention we did not write —
+substituted for the single line their baseline cannot execute: **4.32x on an
+A100-80** (77.5 s to 17.9 s) and **5.95x on an H100 NVL** (53.3 s to 9.0 s).
+Against a chunked version of their own attention, which is our code and so a
+weaker check, it is 9.31x and 10.00x. Correctness is checked against a streamed
+exact reference at full length and full batch — 0 of 3,276,800,000 elements
+outside tolerance. SDPA uses less memory than we do (14.6 GB against 30.2 GB);
+we buy the speed with memory, and `set_memory_budget()` caps the working set when
+the card is shared.
 
-Long causal attention on a small GPU is our weakest regime — on a 46-SM card we
-have measured shape 13 at 0.94x of `torch.compile`. That is outside our reported
-set, and documented rather than dropped.
+**Portability is measured, not asserted.** The same pipeline, unmodified, tuned
+`sm_70` and `sm_75` on hardware it had never seen. And of the 11 official shapes
+all five GPUs can run, 10 chose a different plan on at least one card — including
+6 of 12 between a Tesla T4 and a TITAN RTX, which are the *same architecture*.
+That is the argument for searching rather than hand-tuning, stated as a
+measurement.
 
 ---
 
@@ -121,7 +143,7 @@ set, and documented rather than dropped.
   as both a comparison point and a dispatch candidate.
 - **Triton 3.7.1** (`triton-windows` on Windows) — the FlashAttention and fused
   LayerNorm kernels.
-- **pytest** — 133 tests, of which 41 pass and 92 skip cleanly with no GPU.
+- **pytest** — 155 tests, of which 46 pass and 109 skip cleanly with no GPU.
 - **pynvml** — energy sampling for the impact analysis.
 - **paramiko** — cluster orchestration over the jump host.
 
@@ -140,25 +162,30 @@ third-party assets.
 Full list in [README.md](../README.md#limitations-and-what-we-would-improve-given-more-time).
 The three that matter most:
 
-1. **We cannot prove shape 14's accuracy at full size.** Nothing can compute a
-   reference output at `S=100000`, so there is no envelope to measure. We verify
-   the same code path against an exact reference at every length that *does* fit,
-   and that slicing the batch does not change the answer. Not closable — it is a
-   property of the shape.
+1. **Causal attention: we were wrong about the cause twice, and the second time
+   found a real 1.08x–1.21x.** We blamed load imbalance and built the standard
+   remedy, a persistent-tile kernel — slower on every shape, 1.03x–1.54x. So we
+   decomposed instead: the causal *work volume* was already nearly fully realised
+   (0.50 of non-causal at S=8192), while applying the mask cost 1.16x–1.34x. The
+   kernel built the causal predicate on every key block though only the diagonal
+   one can be affected. Splitting the loop ships, is bit-identical including under
+   key padding, and takes causal from 0.62–0.72 to 0.53–0.72 of non-causal.
+   Recorded in `results/causal_residual_sm_80.json` and
+   `results/persistent_tile_probe_sm_80.json`.
 2. **Shape 14 spends 97.7% of its GPU time in the fp32 attention fallback.**
    Measured with the profiler. Triton's `tl.dot` needs a narrow float type, so an
    fp32 attention stage falls through to SDPA. An fp32 flash kernel, or a bf16
    path with an error budget verified at that length, would attack 98% of the
    cost.
-3. **Small-batch long-causal attention is where our kernel loses to the
-   library.** On the official causal shapes we win with our own kernel (shape 13:
-   12.14x over the reference, 4.26x over `torch.compile`), but on `B2-S2048`
-   causal the search picks `torch.compile` instead. The roofline says why: 17%
-   and 11% of tensor-core ceiling against 45–50% for the same shape without
-   causal masking — skipping tiles above the diagonal halves the work but not the
-   launch grid.
+3. **On pre-Ampere we roughly tie `torch.compile`, and we checked that this is
+   structural.** Suspecting the search had simply run out of budget, we re-ran
+   Volta and Turing with double the per-shape budget and more timing trials. The
+   margin over the naive reference improved (2.82x → 3.32x on Volta); the margin
+   over `torch.compile` did not move (1.01x → 1.02x). Most of our win is bought
+   by spending a measured precision budget, and cards without TF32 have none to
+   spend.
 
-Accuracy is not the cause of the third: an `exp2`-free variant of the same
+Accuracy is not the cause of the first: an `exp2`-free variant of the same
 kernel measures identical envelopes to four decimal places from `S=128` to
 `S=4096`, so the causal path's problem is occupancy, not arithmetic.
 

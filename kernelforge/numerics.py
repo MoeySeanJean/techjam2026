@@ -45,6 +45,27 @@ def _script_defaults() -> tuple:
 
 ATOL, RTOL = _script_defaults()
 
+# Envelope utilization is not perfectly reproducible: cuBLAS selects different
+# kernels for the same call between processes, and the same (case, plan) pair
+# moves with it. Measured by re-evaluating three shipped entries in six fresh
+# processes each -- the largest spread was 0.141 (per case: 0.141, 0.089, 0.061).
+#
+# The two margins below are derived from that number rather than chosen:
+#
+#   ADMISSION (0.80)  what may enter the table. An entry observed at 0.80 has a
+#                     true value that could be ~0.14 higher, i.e. ~0.94 -- still
+#                     inside the gate, which is the property that matters.
+#   DEMOTION          what counts as drift on re-verification. It has to sit
+#                     above the largest observation a legitimately-admitted entry
+#                     can produce, or `verify --demote` becomes a ratchet that
+#                     re-rolls the noise and demotes good plans on every pass.
+#                     ADMISSION + SPREAD is that bound.
+#
+# Re-measure with `_workspace/envelope_spread.py` if the hardware changes.
+ENVELOPE_SPREAD = 0.141
+ADMISSION_MARGIN = 0.80
+DEMOTION_MARGIN = round(ADMISSION_MARGIN + ENVELOPE_SPREAD, 3)   # 0.941
+
 
 @dataclasses.dataclass
 class CheckResult:

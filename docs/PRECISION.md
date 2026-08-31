@@ -67,13 +67,29 @@ compile modes. Measured envelope utilization (limit 1.0):
 |---|---|---|---|---|
 | A100-80 (sm_80) | float16 | 2.808 | 2.869 | **FAIL** |
 | H100 NVL (sm_90) | float16 | 2.495 | 2.708 | **FAIL** |
+| Tesla T4 (sm_75) | float16 | 1.373 | 1.343 | **FAIL** |
+| TITAN V (sm_70) | float16 | 1.343 | 1.282 | **FAIL** |
 | A100-80 (sm_80) | bfloat16 | 20.996 | 20.020 | **FAIL** |
 | H100 NVL (sm_90) | bfloat16 | 19.617 | 19.617 | **FAIL** |
-| both | float32 | passes | passes | **PASS** |
+| all four | float32 | passes | passes | **PASS** |
 
-Eight independent failures across two architectures and both compile modes, and
-no float32 failure anywhere. The numbers come straight from
+**Twelve independent failures across four architectures and both compile modes,
+and no float32 failure anywhere.** The numbers come straight from
 `results/sweep_*.json`, which gates the library baselines on every run.
+
+The margin of failure shrinks on older cards — 1.28–1.37 against 2.5–2.9 on
+Ampere and Hopper — but the verdict does not change: `torch.compile` is
+inadmissible at fp16 on every architecture we measured. Where it wins on paper it
+wins by being wrong; on the TITAN V it is 2.4x faster than the baseline at
+fp16 and still fails, which is why the dispatch table ships `safe(exact)+graph`
+there instead.
+
+`bfloat16` on pre-Ampere is the one case that needs a caveat rather than a row.
+Volta and Turing have no native bf16, so `torch.compile` emits arithmetic
+indistinguishable from the baseline — envelope 0.000 at 1.000x and 1.002x,
+identical timings to three decimal places. It passes the gate by declining to
+optimize, which is not evidence either way, so it is not counted among the
+failures above.
 
 **How to read this.** Our first instinct was to call it a benchmark defect. On
 reflection that is the wrong reading, and the right one is more interesting.
@@ -177,7 +193,7 @@ seeds is not one we are willing to submit.
 ## Reproducing
 
 ```bash
-python -m kernelforge.cli budget --cases default,long_seq,default_float16
+python -m kernelforge.cli budget --shapes-file official_shapes.txt
 ```
 
 writes the per-stage table to `results/error_budget.txt`.

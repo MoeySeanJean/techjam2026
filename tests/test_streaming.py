@@ -110,3 +110,67 @@ def test_shape14_needs_slicing_because_the_batch_does_not_fit():
     per_sample = m._activation_bytes(1, cfg.seq_len, torch.float32)
     assert whole > 300 * 2**30, f"whole batch {whole / 2**30:.0f} GB"
     assert per_sample * 4 < whole, "slicing has to actually reduce the footprint"
+
+
+def test_peak_memory_adapts_to_the_budget_it_is_given():
+    """Less memory means a smaller slice, monotonically, down to one sequence.
+
+    This is what makes "how much memory does it use" the wrong question: the
+    footprint is not a fixed property of the shape, it is whatever the device
+    can spare. Shape 14 peaks at ~30 GB on an 80 GB card because 80 GB was
+    there; given a smaller budget the estimator asks for less, and
+    `_chunked_forward` halves again on any slice that still does not fit.
+
+    Pinned because the adaptation is invisible when it works -- a regression
+    that made the chunk constant would look fine on the big cards we measure on
+    and fail on every small one.
+    """
+    cfg = shapes.resolve(["B32-S100000-d1024-H16-F1024-L2-causal"])[0].to_config()
+    m = FusedTransformer(cfg, SAFE)
+    budgets = [200, 160, 120, 93, 79, 60, 48]
+    chunks = [m._chunk_for_budget(cfg.batch_size, cfg.seq_len, torch.float32,
+                                  gb * 2**30) for gb in budgets]
+
+    assert chunks == sorted(chunks, reverse=True), (
+        f"chunk must not grow as the budget shrinks: {list(zip(budgets, chunks))}")
+    assert all(c >= 1 for c in chunks), "a slice of one sequence is the floor"
+    assert chunks[0] > chunks[-1], (
+        f"the budget has to change the answer at all: {chunks[0]} vs {chunks[-1]}")
+
+    # Below the point where even the output tensor does not fit, it asks for the
+    # smallest slice there is rather than returning something unusable.
+    assert m._chunk_for_budget(cfg.batch_size, cfg.seq_len, torch.float32,
+                               4 * 2**30) == 1
+
+
+def test_an_explicit_memory_budget_overrides_what_the_device_reports():
+    """`set_memory_budget` caps the working set below what the card would allow.
+
+    The default sizes the batch slice against everything `mem_get_info` reports
+    free, which is right when the card is ours alone and wrong when a serving
+    process or a second model is sharing it. The override is the only way to ask
+    for a smaller footprint than the device is forcing.
+    """
+    cfg = shapes.resolve(["B32-S100000-d1024-H16-F1024-L2-causal"])[0].to_config()
+    m = FusedTransformer(cfg, SAFE)
+    assert m.memory_budget_bytes is None
+
+    generous = m._chunk_for_budget(cfg.batch_size, cfg.seq_len, torch.float32,
+                                   200 * 2**30)
+    m.set_memory_budget(60 * 2**30)
+    assert m.memory_budget_bytes == 60 * 2**30
+    tight = m._chunk_for_budget(cfg.batch_size, cfg.seq_len, torch.float32,
+                                m.memory_budget_bytes)
+    assert tight < generous, f"budget ignored: {tight} vs {generous}"
+
+    assert m.set_memory_budget(None) is m and m.memory_budget_bytes is None
+    with pytest.raises(ValueError):
+        m.set_memory_budget(0)
+
+
+def test_a_budget_small_enough_forces_single_sequence_slices():
+    """The floor is one sequence, not an error and not a silent overrun."""
+    cfg = shapes.resolve(["B32-S100000-d1024-H16-F1024-L2-causal"])[0].to_config()
+    m = FusedTransformer(cfg, SAFE).set_memory_budget(2 * 2**30)
+    assert m._chunk_for_budget(cfg.batch_size, cfg.seq_len, torch.float32,
+                               m.memory_budget_bytes) == 1

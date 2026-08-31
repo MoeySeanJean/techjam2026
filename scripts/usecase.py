@@ -63,7 +63,10 @@ SEGMENTS = [
      "second-stage re-rank over a small candidate set", 0.15),
 ]
 
-TDP = {"sm_86": 83, "sm_80": 300, "sm_90": 400}
+# Board power (W), by GPU name: two cards can share an architecture and
+# differ 4x in power, so this cannot be keyed on `arch`.
+TDP = {"NVIDIA A100 80GB PCIe": 300, "NVIDIA H100 NVL": 400,
+       "NVIDIA TITAN RTX": 280, "NVIDIA TITAN V": 250, "Tesla T4": 70}
 USD_PER_KWH = 0.12
 PUE = 1.2
 HOURS_PER_YEAR = 24 * 365
@@ -206,7 +209,7 @@ def main() -> int:
               f"{r['envelope']:.3f}  [{r['source']}]")
 
     # --- what that means for a service -----------------------------------
-    watts = TDP.get(spec.arch)
+    watts = TDP.get(spec.name)
     reqs_per_gpu_s_base = sum(r["share"] * r["requests"] / (r["baseline_ms"] / 1e3)
                               for r in rows)
     reqs_per_gpu_s_ours = sum(r["share"] * r["requests"] / (r["ours_ms"] / 1e3)
