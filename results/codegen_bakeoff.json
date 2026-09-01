@@ -1,0 +1,433 @@
+{
+  "what": "Every model the gateway serves, through the same kernel-writing loop: generate Triton source, compile it, gate it against an exact reference, then time it. Model choice is measured, not guessed.",
+  "method": "`cli codegen --targets layernorm,gelu`, 20 attempts per arm. `correct` counts attempts that compiled and cleared the accuracy gate; `taxonomy` records how the rest failed; `lineage` separates fresh samples from repair re-prompts.",
+  "reading_it": "Arms named `*_s2` are replicates of the same model, and arms named `*repair*` are the repair-budget experiment rather than a different model, which is why `model_requested` is absent on some of them. The gateway also aliases model ids, so `model_served` is what the API echoed back.",
+  "arms": [
+    {
+      "arm": "qwen3.8-27b",
+      "arch": "sm_90",
+      "model_requested": "qwen3.8:27b",
+      "model_served": [
+        "qwen3.8:27b"
+      ],
+      "correct": 17,
+      "attempts": 20,
+      "taxonomy": {
+        "ok": 17,
+        "numeric_fail": 3
+      },
+      "lineage": {
+        "fresh": 20,
+        "repair": 0,
+        "fresh_ok": 17,
+        "repair_ok": 0
+      },
+      "repair_budget": 0,
+      "best_speedup_vs_torch": 3.91,
+      "best_target": "gelu"
+    },
+    {
+      "arm": "qwen3.6-27b",
+      "arch": "sm_80",
+      "model_requested": null,
+      "model_served": null,
+      "correct": 15,
+      "attempts": 20,
+      "taxonomy": {
+        "ok": 15,
+        "runtime_error": 1,
+        "compile_error": 1,
+        "numeric_fail": 3
+      },
+      "lineage": {
+        "fresh": 20,
+        "repair": 0,
+        "fresh_ok": 15,
+        "repair_ok": 0
+      },
+      "repair_budget": 0,
+      "best_speedup_vs_torch": 4.14,
+      "best_target": "gelu"
+    },
+    {
+      "arm": "rep3_repair0",
+      "arch": "sm_80",
+      "model_requested": "qwen3-coder-next",
+      "model_served": [
+        "qwen3-coder-next"
+      ],
+      "correct": 13,
+      "attempts": 20,
+      "taxonomy": {
+        "runtime_error": 2,
+        "ok": 13,
+        "syntax_error": 2,
+        "compile_error": 1,
+        "numeric_fail": 2
+      },
+      "lineage": {
+        "fresh": 20,
+        "repair": 0,
+        "fresh_ok": 13,
+        "repair_ok": 0
+      },
+      "repair_budget": 0,
+      "best_speedup_vs_torch": 4.045,
+      "best_target": "gelu"
+    },
+    {
+      "arm": "shipped_repair0",
+      "arch": "sm_80",
+      "model_requested": "qwen3.8:27b",
+      "model_served": [
+        "qwen3.8:27b"
+      ],
+      "correct": 13,
+      "attempts": 20,
+      "taxonomy": {
+        "ok": 13,
+        "compile_error": 1,
+        "numeric_fail": 6
+      },
+      "lineage": {
+        "fresh": 20,
+        "repair": 0,
+        "fresh_ok": 13,
+        "repair_ok": 0
+      },
+      "repair_budget": 0,
+      "best_speedup_vs_torch": 4.564,
+      "best_target": "gelu"
+    },
+    {
+      "arm": "shipped_repair3",
+      "arch": "sm_80",
+      "model_requested": "qwen3.8:27b",
+      "model_served": [
+        "qwen3.8:27b"
+      ],
+      "correct": 13,
+      "attempts": 20,
+      "taxonomy": {
+        "ok": 13,
+        "syntax_error": 1,
+        "numeric_fail": 5,
+        "triton_global_not_constexpr": 1
+      },
+      "lineage": {
+        "fresh": 16,
+        "repair": 4,
+        "fresh_ok": 12,
+        "repair_ok": 1
+      },
+      "repair_budget": 3,
+      "best_speedup_vs_torch": 4.238,
+      "best_target": "gelu"
+    },
+    {
+      "arm": "repair3",
+      "arch": "sm_80",
+      "model_requested": null,
+      "model_served": null,
+      "correct": 12,
+      "attempts": 20,
+      "taxonomy": {
+        "ok": 12,
+        "compile_error": 3,
+        "numeric_fail": 5
+      },
+      "lineage": {
+        "fresh": 14,
+        "repair": 6,
+        "fresh_ok": 8,
+        "repair_ok": 4
+      },
+      "repair_budget": 3,
+      "best_speedup_vs_torch": 4.14,
+      "best_target": "gelu"
+    },
+    {
+      "arm": "qwen3-coder-next",
+      "arch": "sm_90",
+      "model_requested": "qwen3-coder-next",
+      "model_served": [
+        "qwen3-coder-next"
+      ],
+      "correct": 9,
+      "attempts": 20,
+      "taxonomy": {
+        "ok": 9,
+        "compile_error": 8,
+        "illegal_memory_access": 1,
+        "shared_memory_overflow": 1,
+        "numeric_fail": 1
+      },
+      "lineage": {
+        "fresh": 20,
+        "repair": 0,
+        "fresh_ok": 9,
+        "repair_ok": 0
+      },
+      "repair_budget": 0,
+      "best_speedup_vs_torch": 3.62,
+      "best_target": "gelu"
+    },
+    {
+      "arm": "rep3_repair3",
+      "arch": "sm_80",
+      "model_requested": "qwen3-coder-next",
+      "model_served": [
+        "qwen3-coder-next"
+      ],
+      "correct": 7,
+      "attempts": 20,
+      "taxonomy": {
+        "runtime_error": 2,
+        "illegal_memory_access": 3,
+        "bad_api_usage": 2,
+        "numeric_fail": 3,
+        "ok": 7,
+        "compile_error": 1,
+        "syntax_error": 1,
+        "triton_global_not_constexpr": 1
+      },
+      "lineage": {
+        "fresh": 10,
+        "repair": 10,
+        "fresh_ok": 4,
+        "repair_ok": 3
+      },
+      "repair_budget": 3,
+      "best_speedup_vs_torch": 4.214,
+      "best_target": "gelu"
+    },
+    {
+      "arm": "qwen3.6-35b",
+      "arch": "sm_80",
+      "model_requested": "qwen3.6:35b",
+      "model_served": [
+        "qwen3.6:35b"
+      ],
+      "correct": 6,
+      "attempts": 20,
+      "taxonomy": {
+        "syntax_error": 4,
+        "ok": 6,
+        "compile_error": 5,
+        "numeric_fail": 4,
+        "runtime_error": 1
+      },
+      "lineage": {
+        "fresh": 20,
+        "repair": 0,
+        "fresh_ok": 6,
+        "repair_ok": 0
+      },
+      "repair_budget": 0,
+      "best_speedup_vs_torch": 2.25,
+      "best_target": "layernorm"
+    },
+    {
+      "arm": "gemma4-26b",
+      "arch": "sm_80",
+      "model_requested": "gemma4:26b",
+      "model_served": [
+        "gemma4:26b"
+      ],
+      "correct": 5,
+      "attempts": 20,
+      "taxonomy": {
+        "missing_entry_point": 1,
+        "compile_error": 3,
+        "numeric_fail": 1,
+        "shape_error": 2,
+        "syntax_error": 2,
+        "ok": 5,
+        "runtime_error": 1,
+        "bad_api_usage": 5
+      },
+      "lineage": {
+        "fresh": 20,
+        "repair": 0,
+        "fresh_ok": 5,
+        "repair_ok": 0
+      },
+      "repair_budget": 0,
+      "best_speedup_vs_torch": 4.238,
+      "best_target": "gelu"
+    },
+    {
+      "arm": "ornith1.0-35b",
+      "arch": "sm_80",
+      "model_requested": null,
+      "model_served": null,
+      "correct": 3,
+      "attempts": 20,
+      "taxonomy": {
+        "bad_api_usage": 3,
+        "runtime_error": 6,
+        "syntax_error": 2,
+        "no_code_in_reply": 1,
+        "numeric_fail": 3,
+        "compile_error": 2,
+        "ok": 3
+      },
+      "lineage": {
+        "fresh": 20,
+        "repair": 0,
+        "fresh_ok": 3,
+        "repair_ok": 0
+      },
+      "repair_budget": 0,
+      "best_speedup_vs_torch": 3.377,
+      "best_target": "gelu"
+    },
+    {
+      "arm": "qwen3.6-35b_s2",
+      "arch": "sm_80",
+      "model_requested": "qwen3.6:35b",
+      "model_served": [
+        "qwen3.6:35b"
+      ],
+      "correct": 3,
+      "attempts": 20,
+      "taxonomy": {
+        "numeric_fail": 5,
+        "runtime_error": 3,
+        "compile_error": 5,
+        "syntax_error": 3,
+        "triton_global_not_constexpr": 1,
+        "ok": 3
+      },
+      "lineage": {
+        "fresh": 20,
+        "repair": 0,
+        "fresh_ok": 3,
+        "repair_ok": 0
+      },
+      "repair_budget": 0,
+      "best_speedup_vs_torch": 1.359,
+      "best_target": "gelu"
+    },
+    {
+      "arm": "gemma4-26b_s2",
+      "arch": "sm_80",
+      "model_requested": "gemma4:26b",
+      "model_served": [
+        "gemma4:26b"
+      ],
+      "correct": 2,
+      "attempts": 20,
+      "taxonomy": {
+        "syntax_error": 11,
+        "compile_error": 1,
+        "numeric_fail": 1,
+        "bad_api_usage": 3,
+        "ok": 2,
+        "runtime_error": 2
+      },
+      "lineage": {
+        "fresh": 20,
+        "repair": 0,
+        "fresh_ok": 2,
+        "repair_ok": 0
+      },
+      "repair_budget": 0,
+      "best_speedup_vs_torch": 4.238,
+      "best_target": "gelu"
+    },
+    {
+      "arm": "llama3.1-8b",
+      "arch": "sm_80",
+      "model_requested": null,
+      "model_served": null,
+      "correct": 0,
+      "attempts": 20,
+      "taxonomy": {
+        "runtime_error": 18,
+        "bad_api_usage": 2
+      },
+      "lineage": {
+        "fresh": 20,
+        "repair": 0,
+        "fresh_ok": 0,
+        "repair_ok": 0
+      },
+      "repair_budget": 0,
+      "best_speedup_vs_torch": null,
+      "best_target": null
+    },
+    {
+      "arm": "ornith1.5-35b",
+      "arch": "sm_80",
+      "model_requested": null,
+      "model_served": null,
+      "correct": 0,
+      "attempts": 20,
+      "taxonomy": {
+        "compile_error": 4,
+        "runtime_error": 5,
+        "bad_api_usage": 3,
+        "numeric_fail": 7,
+        "syntax_error": 1
+      },
+      "lineage": {
+        "fresh": 20,
+        "repair": 0,
+        "fresh_ok": 0,
+        "repair_ok": 0
+      },
+      "repair_budget": 0,
+      "best_speedup_vs_torch": null,
+      "best_target": null
+    },
+    {
+      "arm": "qwen3.5-9b",
+      "arch": "sm_80",
+      "model_requested": null,
+      "model_served": null,
+      "correct": 0,
+      "attempts": 20,
+      "taxonomy": {
+        "syntax_error": 17,
+        "compile_error": 1,
+        "bad_api_usage": 1,
+        "missing_entry_point": 1
+      },
+      "lineage": {
+        "fresh": 20,
+        "repair": 0,
+        "fresh_ok": 0,
+        "repair_ok": 0
+      },
+      "repair_budget": 0,
+      "best_speedup_vs_torch": null,
+      "best_target": null
+    },
+    {
+      "arm": "qwen3.5-9b_s2",
+      "arch": "sm_80",
+      "model_requested": "qwen3.5:9b",
+      "model_served": [
+        "qwen3.5:9b"
+      ],
+      "correct": 0,
+      "attempts": 20,
+      "taxonomy": {
+        "syntax_error": 17,
+        "missing_entry_point": 1,
+        "bad_api_usage": 2
+      },
+      "lineage": {
+        "fresh": 20,
+        "repair": 0,
+        "fresh_ok": 0,
+        "repair_ok": 0
+      },
+      "repair_budget": 0,
+      "best_speedup_vs_torch": null,
+      "best_target": null
+    }
+  ],
+  "raw_detail": "Per-attempt records for the shipped model are in `results/codegen.json` and the generated sources in `results/generated/`. The individual arm files are summarised here rather than committed in full."
+}

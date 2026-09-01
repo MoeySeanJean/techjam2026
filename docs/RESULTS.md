@@ -220,24 +220,6 @@ The 14 shapes in Appendix 3.7 of the problem statement. Shape numbers are the or
 
 ⚠ marks a shape where `torch.compile` is faster than us. We report these rather than omitting them.
 
-## Every GPU on the cluster
-
-The official shapes run through the organizer's `torch_transformer_benchmark.py`, unmodified, with our layer substituted in. Plans come from the frozen dispatch table for each architecture; **no tuning was run on any card here**, so the rows marked *untuned* are hardware the search never saw.
-
-| GPU | arch | SMs | memory | shapes run | passed | median | range | tuned on? |
-|---|---|---|---|---|---|---|---|---|
-| NVIDIA TITAN V | `sm_70` | 80 | 11.8 GB | 12 of 14 | 12/12 | **3.312x** | 1.0-10.182x | tuned |
-| NVIDIA TITAN RTX | `sm_75` | 72 | 23.5 GB | 13 of 14 | 13/13 | **3.209x** | 1.84-9.2x | tuned |
-| Tesla T4 | `sm_75` | 40 | 14.6 GB | 13 of 14 | 13/13 | **2.895x** | 1.713-5.378x | tuned |
-| NVIDIA A100 80GB PCIe | `sm_80` | 108 | 79.2 GB | 13 of 14 | 13/13 | **4.912x** | 2.285-15.56x | tuned |
-| NVIDIA A100-PCIE-40GB | `sm_80` | 108 | 39.5 GB | 13 of 14 | 13/13 | **6.385x** | 2.302-15.237x | **untuned** |
-| NVIDIA A100 80GB PCIe MIG 3g.40gb | `sm_80` | 42 | 39.2 GB | 13 of 14 | 13/13 | **4.564x** | 2.251-15.744x | **untuned** |
-| NVIDIA H200 NVL | `sm_90` | 132 | 139.8 GB | 13 of 14 | 13/13 | **4.247x** | 2.398-12.407x | **untuned** |
-| NVIDIA H100 NVL | `sm_90` | 132 | 93.1 GB | 13 of 14 | 13/13 | **7.198x** | 2.235-13.95x | tuned |
-| NVIDIA H100 NVL MIG 3g.47gb | `sm_90` | 60 | 46.4 GB | 13 of 14 | 13/13 | **4.296x** | 2.236-14.891x | **untuned** |
-
-Speedup is the organizer's own figure: our median latency against their unmodified baseline, on the same input. Shapes that do not run are memory, not correctness -- the largest official shapes do not fit every card.
-
 ## Shape 14, the one the reference cannot run
 
 `B32-S100000-d1024-H16-F1024-L2-causal` in float32. `BaselineSelfAttention` materializes `[B, H, S, S]` before its softmax, which for this shape is **18.6 TB** — not a number any GPU can allocate. The organizer's own reference cannot execute it, and neither can `torch.compile` applied to that reference.

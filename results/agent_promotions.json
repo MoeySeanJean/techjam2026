@@ -1,0 +1,462 @@
+{
+  "what": "What the LLM proposer won on each card. The agent runs after the search, so every shape already holds the best plan the heuristic found; a proposal takes the slot only if it beats that by 3%.",
+  "how_to_read": "`cleared_gate` counts proposals that passed the organizer's tolerance and were therefore allowed to be timed. `promoted` counts the ones that then beat the frozen entry -- that is the decision that changes what ships, and it is a much smaller number than the gate count. `agent_speedup` is the agent's own measurement, which tracks the organizer's on median but is noisy per shape (results/agent_measurement_noise.json).",
+  "totals": {
+    "cards": 9,
+    "shapes": 115,
+    "promoted": 72
+  },
+  "cards": [
+    {
+      "device": "a100-40gb-39gb_sm_80",
+      "shapes": 13,
+      "proposals": 78,
+      "cleared_gate": 51,
+      "rejected_by_gate": 27,
+      "promoted": 8,
+      "promoted_plans": [
+        {
+          "shape": "B64-S128-d128-H4-F128-L4-causal",
+          "plan": "fp16_fused_graph_v3",
+          "agent_speedup": 8.661
+        },
+        {
+          "shape": "B1-S128-d128-H4-F128-L4-causal",
+          "plan": "cuda_graph_fp16_flash_v2",
+          "agent_speedup": 16.419
+        },
+        {
+          "shape": "B16-S128-d128-H4-F128-L4-causal",
+          "plan": "cuda_graph_f16_flash_f32_ffn_core",
+          "agent_speedup": 18.474
+        },
+        {
+          "shape": "B64-S128-d32-H4-F32-L4-causal",
+          "plan": "cuda_graph_fp16_attn_ffn_fp32",
+          "agent_speedup": 7.984
+        },
+        {
+          "shape": "B64-S128-d1024-H4-F1024-L4-causal",
+          "plan": "fp16_fused_no_graph_flash",
+          "agent_speedup": 2.288
+        },
+        {
+          "shape": "B64-S128-d128-H1-F128-L4-causal",
+          "plan": "cuda_graph_fp16_fused",
+          "agent_speedup": 8.214
+        },
+        {
+          "shape": "B64-S128-d128-H2-F128-L4-causal",
+          "plan": "cuda_graph_f16_optimized_block",
+          "agent_speedup": 8.953
+        },
+        {
+          "shape": "B64-S128-d128-H16-F128-L4-causal",
+          "plan": "fp16_flash_fused_cuda_graph",
+          "agent_speedup": 5.84
+        }
+      ]
+    },
+    {
+      "device": "a100-80gb-79gb_sm_80",
+      "shapes": 13,
+      "proposals": 78,
+      "cleared_gate": 61,
+      "rejected_by_gate": 17,
+      "promoted": 10,
+      "promoted_plans": [
+        {
+          "shape": "B64-S128-d128-H4-F128-L4-causal",
+          "plan": "cuda_graph_fp16_small_block_optimized",
+          "agent_speedup": 7.058
+        },
+        {
+          "shape": "B1-S128-d128-H4-F128-L4-causal",
+          "plan": "cuda_graph_fp16_flash_v2",
+          "agent_speedup": 30.333
+        },
+        {
+          "shape": "B4-S128-d128-H4-F128-L4-causal",
+          "plan": "cuda_graph_fp16_flash",
+          "agent_speedup": 28.626
+        },
+        {
+          "shape": "B16-S128-d128-H4-F128-L4-causal",
+          "plan": "cuda_graph_fp16_flash_retry",
+          "agent_speedup": 21.515
+        },
+        {
+          "shape": "B128-S128-d128-H4-F128-L4-causal",
+          "plan": "fp16_ffn1_fp16_ffn2_fp32_cuda_graph",
+          "agent_speedup": 3.784
+        },
+        {
+          "shape": "B64-S128-d128-H1-F128-L4-causal",
+          "plan": "cuda_graph_fp16_retry",
+          "agent_speedup": 9.598
+        },
+        {
+          "shape": "B64-S128-d128-H2-F128-L4-causal",
+          "plan": "cuda_graph_fp16_fused",
+          "agent_speedup": 6.95
+        },
+        {
+          "shape": "B64-S128-d128-H16-F128-L4-causal",
+          "plan": "fp16_flash_graphs",
+          "agent_speedup": 5.941
+        },
+        {
+          "shape": "B64-S32-d128-H4-F128-L4-causal",
+          "plan": "cuda_graph_fp32_measure",
+          "agent_speedup": 11.107
+        },
+        {
+          "shape": "B64-S1024-d128-H4-F128-L4-causal",
+          "plan": "fp16_flash_fused_graph",
+          "agent_speedup": 12.0
+        }
+      ]
+    },
+    {
+      "device": "a100-80gb-mig-3g.40gb-39gb_sm_80",
+      "shapes": 13,
+      "proposals": 76,
+      "cleared_gate": 57,
+      "rejected_by_gate": 19,
+      "promoted": 11,
+      "promoted_plans": [
+        {
+          "shape": "B64-S128-d128-H4-F128-L4-causal",
+          "plan": "fp16_fused_flash_attn_cuda_graph",
+          "agent_speedup": 4.191
+        },
+        {
+          "shape": "B1-S128-d128-H4-F128-L4-causal",
+          "plan": "cuda_graph_fp16_optimized",
+          "agent_speedup": 23.022
+        },
+        {
+          "shape": "B4-S128-d128-H4-F128-L4-causal",
+          "plan": "cuda_graph_fp16_flash_v2",
+          "agent_speedup": 18.759
+        },
+        {
+          "shape": "B16-S128-d128-H4-F128-L4-causal",
+          "plan": "cuda_graph_fp16_flash_opt",
+          "agent_speedup": 15.453
+        },
+        {
+          "shape": "B128-S128-d128-H4-F128-L4-causal",
+          "plan": "fp16_fused_flash_graph_opt",
+          "agent_speedup": 4.385
+        },
+        {
+          "shape": "B10000-S128-d128-H4-F128-L4-causal",
+          "plan": "cuda_graph_fp16_flash",
+          "agent_speedup": 4.397
+        },
+        {
+          "shape": "B64-S128-d32-H4-F32-L4-causal",
+          "plan": "cuda_graph_fp16_flash_large_block",
+          "agent_speedup": 5.487
+        },
+        {
+          "shape": "B64-S128-d128-H1-F128-L4-causal",
+          "plan": "fp32_fused_qkv_norms_graph",
+          "agent_speedup": 3.039
+        },
+        {
+          "shape": "B64-S128-d128-H2-F128-L4-causal",
+          "plan": "cuda_graph_fp32_v2",
+          "agent_speedup": 3.176
+        },
+        {
+          "shape": "B64-S128-d128-H16-F128-L4-causal",
+          "plan": "fp16_flash_fused_graph_small_block",
+          "agent_speedup": 6.197
+        },
+        {
+          "shape": "B64-S32-d128-H4-F128-L4-causal",
+          "plan": "cuda_graph_retry",
+          "agent_speedup": 8.163
+        }
+      ]
+    },
+    {
+      "device": "h100-nvl-93gb_sm_90",
+      "shapes": 13,
+      "proposals": 74,
+      "cleared_gate": 52,
+      "rejected_by_gate": 22,
+      "promoted": 7,
+      "promoted_plans": [
+        {
+          "shape": "B1-S128-d128-H4-F128-L4-causal",
+          "plan": "cuda_graph_fp16_flash_small",
+          "agent_speedup": 19.061
+        },
+        {
+          "shape": "B128-S128-d128-H4-F128-L4-causal",
+          "plan": "fp16_fused_graph",
+          "agent_speedup": 5.275
+        },
+        {
+          "shape": "B10000-S128-d128-H4-F128-L4-causal",
+          "plan": "cuda_graph_fp16_fused",
+          "agent_speedup": 4.452
+        },
+        {
+          "shape": "B64-S128-d1024-H4-F1024-L4-causal",
+          "plan": "float16_fused_graph_optimized_block",
+          "agent_speedup": 2.243
+        },
+        {
+          "shape": "B64-S128-d128-H2-F128-L4-causal",
+          "plan": "cuda_graph_f16_fused_smaller_block",
+          "agent_speedup": 9.793
+        },
+        {
+          "shape": "B64-S128-d128-H16-F128-L4-causal",
+          "plan": "fp16_graph_flash",
+          "agent_speedup": 4.679
+        },
+        {
+          "shape": "B64-S32-d128-H4-F128-L4-causal",
+          "plan": "cuda_graph_fp16_fused",
+          "agent_speedup": 14.94
+        }
+      ]
+    },
+    {
+      "device": "h100-nvl-mig-3g.47gb-46gb_sm_90",
+      "shapes": 13,
+      "proposals": 78,
+      "cleared_gate": 61,
+      "rejected_by_gate": 17,
+      "promoted": 4,
+      "promoted_plans": [
+        {
+          "shape": "B64-S128-d128-H4-F128-L4-causal",
+          "plan": "fp16_fused_graph_small_block",
+          "agent_speedup": 5.376
+        },
+        {
+          "shape": "B4-S128-d128-H4-F128-L4-causal",
+          "plan": "cuda_graph_fp16_compute",
+          "agent_speedup": 16.518
+        },
+        {
+          "shape": "B16-S128-d128-H4-F128-L4-causal",
+          "plan": "cuda_graph_fp16_opt",
+          "agent_speedup": 12.302
+        },
+        {
+          "shape": "B64-S128-d128-H2-F128-L4-causal",
+          "plan": "fp16_flash_graph_opt",
+          "agent_speedup": 5.416
+        }
+      ]
+    },
+    {
+      "device": "h200-nvl-140gb_sm_90",
+      "shapes": 13,
+      "proposals": 78,
+      "cleared_gate": 55,
+      "rejected_by_gate": 23,
+      "promoted": 8,
+      "promoted_plans": [
+        {
+          "shape": "B64-S128-d128-H4-F128-L4-causal",
+          "plan": "fp16_fused_graph",
+          "agent_speedup": 4.479
+        },
+        {
+          "shape": "B1-S128-d128-H4-F128-L4-causal",
+          "plan": "cuda_graph_fp16_flash",
+          "agent_speedup": 9.19
+        },
+        {
+          "shape": "B4-S128-d128-H4-F128-L4-causal",
+          "plan": "cuda_graph_fp16_safe",
+          "agent_speedup": 7.197
+        },
+        {
+          "shape": "B16-S128-d128-H4-F128-L4-causal",
+          "plan": "cuda_graph_fp16_optimized_block",
+          "agent_speedup": 7.207
+        },
+        {
+          "shape": "B10000-S128-d128-H4-F128-L4-causal",
+          "plan": "cuda_graph_fp16_fused_block64",
+          "agent_speedup": 4.684
+        },
+        {
+          "shape": "B64-S128-d32-H4-F32-L4-causal",
+          "plan": "fp16_large_block_fused_cuda_graph#6",
+          "agent_speedup": 3.933
+        },
+        {
+          "shape": "B64-S128-d128-H1-F128-L4-causal",
+          "plan": "cuda_graph_fp16_f32res",
+          "agent_speedup": 4.192
+        },
+        {
+          "shape": "B64-S32-d128-H4-F128-L4-causal",
+          "plan": "cuda_graph_fused_fp16_stable",
+          "agent_speedup": 7.7
+        }
+      ]
+    },
+    {
+      "device": "tesla-t4-15gb_sm_75",
+      "shapes": 12,
+      "proposals": 68,
+      "cleared_gate": 63,
+      "rejected_by_gate": 5,
+      "promoted": 8,
+      "promoted_plans": [
+        {
+          "shape": "B64-S128-d128-H4-F128-L4-causal",
+          "plan": "fp16_fused_no_graph",
+          "agent_speedup": 3.013
+        },
+        {
+          "shape": "B1-S128-d128-H4-F128-L4-causal",
+          "plan": "cuda_graph_fp16_flash_attn",
+          "agent_speedup": 12.556
+        },
+        {
+          "shape": "B4-S128-d128-H4-F128-L4-causal",
+          "plan": "cuda_graph_fp16_sdpa#6",
+          "agent_speedup": 11.414
+        },
+        {
+          "shape": "B16-S128-d128-H4-F128-L4-causal",
+          "plan": "t4_flash_graph_fp32",
+          "agent_speedup": 2.519
+        },
+        {
+          "shape": "B64-S128-d128-H1-F128-L4-causal",
+          "plan": "t4_fp16_sdpa_graph",
+          "agent_speedup": 2.078
+        },
+        {
+          "shape": "B64-S128-d128-H2-F128-L4-causal",
+          "plan": "fused_qkv_f16_graph",
+          "agent_speedup": 2.167
+        },
+        {
+          "shape": "B64-S128-d128-H16-F128-L4-causal",
+          "plan": "fp16_body_flash_attn_fused_deep_pipe",
+          "agent_speedup": 3.578
+        },
+        {
+          "shape": "B64-S32-d128-H4-F128-L4-causal",
+          "plan": "cuda_graph_fp16_compute",
+          "agent_speedup": 7.347
+        }
+      ]
+    },
+    {
+      "device": "titan-23gb_sm_75",
+      "shapes": 13,
+      "proposals": 78,
+      "cleared_gate": 70,
+      "rejected_by_gate": 8,
+      "promoted": 7,
+      "promoted_plans": [
+        {
+          "shape": "B1-S128-d128-H4-F128-L4-causal",
+          "plan": "launch_bound_fp32_graph_flash_v2",
+          "agent_speedup": 12.119
+        },
+        {
+          "shape": "B4-S128-d128-H4-F128-L4-causal",
+          "plan": "cuda_graph_fp16",
+          "agent_speedup": 15.663
+        },
+        {
+          "shape": "B16-S128-d128-H4-F128-L4-causal",
+          "plan": "cuda_graph_f16_selective",
+          "agent_speedup": 5.559
+        },
+        {
+          "shape": "B64-S128-d32-H4-F32-L4-causal",
+          "plan": "fp16_compute_fp32_residual_graph#5",
+          "agent_speedup": 5.342
+        },
+        {
+          "shape": "B64-S128-d128-H1-F128-L4-causal",
+          "plan": "fused_qkv_norm_fp16_sdpa_graph_small_block",
+          "agent_speedup": 3.798
+        },
+        {
+          "shape": "B64-S128-d128-H2-F128-L4-causal",
+          "plan": "fp16_compute_fp32_residual",
+          "agent_speedup": 2.342
+        },
+        {
+          "shape": "B64-S128-d128-H16-F128-L4-causal",
+          "plan": "fp16_cuda_graph",
+          "agent_speedup": 3.582
+        }
+      ]
+    },
+    {
+      "device": "titan-v-12gb_sm_70",
+      "shapes": 12,
+      "proposals": 65,
+      "cleared_gate": 62,
+      "rejected_by_gate": 3,
+      "promoted": 9,
+      "promoted_plans": [
+        {
+          "shape": "B64-S128-d128-H4-F128-L4-causal",
+          "plan": "fp16_full_graph",
+          "agent_speedup": 3.09
+        },
+        {
+          "shape": "B1-S128-d128-H4-F128-L4-causal",
+          "plan": "cuda_graph_flash_small_block",
+          "agent_speedup": 11.666
+        },
+        {
+          "shape": "B4-S128-d128-H4-F128-L4-causal",
+          "plan": "cuda_graph_fp16_ffn1_fp32_retest",
+          "agent_speedup": 9.213
+        },
+        {
+          "shape": "B16-S128-d128-H4-F128-L4-causal",
+          "plan": "cuda_graph_fp16_exact",
+          "agent_speedup": 4.31
+        },
+        {
+          "shape": "B128-S128-d128-H4-F128-L4-causal",
+          "plan": "fused_fp16_safe",
+          "agent_speedup": 2.794
+        },
+        {
+          "shape": "B64-S128-d1024-H4-F1024-L4-causal",
+          "plan": "cuda_graph_sdpa_fp16",
+          "agent_speedup": 4.942
+        },
+        {
+          "shape": "B64-S128-d128-H1-F128-L4-causal",
+          "plan": "fp16_compute_fp32_residual_sdpa_graphs",
+          "agent_speedup": 2.863
+        },
+        {
+          "shape": "B64-S128-d128-H16-F128-L4-causal",
+          "plan": "fp16_flash_fused_graph_small_block",
+          "agent_speedup": 3.355
+        },
+        {
+          "shape": "B64-S1024-d128-H4-F128-L4-causal",
+          "plan": "f32_flash_graph_fused_cg",
+          "agent_speedup": 3.298
+        }
+      ]
+    }
+  ],
+  "raw_detail": "Full per-attempt genealogy is kept for the A100-80, the card the proposer head-to-head in docs/RESULTS.md renders; the rest are summarised here."
+}

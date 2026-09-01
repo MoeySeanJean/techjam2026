@@ -32,7 +32,7 @@ Successful `gelu` attempts cluster at 3.59–3.91x.
 loop; correct-kernel counts ranged from 48/60 down to 0/40, and `qwen3.8:27b`
 won. `scripts/pick_model.py` scores plan-JSON quality instead, and on this
 gateway that was *anti-predictive* of kernel-writing ability, so it is not what
-selects the model. Arms are committed as `results/codegen_<model>_<arch>.json`.
+selects the model. Every arm is summarised in `results/codegen_bakeoff.json` -- correct-kernel count, failure taxonomy, fresh-versus-repair lineage and best generated speedup per model -- with per-attempt detail for the shipped model in `results/codegen.json`.
 
 ## Failure modes
 
@@ -117,8 +117,8 @@ however well it measures.
 
 Every card was tuned by the search first, then the agent proposed against the
 frozen table with promotion gated on beating the incumbent by 3%. Per card the
-model won roughly 8 or 9 slots out of 13 or 14 proposals, and the rejections are
-logged beside them:
+model took between 4 and 11 of the 13 shape slots -- 72 of 115 across the nine
+cluster cards -- and the rejections are logged beside them:
 
 ```
 -> promoted into the table (8.66x vs 3.92x held)
@@ -139,7 +139,7 @@ wins and others are measurement luck. The structure is what keeps that safe: a
 proposal is gated for correctness before it is timed at all, so the worst a noisy
 promotion can do is ship something slower, never something wrong. Re-timing the
 winner in the incumbent's harness before promoting would fix it properly, and we
-did not do that. (`results/agent_measurement_noise.json`)
+did not do that. (`results/agent_promotions.json`, `results/agent_measurement_noise.json`)
 
 ## Trust model
 
