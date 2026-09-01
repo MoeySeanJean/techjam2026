@@ -283,17 +283,18 @@ the point where we know what the next step is and why we did not take it.
   We have no measurement isolating a further recoverable part.
   (`results/causal_residual_sm_80.json`, `results/persistent_tile_probe_sm_80.json`)
 - **On pre-Ampere we roughly tie `torch.compile` rather than beating it** —
-  1.01x–1.24x, against 1.59x and 1.68x on Ampere and Hopper. Most of our margin
-  is bought by spending a *measured* precision budget, and cards without TF32
-  have none to spend. We checked this was not simply a search that ran out of
-  budget: doubling the per-shape budget on both cards moved the margin over the
-  naive reference (2.82x → 3.32x on Volta) and left the margin over
-  `torch.compile` flat (1.01x → 1.02x). Beating the compiler there needs a
-  different lever — scheduling and launch overhead rather than precision — which
-  we did not build. (`results/budget_probe_pre_ampere.json`)
+  1.02x–1.23x, against 1.35x–1.59x on Ampere and 1.66x–1.67x on Hopper. Most of
+  our margin is bought by spending a *measured* precision budget, and cards
+  without TF32 have none to spend. We checked this was not simply a search that
+  ran out of budget: in a controlled run, doubling the per-shape budget on both
+  cards moved the margin over the naive reference (2.82x → 3.32x on Volta) while
+  leaving the margin over `torch.compile` flat (1.01x → 1.02x). Beating the
+  compiler there needs a different lever — scheduling and launch overhead rather
+  than precision — which we did not build.
+  (`results/budget_probe_pre_ampere.json`)
 
 - **On the two compute-bound official shapes we reach a lower fraction of the
-  H100's ceiling than the A100's** — 53% against 77%, and 15% against 25%. We
+  H100's ceiling than the A100's** — 37% against 78%, and 10% against 15%. We
   first wrote this as "our tiles do not saturate the H100", which the data does
   not support: comparing achieved DRAM bandwidth against each card's *own* peak,
   neither card exceeds 11% on the eleven bandwidth-bound shapes, so nothing there

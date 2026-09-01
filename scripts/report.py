@@ -332,10 +332,13 @@ def roofline_section(sweeps: Dict[str, dict]) -> List[str]:
             if r is None:
                 continue
             lines.append(
-                f"| {arch} | `{rec['case']}` | {r.achieved_tflops:.1f} | "
+                f"| {blob.get('gpu','').split(' [')[0].replace('NVIDIA ','') or arch}"
+                f" | `{rec['case']}` | {r.achieved_tflops:.1f} | "
                 f"{r.achieved_bandwidth_gbs:.0f} | {r.arithmetic_intensity:.0f} | "
                 f"{r.limiter} | {r.utilization:.0%} |")
-            worst.append((r.utilization, arch, rec["case"], r.limiter,
+            worst.append((r.utilization,
+                          blob.get('gpu','').split(' [')[0].replace('NVIDIA ','') or arch,
+                          rec["case"], r.limiter,
                           r.arithmetic_intensity))
     if not worst:
         return []

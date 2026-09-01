@@ -285,91 +285,91 @@ Arithmetic intensity is FLOPs per byte of DRAM traffic for a *fused* implementat
 
 | GPU | shape | TFLOP/s | GB/s | intensity | limiter | % of ceiling |
 |---|---|---|---|---|---|---|
-| sm_80 | `B64-S128-d128-H4-F128-L4-causal` | 11.1 | 151 | 74 | memory bandwidth | 11% |
-| sm_80 | `B1-S128-d128-H4-F128-L4-causal` | 0.6 | 15 | 37 | memory bandwidth | 1% |
-| sm_80 | `B4-S128-d128-H4-F128-L4-causal` | 2.9 | 49 | 60 | memory bandwidth | 4% |
-| sm_80 | `B16-S128-d128-H4-F128-L4-causal` | 10.1 | 144 | 70 | memory bandwidth | 10% |
-| sm_80 | `B128-S128-d128-H4-F128-L4-causal` | 12.9 | 174 | 74 | memory bandwidth | 13% |
-| sm_80 | `B10000-S128-d128-H4-F128-L4-causal` | 24.2 | 324 | 75 | memory bandwidth | 24% |
-| sm_80 | `B64-S128-d32-H4-F32-L4-causal` | 1.7 | 63 | 27 | memory bandwidth | 5% |
-| sm_80 | `B64-S128-d1024-H4-F1024-L4-causal` | 77.4 | 167 | 465 | tensor cores | 50% |
-| sm_80 | `B64-S128-d128-H1-F128-L4-causal` | 15.5 | 210 | 74 | memory bandwidth | 15% |
-| sm_80 | `B64-S128-d128-H2-F128-L4-causal` | 18.4 | 250 | 74 | memory bandwidth | 18% |
-| sm_80 | `B64-S128-d128-H16-F128-L4-causal` | 10.4 | 142 | 74 | memory bandwidth | 10% |
-| sm_80 | `B64-S32-d128-H4-F128-L4-causal` | 9.9 | 158 | 63 | memory bandwidth | 12% |
-| sm_80 | `B64-S1024-d128-H4-F128-L4-causal` | 36.6 | 246 | 149 | tensor cores | 23% |
-| sm_80 | `B64-S128-d128-H4-F128-L4-causal` | 18.4 | 251 | 74 | memory bandwidth | 15% |
-| sm_80 | `B1-S128-d128-H4-F128-L4-causal` | 0.9 | 24 | 37 | memory bandwidth | 1% |
-| sm_80 | `B4-S128-d128-H4-F128-L4-causal` | 2.1 | 35 | 60 | memory bandwidth | 2% |
-| sm_80 | `B16-S128-d128-H4-F128-L4-causal` | 6.4 | 92 | 70 | memory bandwidth | 6% |
-| sm_80 | `B128-S128-d128-H4-F128-L4-causal` | 13.1 | 177 | 74 | memory bandwidth | 11% |
-| sm_80 | `B10000-S128-d128-H4-F128-L4-causal` | 23.8 | 319 | 75 | memory bandwidth | 19% |
-| sm_80 | `B64-S128-d32-H4-F32-L4-causal` | 1.4 | 54 | 27 | memory bandwidth | 3% |
-| sm_80 | `B64-S128-d1024-H4-F1024-L4-causal` | 121.8 | 262 | 465 | tensor cores | 78% |
-| sm_80 | `B64-S128-d128-H1-F128-L4-causal` | 19.9 | 271 | 74 | memory bandwidth | 16% |
-| sm_80 | `B64-S128-d128-H2-F128-L4-causal` | 18.4 | 251 | 74 | memory bandwidth | 15% |
-| sm_80 | `B64-S128-d128-H16-F128-L4-causal` | 7.8 | 105 | 74 | memory bandwidth | 6% |
-| sm_80 | `B64-S32-d128-H4-F128-L4-causal` | 6.1 | 98 | 63 | memory bandwidth | 6% |
-| sm_80 | `B64-S1024-d128-H4-F128-L4-causal` | 23.0 | 154 | 149 | tensor cores | 15% |
-| sm_80 | `B64-S128-d128-H4-F128-L4-causal` | 10.5 | 142 | 74 | memory bandwidth | 17% |
-| sm_80 | `B1-S128-d128-H4-F128-L4-causal` | 1.0 | 26 | 37 | memory bandwidth | 3% |
-| sm_80 | `B4-S128-d128-H4-F128-L4-causal` | 3.2 | 53 | 60 | memory bandwidth | 6% |
-| sm_80 | `B16-S128-d128-H4-F128-L4-causal` | 7.1 | 101 | 70 | memory bandwidth | 12% |
-| sm_80 | `B128-S128-d128-H4-F128-L4-causal` | 11.4 | 154 | 74 | memory bandwidth | 19% |
-| sm_80 | `B10000-S128-d128-H4-F128-L4-causal` | 6.2 | 84 | 75 | memory bandwidth | 10% |
-| sm_80 | `B64-S128-d32-H4-F32-L4-causal` | 0.9 | 34 | 27 | memory bandwidth | 4% |
-| sm_80 | `B64-S128-d1024-H4-F1024-L4-causal` | 61.9 | 133 | 465 | tensor cores | 40% |
-| sm_80 | `B64-S128-d128-H1-F128-L4-causal` | 11.9 | 162 | 74 | memory bandwidth | 20% |
-| sm_80 | `B64-S128-d128-H2-F128-L4-causal` | 7.9 | 108 | 74 | memory bandwidth | 13% |
-| sm_80 | `B64-S128-d128-H16-F128-L4-causal` | 5.7 | 77 | 74 | memory bandwidth | 9% |
-| sm_80 | `B64-S32-d128-H4-F128-L4-causal` | 4.4 | 70 | 63 | memory bandwidth | 8% |
-| sm_80 | `B64-S1024-d128-H4-F128-L4-causal` | 18.8 | 126 | 149 | memory bandwidth | 15% |
-| sm_90 | `B64-S128-d128-H4-F128-L4-causal` | 30.2 | 411 | 74 | memory bandwidth | 12% |
-| sm_90 | `B1-S128-d128-H4-F128-L4-causal` | 1.1 | 29 | 37 | memory bandwidth | 1% |
-| sm_90 | `B4-S128-d128-H4-F128-L4-causal` | 2.4 | 40 | 60 | memory bandwidth | 1% |
-| sm_90 | `B16-S128-d128-H4-F128-L4-causal` | 13.5 | 192 | 70 | memory bandwidth | 5% |
-| sm_90 | `B128-S128-d128-H4-F128-L4-causal` | 40.0 | 540 | 74 | memory bandwidth | 15% |
-| sm_90 | `B10000-S128-d128-H4-F128-L4-causal` | 22.9 | 307 | 75 | memory bandwidth | 9% |
-| sm_90 | `B64-S128-d32-H4-F32-L4-causal` | 2.6 | 98 | 27 | memory bandwidth | 3% |
-| sm_90 | `B64-S128-d1024-H4-F1024-L4-causal` | 152.1 | 327 | 465 | tensor cores | 37% |
-| sm_90 | `B64-S128-d128-H1-F128-L4-causal` | 25.5 | 346 | 74 | memory bandwidth | 10% |
-| sm_90 | `B64-S128-d128-H2-F128-L4-causal` | 33.2 | 452 | 74 | memory bandwidth | 13% |
-| sm_90 | `B64-S128-d128-H16-F128-L4-causal` | 11.2 | 152 | 74 | memory bandwidth | 4% |
-| sm_90 | `B64-S32-d128-H4-F128-L4-causal` | 13.2 | 210 | 63 | memory bandwidth | 6% |
-| sm_90 | `B64-S1024-d128-H4-F128-L4-causal` | 39.6 | 266 | 149 | tensor cores | 10% |
-| sm_90 | `B64-S128-d128-H4-F128-L4-causal` | 10.7 | 145 | 74 | memory bandwidth | 8% |
-| sm_90 | `B1-S128-d128-H4-F128-L4-causal` | 1.1 | 30 | 37 | memory bandwidth | 2% |
-| sm_90 | `B4-S128-d128-H4-F128-L4-causal` | 4.1 | 68 | 60 | memory bandwidth | 4% |
-| sm_90 | `B16-S128-d128-H4-F128-L4-causal` | 11.0 | 156 | 70 | memory bandwidth | 9% |
-| sm_90 | `B128-S128-d128-H4-F128-L4-causal` | 21.2 | 286 | 74 | memory bandwidth | 16% |
-| sm_90 | `B10000-S128-d128-H4-F128-L4-causal` | 23.9 | 320 | 75 | memory bandwidth | 18% |
-| sm_90 | `B64-S128-d32-H4-F32-L4-causal` | 1.8 | 68 | 27 | memory bandwidth | 4% |
-| sm_90 | `B64-S128-d1024-H4-F1024-L4-causal` | 135.1 | 291 | 465 | tensor cores | 33% |
-| sm_90 | `B64-S128-d128-H1-F128-L4-causal` | 21.0 | 286 | 74 | memory bandwidth | 16% |
-| sm_90 | `B64-S128-d128-H2-F128-L4-causal` | 20.6 | 280 | 74 | memory bandwidth | 16% |
-| sm_90 | `B64-S128-d128-H16-F128-L4-causal` | 9.4 | 127 | 74 | memory bandwidth | 7% |
-| sm_90 | `B64-S32-d128-H4-F128-L4-causal` | 11.6 | 185 | 63 | memory bandwidth | 10% |
-| sm_90 | `B64-S1024-d128-H4-F128-L4-causal` | 38.3 | 257 | 149 | memory bandwidth | 14% |
-| sm_90 | `B64-S128-d128-H4-F128-L4-causal` | 17.2 | 234 | 74 | memory bandwidth | 6% |
-| sm_90 | `B1-S128-d128-H4-F128-L4-causal` | 1.1 | 29 | 37 | memory bandwidth | 1% |
-| sm_90 | `B4-S128-d128-H4-F128-L4-causal` | 2.3 | 39 | 60 | memory bandwidth | 1% |
-| sm_90 | `B16-S128-d128-H4-F128-L4-causal` | 13.6 | 194 | 70 | memory bandwidth | 5% |
-| sm_90 | `B128-S128-d128-H4-F128-L4-causal` | 39.2 | 529 | 74 | memory bandwidth | 13% |
-| sm_90 | `B10000-S128-d128-H4-F128-L4-causal` | 50.3 | 674 | 75 | memory bandwidth | 17% |
-| sm_90 | `B64-S128-d32-H4-F32-L4-causal` | 2.7 | 100 | 27 | memory bandwidth | 2% |
-| sm_90 | `B64-S128-d1024-H4-F1024-L4-causal` | 289.2 | 622 | 465 | tensor cores | 70% |
-| sm_90 | `B64-S128-d128-H1-F128-L4-causal` | 31.3 | 426 | 74 | memory bandwidth | 11% |
-| sm_90 | `B64-S128-d128-H2-F128-L4-causal` | 32.8 | 446 | 74 | memory bandwidth | 11% |
-| sm_90 | `B64-S128-d128-H16-F128-L4-causal` | 15.8 | 216 | 74 | memory bandwidth | 5% |
-| sm_90 | `B64-S32-d128-H4-F128-L4-causal` | 13.2 | 211 | 63 | memory bandwidth | 5% |
-| sm_90 | `B64-S1024-d128-H4-F128-L4-causal` | 71.0 | 476 | 149 | tensor cores | 17% |
+| A100-PCIE-40GB | `B64-S128-d128-H4-F128-L4-causal` | 11.1 | 151 | 74 | memory bandwidth | 11% |
+| A100-PCIE-40GB | `B1-S128-d128-H4-F128-L4-causal` | 0.6 | 15 | 37 | memory bandwidth | 1% |
+| A100-PCIE-40GB | `B4-S128-d128-H4-F128-L4-causal` | 2.9 | 49 | 60 | memory bandwidth | 4% |
+| A100-PCIE-40GB | `B16-S128-d128-H4-F128-L4-causal` | 10.1 | 144 | 70 | memory bandwidth | 10% |
+| A100-PCIE-40GB | `B128-S128-d128-H4-F128-L4-causal` | 12.9 | 174 | 74 | memory bandwidth | 13% |
+| A100-PCIE-40GB | `B10000-S128-d128-H4-F128-L4-causal` | 24.2 | 324 | 75 | memory bandwidth | 24% |
+| A100-PCIE-40GB | `B64-S128-d32-H4-F32-L4-causal` | 1.7 | 63 | 27 | memory bandwidth | 5% |
+| A100-PCIE-40GB | `B64-S128-d1024-H4-F1024-L4-causal` | 77.4 | 167 | 465 | tensor cores | 50% |
+| A100-PCIE-40GB | `B64-S128-d128-H1-F128-L4-causal` | 15.5 | 210 | 74 | memory bandwidth | 15% |
+| A100-PCIE-40GB | `B64-S128-d128-H2-F128-L4-causal` | 18.4 | 250 | 74 | memory bandwidth | 18% |
+| A100-PCIE-40GB | `B64-S128-d128-H16-F128-L4-causal` | 10.4 | 142 | 74 | memory bandwidth | 10% |
+| A100-PCIE-40GB | `B64-S32-d128-H4-F128-L4-causal` | 9.9 | 158 | 63 | memory bandwidth | 12% |
+| A100-PCIE-40GB | `B64-S1024-d128-H4-F128-L4-causal` | 36.6 | 246 | 149 | tensor cores | 23% |
+| A100 80GB PCIe | `B64-S128-d128-H4-F128-L4-causal` | 18.4 | 251 | 74 | memory bandwidth | 15% |
+| A100 80GB PCIe | `B1-S128-d128-H4-F128-L4-causal` | 0.9 | 24 | 37 | memory bandwidth | 1% |
+| A100 80GB PCIe | `B4-S128-d128-H4-F128-L4-causal` | 2.1 | 35 | 60 | memory bandwidth | 2% |
+| A100 80GB PCIe | `B16-S128-d128-H4-F128-L4-causal` | 6.4 | 92 | 70 | memory bandwidth | 6% |
+| A100 80GB PCIe | `B128-S128-d128-H4-F128-L4-causal` | 13.1 | 177 | 74 | memory bandwidth | 11% |
+| A100 80GB PCIe | `B10000-S128-d128-H4-F128-L4-causal` | 23.8 | 319 | 75 | memory bandwidth | 19% |
+| A100 80GB PCIe | `B64-S128-d32-H4-F32-L4-causal` | 1.4 | 54 | 27 | memory bandwidth | 3% |
+| A100 80GB PCIe | `B64-S128-d1024-H4-F1024-L4-causal` | 121.8 | 262 | 465 | tensor cores | 78% |
+| A100 80GB PCIe | `B64-S128-d128-H1-F128-L4-causal` | 19.9 | 271 | 74 | memory bandwidth | 16% |
+| A100 80GB PCIe | `B64-S128-d128-H2-F128-L4-causal` | 18.4 | 251 | 74 | memory bandwidth | 15% |
+| A100 80GB PCIe | `B64-S128-d128-H16-F128-L4-causal` | 7.8 | 105 | 74 | memory bandwidth | 6% |
+| A100 80GB PCIe | `B64-S32-d128-H4-F128-L4-causal` | 6.1 | 98 | 63 | memory bandwidth | 6% |
+| A100 80GB PCIe | `B64-S1024-d128-H4-F128-L4-causal` | 23.0 | 154 | 149 | tensor cores | 15% |
+| A100 80GB PCIe MIG 3g.40gb | `B64-S128-d128-H4-F128-L4-causal` | 10.5 | 142 | 74 | memory bandwidth | 17% |
+| A100 80GB PCIe MIG 3g.40gb | `B1-S128-d128-H4-F128-L4-causal` | 1.0 | 26 | 37 | memory bandwidth | 3% |
+| A100 80GB PCIe MIG 3g.40gb | `B4-S128-d128-H4-F128-L4-causal` | 3.2 | 53 | 60 | memory bandwidth | 6% |
+| A100 80GB PCIe MIG 3g.40gb | `B16-S128-d128-H4-F128-L4-causal` | 7.1 | 101 | 70 | memory bandwidth | 12% |
+| A100 80GB PCIe MIG 3g.40gb | `B128-S128-d128-H4-F128-L4-causal` | 11.4 | 154 | 74 | memory bandwidth | 19% |
+| A100 80GB PCIe MIG 3g.40gb | `B10000-S128-d128-H4-F128-L4-causal` | 6.2 | 84 | 75 | memory bandwidth | 10% |
+| A100 80GB PCIe MIG 3g.40gb | `B64-S128-d32-H4-F32-L4-causal` | 0.9 | 34 | 27 | memory bandwidth | 4% |
+| A100 80GB PCIe MIG 3g.40gb | `B64-S128-d1024-H4-F1024-L4-causal` | 61.9 | 133 | 465 | tensor cores | 40% |
+| A100 80GB PCIe MIG 3g.40gb | `B64-S128-d128-H1-F128-L4-causal` | 11.9 | 162 | 74 | memory bandwidth | 20% |
+| A100 80GB PCIe MIG 3g.40gb | `B64-S128-d128-H2-F128-L4-causal` | 7.9 | 108 | 74 | memory bandwidth | 13% |
+| A100 80GB PCIe MIG 3g.40gb | `B64-S128-d128-H16-F128-L4-causal` | 5.7 | 77 | 74 | memory bandwidth | 9% |
+| A100 80GB PCIe MIG 3g.40gb | `B64-S32-d128-H4-F128-L4-causal` | 4.4 | 70 | 63 | memory bandwidth | 8% |
+| A100 80GB PCIe MIG 3g.40gb | `B64-S1024-d128-H4-F128-L4-causal` | 18.8 | 126 | 149 | memory bandwidth | 15% |
+| H100 NVL | `B64-S128-d128-H4-F128-L4-causal` | 30.2 | 411 | 74 | memory bandwidth | 12% |
+| H100 NVL | `B1-S128-d128-H4-F128-L4-causal` | 1.1 | 29 | 37 | memory bandwidth | 1% |
+| H100 NVL | `B4-S128-d128-H4-F128-L4-causal` | 2.4 | 40 | 60 | memory bandwidth | 1% |
+| H100 NVL | `B16-S128-d128-H4-F128-L4-causal` | 13.5 | 192 | 70 | memory bandwidth | 5% |
+| H100 NVL | `B128-S128-d128-H4-F128-L4-causal` | 40.0 | 540 | 74 | memory bandwidth | 15% |
+| H100 NVL | `B10000-S128-d128-H4-F128-L4-causal` | 22.9 | 307 | 75 | memory bandwidth | 9% |
+| H100 NVL | `B64-S128-d32-H4-F32-L4-causal` | 2.6 | 98 | 27 | memory bandwidth | 3% |
+| H100 NVL | `B64-S128-d1024-H4-F1024-L4-causal` | 152.1 | 327 | 465 | tensor cores | 37% |
+| H100 NVL | `B64-S128-d128-H1-F128-L4-causal` | 25.5 | 346 | 74 | memory bandwidth | 10% |
+| H100 NVL | `B64-S128-d128-H2-F128-L4-causal` | 33.2 | 452 | 74 | memory bandwidth | 13% |
+| H100 NVL | `B64-S128-d128-H16-F128-L4-causal` | 11.2 | 152 | 74 | memory bandwidth | 4% |
+| H100 NVL | `B64-S32-d128-H4-F128-L4-causal` | 13.2 | 210 | 63 | memory bandwidth | 6% |
+| H100 NVL | `B64-S1024-d128-H4-F128-L4-causal` | 39.6 | 266 | 149 | tensor cores | 10% |
+| H100 NVL MIG 3g.47gb | `B64-S128-d128-H4-F128-L4-causal` | 10.7 | 145 | 74 | memory bandwidth | 8% |
+| H100 NVL MIG 3g.47gb | `B1-S128-d128-H4-F128-L4-causal` | 1.1 | 30 | 37 | memory bandwidth | 2% |
+| H100 NVL MIG 3g.47gb | `B4-S128-d128-H4-F128-L4-causal` | 4.1 | 68 | 60 | memory bandwidth | 4% |
+| H100 NVL MIG 3g.47gb | `B16-S128-d128-H4-F128-L4-causal` | 11.0 | 156 | 70 | memory bandwidth | 9% |
+| H100 NVL MIG 3g.47gb | `B128-S128-d128-H4-F128-L4-causal` | 21.2 | 286 | 74 | memory bandwidth | 16% |
+| H100 NVL MIG 3g.47gb | `B10000-S128-d128-H4-F128-L4-causal` | 23.9 | 320 | 75 | memory bandwidth | 18% |
+| H100 NVL MIG 3g.47gb | `B64-S128-d32-H4-F32-L4-causal` | 1.8 | 68 | 27 | memory bandwidth | 4% |
+| H100 NVL MIG 3g.47gb | `B64-S128-d1024-H4-F1024-L4-causal` | 135.1 | 291 | 465 | tensor cores | 33% |
+| H100 NVL MIG 3g.47gb | `B64-S128-d128-H1-F128-L4-causal` | 21.0 | 286 | 74 | memory bandwidth | 16% |
+| H100 NVL MIG 3g.47gb | `B64-S128-d128-H2-F128-L4-causal` | 20.6 | 280 | 74 | memory bandwidth | 16% |
+| H100 NVL MIG 3g.47gb | `B64-S128-d128-H16-F128-L4-causal` | 9.4 | 127 | 74 | memory bandwidth | 7% |
+| H100 NVL MIG 3g.47gb | `B64-S32-d128-H4-F128-L4-causal` | 11.6 | 185 | 63 | memory bandwidth | 10% |
+| H100 NVL MIG 3g.47gb | `B64-S1024-d128-H4-F128-L4-causal` | 38.3 | 257 | 149 | memory bandwidth | 14% |
+| H200 NVL | `B64-S128-d128-H4-F128-L4-causal` | 17.2 | 234 | 74 | memory bandwidth | 6% |
+| H200 NVL | `B1-S128-d128-H4-F128-L4-causal` | 1.1 | 29 | 37 | memory bandwidth | 1% |
+| H200 NVL | `B4-S128-d128-H4-F128-L4-causal` | 2.3 | 39 | 60 | memory bandwidth | 1% |
+| H200 NVL | `B16-S128-d128-H4-F128-L4-causal` | 13.6 | 194 | 70 | memory bandwidth | 5% |
+| H200 NVL | `B128-S128-d128-H4-F128-L4-causal` | 39.2 | 529 | 74 | memory bandwidth | 13% |
+| H200 NVL | `B10000-S128-d128-H4-F128-L4-causal` | 50.3 | 674 | 75 | memory bandwidth | 17% |
+| H200 NVL | `B64-S128-d32-H4-F32-L4-causal` | 2.7 | 100 | 27 | memory bandwidth | 2% |
+| H200 NVL | `B64-S128-d1024-H4-F1024-L4-causal` | 289.2 | 622 | 465 | tensor cores | 70% |
+| H200 NVL | `B64-S128-d128-H1-F128-L4-causal` | 31.3 | 426 | 74 | memory bandwidth | 11% |
+| H200 NVL | `B64-S128-d128-H2-F128-L4-causal` | 32.8 | 446 | 74 | memory bandwidth | 11% |
+| H200 NVL | `B64-S128-d128-H16-F128-L4-causal` | 15.8 | 216 | 74 | memory bandwidth | 5% |
+| H200 NVL | `B64-S32-d128-H4-F128-L4-causal` | 13.2 | 211 | 63 | memory bandwidth | 5% |
+| H200 NVL | `B64-S1024-d128-H4-F128-L4-causal` | 71.0 | 476 | 149 | tensor cores | 17% |
 
 **What this says.**
 
-- **The compute-bound shapes reach 10%-78% of the tensor-core ceiling on sm_80 and sm_90.** The best is `B64-S128-d1024-H4-F1024-L4-causal` at 78% on sm_80, which is a good place to be for a mixed Triton/cuBLAS implementation; the weakest is `B64-S1024-d128-H4-F128-L4-causal` at 10% on sm_90.
+- **The compute-bound shapes reach 10%-78% of the tensor-core ceiling on A100 80GB PCIe and A100 80GB PCIe MIG 3g.40gb and A100-PCIE-40GB and H100 NVL and H100 NVL MIG 3g.47gb and H200 NVL.** The best is `B64-S128-d1024-H4-F1024-L4-causal` at 78% on A100 80GB PCIe, which is a good place to be for a mixed Triton/cuBLAS implementation; the weakest is `B64-S1024-d128-H4-F128-L4-causal` at 10% on H100 NVL.
 - **The other 68 rows are memory-bandwidth-bound**, at arithmetic intensities of 37-75 FLOP/byte against ridge points an order of magnitude higher. They are not failing to use the machine; there is barely any arithmetic to do. Their speedups come from removing kernel launches, and the roofline confirms there is nothing further to win from better math on them.
 
-Utilization is lower on sm_90 than on sm_80 for 13 of the 13 shapes both cards ran: the machine is larger and our tiles do not saturate it. Closing that would mean Hopper-specific work (TMA, wgmma, larger persistent tiles) that we scoped out.
+Utilization is lower on H200 NVL than on A100 80GB PCIe for 11 of the 13 shapes both cards ran: the machine is larger and our tiles do not saturate it. Closing that would mean Hopper-specific work (TMA, wgmma, larger persistent tiles) that we scoped out.
 
 ## AI-generated kernel source
 

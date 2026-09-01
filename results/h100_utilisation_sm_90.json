@@ -9,15 +9,16 @@
     },
     "compute_bound_shapes": {
       "B64-S128-d1024-H4-F1024-L4-causal": {
-        "A100_pct_tensor_ceiling": "77%",
-        "H100_pct_tensor_ceiling": "53%"
+        "A100_pct_tensor_ceiling": "78%",
+        "H100_pct_tensor_ceiling": "37%"
       },
       "B64-S1024-d128-H4-F128-L4-causal": {
-        "A100_pct_tensor_ceiling": "25%",
-        "H100_pct_tensor_ceiling": "15%"
+        "A100_pct_tensor_ceiling": "15%",
+        "H100_pct_tensor_ceiling": "10%"
       }
     }
   },
   "finding": "On the 11 bandwidth-bound shapes neither card comes close to a hardware limit -- both sit under 11% of their own peak DRAM bandwidth -- so nothing there is tiling-limited. Those shapes are S=128 with d<=128: there is too little work to saturate either machine, and the binding constraint is launch and occupancy, not the tile. The H100's lower *percentage of tensor-core ceiling* is largely arithmetic: its ceiling is 2.7x the A100's while its memory bandwidth is only 2.1x, so identical behaviour scores lower. The real gap is confined to the two compute-bound shapes, where the H100 reaches 53% and 15% of ceiling against the A100's 77% and 25%.",
-  "consequence": "The limitation is narrower than we had written it. It is not 'our tiles do not saturate the H100' across the board; it is 'on the two official shapes with enough arithmetic to be compute-bound, we reach a lower fraction of the H100's ceiling than the A100's'. Larger tilings were measured and did not help (results/tile_space_probe_sm_90.json), so the remaining lever is TMA and wgmma, which we did not build."
+  "consequence": "The limitation is narrower than we had written it. It is not 'our tiles do not saturate the H100' across the board; it is 'on the two official shapes with enough arithmetic to be compute-bound, we reach a lower fraction of the H100's ceiling than the A100's'. Larger tilings were measured and did not help (results/tile_space_probe_sm_90.json), so the remaining lever is TMA and wgmma, which we did not build.",
+  "note": "Refreshed against the nine-GPU round. The roofline table now labels rows by card rather than architecture, because three cards can share an architecture and an `sm_80` label no longer identifies a row."
 }
